@@ -12,5 +12,10 @@ int redisliteGetVarint32(const unsigned char *, int *);
 
 void redislite_put_4bytes(unsigned char *p, int v);
 int redislite_get_4bytes(const char *p);
+void redislite_put_2bytes(unsigned char *p, int v);
+int redislite_get_2bytes(const char *p);
+
+#define MIN(A,B) ((A) > (B) ? (B) : (A))
+#define MAX(A,B) ((A) < (B) ? (B) : (A))
 
 #endif

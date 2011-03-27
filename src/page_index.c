@@ -16,11 +16,10 @@ redislite_page_index *redislite_page_index_create(void* db)
 	page->keys = NULL;
 	page->alloced_keys = 0;
 	page->db = _db;
-	_db->number_of_pages++; // FIXME
 	return page;
 }
 
-int redislite_page_index_add_key(redislite_page_index *page, char *key, int length)
+int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, char *key, int length)
 {
 	redislite_page_index_key *index_key = malloc(sizeof(redislite_page_index_key));
 	if (index_key == NULL) return REDISLITE_OOM;
@@ -29,8 +28,7 @@ int redislite_page_index_add_key(redislite_page_index *page, char *key, int leng
 	int new_key_length = length + 4;
 	new_key_length += putVarint32(length_str, length);
 	if (page->free_space < new_key_length) {
-		printf("Need more space\n");
-		exit(1);
+		return REDISLITE_ERR;
 	}
 
 	if (page->alloced_keys == 0) {
@@ -47,9 +45,15 @@ int redislite_page_index_add_key(redislite_page_index *page, char *key, int leng
 	index_key->keyname = malloc(length * sizeof(char));
 	if (index_key->keyname == NULL) return REDISLITE_OOM;
 	memcpy(index_key->keyname, key, length);
-	index_key->left_page = 0;
+	index_key->left_page = left;
 
-	page->keys[page->number_of_keys++] = index_key;
+	if (pos == -1) pos = page->number_of_keys;
+	int i;
+	for (i = page->number_of_keys-1; i >= pos; --i) {
+		page->keys[i+1] = page->keys[i];
+	}
+	page->keys[pos] = index_key;
+	page->number_of_keys++;
 	page->free_space -= new_key_length;
 
 	return REDISLITE_OK;

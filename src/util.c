@@ -349,11 +349,20 @@ int redisliteGetVarint32(const unsigned char *p, int *v){
 #endif
 }
 
+void redislite_put_2bytes(unsigned char *p, int v){
+  p[0] = (unsigned char)(v>>8);
+  p[1] = (unsigned char)v;
+}
+
 void redislite_put_4bytes(unsigned char *p, int v){
   p[0] = (unsigned char)(v>>24);
   p[1] = (unsigned char)(v>>16);
   p[2] = (unsigned char)(v>>8);
   p[3] = (unsigned char)v;
+}
+
+int redislite_get_2bytes(unsigned char *p){
+  return p[1] + (p[0]<<8);
 }
 
 int redislite_get_4bytes(const char *p){ 

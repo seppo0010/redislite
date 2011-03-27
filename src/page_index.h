@@ -18,6 +18,6 @@ typedef struct {
 } redislite_page_index;
 
 redislite_page_index *redislite_page_index_create(void* db);
-int redislite_page_index_add_key(redislite_page_index *page, char *key, int length);
+int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, char *key, int length);
 
 #endif
