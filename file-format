@@ -1,0 +1,41 @@
+index
+data
+overflow
+freelist
+
+index
+1 byte type
+4 bytes reserved
+4 bytes free space (from the end)
+2 bytes number of keys
+list of keys, sorted
+    varint keyname size
+    keyname
+    4 bytes left page
+        if index, this key is the last value
+        if only result, data
+4 bytes nextpage
+    0s if last
+
+data
+1 byte type
+4 bytes free space start
+4 bytes free space length
+2 bytes number of keys
+list of keys
+    varint key name size
+    keyname
+    1 byte value type
+    varint start position
+    varint size in page
+    varint overflow page
+data (fill from the end)
+
+overflow
+4 bytes free space start
+4 bytes next overflow
+data
+
+freelist
+4 bytes next freelist
+garbage
