@@ -127,7 +127,6 @@ static int redislite_save_db(redislite *db)
 				break;
 			}
 		}
-printf("Saving page %d\n", page->number);
 		fseek(db->file, db->page_size * page->number, SEEK_SET);
 		fwrite(data, db->page_size, sizeof(unsigned char), db->file);
 		free(data);

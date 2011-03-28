@@ -96,7 +96,6 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 			redislite_page_index* new_page = redislite_page_index_create(db);
 			if (new_page == NULL) return REDISLITE_OOM;
 			page_num = redislite_add_modified_page(db, -1, redislite_page_type_index, new_page);
-			printf("Creating page %d\n", page_num);
 			if (pos == page->number_of_keys) {
 				page->right_page = page_num;
 			} else {
