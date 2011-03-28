@@ -8,7 +8,8 @@ void *redislite_page_get(void* _db, int num, redislite_page_type* type) {
 	if (data == NULL) return NULL;
 	void *result = NULL;
 	if (data[0] == 'I') {
-		result = redislite_read_index(db, data);
+		*type = redislite_page_type_index;
+		result = redislite_read_index(db, data+1);
 	}
 	free(data);
 	return result;
