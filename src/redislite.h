@@ -2,6 +2,7 @@
 #define _REDISLITE_H
 
 #include <stdio.h>
+#include "page.h"
 
 typedef struct {
 	unsigned char *filename;
@@ -23,6 +24,8 @@ typedef struct {
 redislite* redislite_create_database(const unsigned char *filename);
 redislite* redislite_open_database(const unsigned char *filename);
 void redislite_close_database(redislite *db);
+unsigned char *redislite_read_page(redislite *db, int num);
+int redislite_add_modified_page(redislite *db, int page_number, redislite_page_type type, void *page_data);
 
 #define REDISLITE_OK 0
 #define REDISLITE_ERR 1

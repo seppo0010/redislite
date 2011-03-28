@@ -13,17 +13,29 @@
 #define WRITE_FORMAT_VERSION 1
 #define READ_FORMAT_VERSION 1
 
-static void redislite_add_modified_page(redislite *db, int page_number, redislite_page_type type, void *page_data)
+int redislite_add_modified_page(redislite *db, int page_number, redislite_page_type type, void *page_data)
 {
 	if (db->readonly) return; // TODO: error
+
+	int i;
+	// TODO: binary search
+	for (i=0; i<db->modified_pages_length;i++) {
+		if (((redislite_page*)db->modified_pages[i])->number == page_number) {
+			return page_number;
+		}
+
+		if (((redislite_page*)db->modified_pages[i])->number > page_number) {
+			break;
+		}
+	}
+
 	if (page_number == -1) page_number = db->number_of_pages;
 
 	if (db->modified_pages != NULL) {
-		int i;
 		redislite_page *page;
 		for (i=0; i < db->modified_pages_length; i++) {
 			page = db->modified_pages[i];
-				if (page->number == page_number) return; // TODO: is this ok?
+			if (page->number == page_number) return; // TODO: is this ok?
 		}
 	}
 
@@ -38,42 +50,47 @@ static void redislite_add_modified_page(redislite *db, int page_number, redislit
 		db->modified_pages = modified_pages;
 		db->modified_pages_free = db->modified_pages_length;
 	}
-	redislite_page *page = (redislite_page *)malloc(sizeof(redislite_page *));
+	redislite_page *page = (redislite_page *)malloc(sizeof(redislite_page));
 	page->type = type;
 	page->number = page_number;
 	page->data = page_data;
-	db->modified_pages[db->modified_pages_length++] = page;
+	int pos = 0;
+
+	// TODO: binary search
+	for (i=0; i<db->modified_pages_length;i++) {
+		if (((redislite_page*)db->modified_pages[i])->number > page_number) {
+			break;
+		} else {
+			pos = i+1;
+		}
+	}
+
+	for (i = db->modified_pages_length - 1; i >= pos; i--) {
+		db->modified_pages[i+1] = db->modified_pages[i];
+	}
+
+	db->modified_pages[pos] = page;
+	db->modified_pages_length++;
 	db->modified_pages_free--;
 	if (page_number >= db->number_of_pages) db->number_of_pages = page_number + 1;
+	return page_number;
 }
 
 static void redislite_set_root(redislite *db, redislite_page_index *page)
 {
 	db->root = page;
+	page->free_space -= 100;
 	redislite_add_modified_page(db, 0, redislite_page_type_first, page);
 }
 
-static void redislite_write_index(unsigned char *data, redislite_page_index *page)
-{
-	redislite_put_4bytes(&data[0], page->free_space);
-	redislite_put_2bytes(&data[4], page->number_of_keys);
-	redislite_put_4bytes(&data[6], page->right_page);
-	int i;
-	int pos = 10;
-	for (i=0; i < page->number_of_keys; i++) {
-		redislite_page_index_key* key = page->keys[i];
-		pos += putVarint32(&data[pos], key->keyname_size);
-		memcpy(&data[pos], key->keyname, key->keyname_size);
-		pos += key->keyname_size;
-		redislite_put_4bytes(&data[pos], key->left_page);
-		pos += 4;
-	}
-}
-
-static void redislite_save_db(redislite *db)
+static int redislite_save_db(redislite *db)
 {
 	if (!db->file) {
 		db->file = fopen(db->filename, "ab");
+	}
+
+	if (!db->file) {
+		return REDISLITE_ERR;
 	}
 
 	int i;
@@ -100,7 +117,8 @@ static void redislite_save_db(redislite *db)
 
 			case redislite_page_type_index:
 			{
-				redislite_write_index(&data[0], page->data);
+				data[0] = 'I';
+				redislite_write_index(&data[1], page->data);
 				break;
 			}
 
@@ -109,12 +127,14 @@ static void redislite_save_db(redislite *db)
 				break;
 			}
 		}
+printf("Saving page %d\n", page->number);
 		fseek(db->file, db->page_size * page->number, SEEK_SET);
 		fwrite(data, db->page_size, sizeof(unsigned char), db->file);
 		free(data);
 	}
 	fclose(db->file);
 	db->file = NULL;
+	return REDISLITE_OK;
 }
 
 static void test_add_key(redislite *db, redislite_page_index *page)
@@ -124,31 +144,7 @@ static void test_add_key(redislite *db, redislite_page_index *page)
 	sprintf(key, "%d", rnd);
 	int size = strlen(key);
 
-	int pos = 0;
-	int i;
-	int cmp_result;
-	for (i=0; i < page->number_of_keys; i++) {
-		cmp_result = (memcmp(page->keys[i]->keyname, key, MIN(page->keys[i]->keyname_size, size)));
-		if (cmp_result == 0) {
-			cmp_result = (page->keys[i]->keyname_size > size ? 1 : -1);
-			/* assert != size */
-		}
-		if (cmp_result < 0) {
-			pos = i+1;
-		} else {
-			break;
-		}
-	}
-
-	if (REDISLITE_ERR == redislite_page_index_add_key(page, pos, 0, key, size)) {
-return;
-		page = redislite_page_index_create(db);
-		if (REDISLITE_ERR == redislite_page_index_add_key(page, 0, 0, key, size)) {
-			printf("Ouh, key too big\n");
-			exit(1);
-		}
-		redislite_add_modified_page(db, -1, redislite_page_type_index, page);
-	}
+	redislite_insert_key(db, key, size, 0);
 }
 
 redislite* redislite_create_database(const unsigned char *filename)
@@ -174,7 +170,7 @@ redislite* redislite_create_database(const unsigned char *filename)
 	redislite_set_root(db, page);
 
 	int i;
-	for (i=0;i<5;i++)
+	for (i=0;i<500;i++)
 		test_add_key(db, page);
 
 	return db;
@@ -206,6 +202,28 @@ redislite* redislite_open_database(const unsigned char *filename) {
 cleanup:
 	fclose(fp);
 	return db;
+}
+
+unsigned char *redislite_read_page(redislite *db, int num)
+{
+	int i;
+	unsigned char *data = malloc(sizeof(unsigned char) * db->page_size);
+	if (data == NULL) return NULL;
+	// TODO: binary search
+	for (i=0; i < db->modified_pages_length; i++) {
+		redislite_page *page = db->modified_pages[i];
+		if (page->number == num) {
+			redislite_write_index(&data[0], page->data);
+			return data;
+		}
+	}
+
+	if (!db->file) {
+		db->file = fopen(db->filename, "ab");
+	}
+	fseek(db->file, db->page_size * num, SEEK_SET);
+	fread(data, sizeof(unsigned char), db->page_size, db->file);
+	return data;
 }
 
 void redislite_close_database(redislite *db) {
