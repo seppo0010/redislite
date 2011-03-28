@@ -86,7 +86,7 @@ static void redislite_set_root(redislite *db, redislite_page_index *page)
 static int redislite_save_db(redislite *db)
 {
 	if (!db->file) {
-		db->file = fopen(db->filename, "ab");
+		db->file = fopen(db->filename, "r+");
 	}
 
 	if (!db->file) {
@@ -184,6 +184,11 @@ redislite* redislite_open_database(const unsigned char *filename) {
 	db->modified_pages_length = 0;
 	db->modified_pages_free = 0;
 
+	unsigned char *data = malloc(sizeof(unsigned char) * db->page_size - 100);
+	fread(data, sizeof(unsigned char), db->page_size - 100, fp);
+	db->root = redislite_read_index(db, data);
+	free(data);
+
 cleanup:
 	fclose(fp);
 	return db;
@@ -204,9 +209,9 @@ unsigned char *redislite_read_page(redislite *db, int num)
 	}
 
 	if (!db->file) {
-		db->file = fopen(db->filename, "ab");
+		db->file = fopen(db->filename, "r+");
 	}
-	fseek(db->file, db->page_size * num, SEEK_SET);
+	fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	fread(data, sizeof(unsigned char), db->page_size, db->file);
 	return data;
 }
