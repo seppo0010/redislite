@@ -15,7 +15,7 @@
 
 int redislite_add_modified_page(redislite *db, int page_number, redislite_page_type type, void *page_data)
 {
-	if (db->readonly) return; // TODO: error
+	if (db->readonly) return -1; // TODO: error
 
 	int i;
 	// TODO: binary search
@@ -136,16 +136,6 @@ static int redislite_save_db(redislite *db)
 	return REDISLITE_OK;
 }
 
-static void test_add_key(redislite *db, redislite_page_index *page)
-{
-	int rnd = arc4random();
-	char key[14];
-	sprintf(key, "%d", rnd);
-	int size = strlen(key);
-
-	redislite_insert_key(db, key, size, 0);
-}
-
 redislite* redislite_create_database(const unsigned char *filename)
 {
 	int page_size = DEFAULT_PAGE_SIZE;
@@ -167,10 +157,6 @@ redislite* redislite_create_database(const unsigned char *filename)
 	
 	redislite_page_index* page = (redislite_page_index*)redislite_page_index_create(db);
 	redislite_set_root(db, page);
-
-	int i;
-	for (i=0;i<500;i++)
-		test_add_key(db, page);
 
 	return db;
 }
