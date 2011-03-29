@@ -1,6 +1,5 @@
 index
 data
-overflow
 freelist
 
 index
@@ -17,25 +16,10 @@ list of keys, sorted
 4 bytes nextpage
     0s if last
 
-data
-1 byte type
-4 bytes free space start
-4 bytes free space length
-2 bytes number of keys
-list of keys
-    varint key name size
-    keyname
-    1 byte value type
-    varint start position
-    varint size in page
-    varint overflow page
-data (fill from the end)
-
-overflow
-4 bytes free space start
-4 bytes next overflow
-data
-
 freelist
 4 bytes next freelist
 garbage
+
+data
+# Each datatype will implement its own type of pages. The first byte of the first page should be an indicator of the value type. If the value requires more than one page, the other pages does not need to include the type.
+# This document will be updated with each datatype page description
