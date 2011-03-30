@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "page.h"
 #include "redislite.h"
 #include "page_index.h"
