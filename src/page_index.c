@@ -98,6 +98,11 @@ int t = 0;
 			redislite_page_index* new_page = redislite_page_index_create(db);
 			if (new_page == NULL) return REDISLITE_OOM;
 			page_num = redislite_add_modified_page(db, -1, redislite_page_type_index, new_page);
+			if (pos < page->number_of_keys) {
+				int r = redislite_page_index_add_key(new_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size);
+				if (r != REDISLITE_OK) return r;
+			}
+
 			if (pos == page->number_of_keys) {
 				page->right_page = page_num;
 			} else {
