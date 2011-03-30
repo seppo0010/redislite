@@ -87,6 +87,9 @@ static int redislite_save_db(redislite *db)
 {
 	if (!db->file) {
 		db->file = fopen(db->filename, "r+");
+		if (!db->file) {
+			db->file = fopen(db->filename, "w+");
+		}
 	}
 
 	if (!db->file) {
