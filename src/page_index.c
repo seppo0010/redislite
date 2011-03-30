@@ -64,11 +64,13 @@ redislite_page_index *redislite_page_index_create(void* db)
 int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 {
 	redislite *db = (redislite*)_db;
-	int pos = 0;
+	int pos;
 	int i;
 	int cmp_result;
 	redislite_page_index *page = (redislite_page_index*)db->root;
+int t = 0;
 	while (page != NULL) {
+		pos = 0;
 		for (i=0; i < page->number_of_keys; i++) {
 			cmp_result = (memcmp(page->keys[i]->keyname, key, MIN(page->keys[i]->keyname_size, length)));
 			if (cmp_result == 0) {
