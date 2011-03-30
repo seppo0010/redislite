@@ -121,12 +121,15 @@ static int redislite_save_db(redislite *db)
 			case redislite_page_type_index:
 			{
 				data[0] = 'I';
+				memset(&data[1], '\0', db->page_size-1);
 				redislite_write_index(&data[1], page->data);
 				break;
 			}
 
 			default:
 			{
+				data[0] = 'D';
+				memset(&data[1], '\0', db->page_size-1);
 				break;
 			}
 		}
