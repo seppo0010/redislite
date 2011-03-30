@@ -86,9 +86,9 @@ static void redislite_set_root(redislite *db, redislite_page_index *page)
 static int redislite_save_db(redislite *db)
 {
 	if (!db->file) {
-		db->file = fopen(db->filename, "r+");
+		db->file = fopen(db->filename, "rb+");
 		if (!db->file) {
-			db->file = fopen(db->filename, "w+");
+			db->file = fopen(db->filename, "wb+");
 		}
 	}
 
@@ -212,7 +212,7 @@ unsigned char *redislite_read_page(redislite *db, int num)
 	}
 
 	if (!db->file) {
-		db->file = fopen(db->filename, "r+");
+		db->file = fopen(db->filename, "rb+");
 	}
 	fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	fread(data, sizeof(unsigned char), db->page_size, db->file);
