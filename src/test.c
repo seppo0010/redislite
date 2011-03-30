@@ -3,7 +3,7 @@
 
 static void test_add_key(redislite *db)
 {
-	int rnd = arc4random();
+	int rnd = rand();
 	char key[14];
 	sprintf(key, "%d", rnd);
 	int size = strlen(key);
