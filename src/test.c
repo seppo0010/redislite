@@ -15,19 +15,20 @@ static char *test_add_key(redislite *db, int *left)
 	return key;
 }
 
+#define SIZE 200
+
 int main() {
+	srand(4);
 	redislite *db = redislite_open_database("test.db");
 	int i;
 
-	char *key[100];
-	int value[100];
-	for (i=0; i < 100; i++)
+	char *key[SIZE];
+	int value[SIZE];
+	for (i=0; i < SIZE; i++)
 		key[i] = test_add_key(db, &value[i]);
 
-/*
-	for (i=0; i < 100; i++)
-		printf("%d\n", value[i] == redislite_value_page_for_key(db, key[i], strlen(key[i])));
-*/
+	for (i=0; i < SIZE; i++)
+		printf("%s %d %d\n", key[i], value[i], 0 < redislite_value_page_for_key(db, key[i], strlen(key[i])));
 
 	redislite_close_database(db);
 	return 0;
