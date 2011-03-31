@@ -7,13 +7,7 @@
 #include "util.h"
 
 
-#define HEADER_STRING "Redislite format 1"
-#define DEFAULT_PAGE_SIZE 512
-#define DEFAULT_MODIFIED_PAGE_SIZE 4
-#define WRITE_FORMAT_VERSION 1
-#define READ_FORMAT_VERSION 1
-
-int redislite_add_modified_page(redislite *db, int page_number, redislite_page_type type, void *page_data)
+int redislite_add_modified_page(redislite *db, int page_number, char type, void *page_data)
 {
 	if (db->readonly) return -1; // TODO: error
 
@@ -51,7 +45,7 @@ int redislite_add_modified_page(redislite *db, int page_number, redislite_page_t
 		db->modified_pages_free = db->modified_pages_length;
 	}
 	redislite_page *page = (redislite_page *)malloc(sizeof(redislite_page));
-	page->type = type;
+	page->type = redislite_page_get_type(type);
 	page->number = page_number;
 	page->data = page_data;
 	int pos = 0;
@@ -80,7 +74,7 @@ static void redislite_set_root(redislite *db, redislite_page_index *page)
 {
 	db->root = page;
 	page->free_space -= 100;
-	redislite_add_modified_page(db, 0, redislite_page_type_first, page);
+	redislite_add_modified_page(db, 0, REDISLITE_PAGE_TYPE_FIRST, page);
 }
 
 static int redislite_save_db(redislite *db)
@@ -101,38 +95,9 @@ static int redislite_save_db(redislite *db)
 		redislite_page *page = db->modified_pages[i];
 		unsigned char *data = (unsigned char*)malloc(sizeof(unsigned char) * db->page_size);
 
-		switch (page->type) {
-			case redislite_page_type_first:
-			{
-				memcpy(data, HEADER_STRING, sizeof(HEADER_STRING));
-				data[20] = (db->page_size>>8); // page size
-				data[21] = (db->page_size); // page size
-				data[22] = WRITE_FORMAT_VERSION; // write format version
-				data[23] = READ_FORMAT_VERSION; // read format version
-				redislite_put_4bytes(&data[24], 0); // TODO: implement me
-				redislite_put_4bytes(&data[28], db->number_of_pages);
-				redislite_put_4bytes(&data[32], db->first_freelist_page);
-				redislite_put_4bytes(&data[36], db->number_of_freelist_pages);
-				memset(&data[40], 0, 100-40); // reserved
-				redislite_write_index(&data[100], page->data);
-				break;
-			}
-
-			case redislite_page_type_index:
-			{
-				data[0] = 'I';
-				memset(&data[1], '\0', db->page_size-1);
-				redislite_write_index(&data[1], page->data);
-				break;
-			}
-
-			default:
-			{
-				data[0] = 'D';
-				memset(&data[1], '\0', db->page_size-1);
-				break;
-			}
-		}
+		data[0] = page->type->identifier;
+		memset(&data[1], '\0', db->page_size-1);
+		page->type->write_function(db, &data[1], page->data);
 		fseek(db->file, db->page_size * page->number, SEEK_SET);
 		fwrite(data, db->page_size, sizeof(unsigned char), db->file);
 		free(data);
@@ -168,10 +133,11 @@ redislite* redislite_create_database(const unsigned char *filename)
 }
 
 redislite* redislite_open_database(const unsigned char *filename) {
+	init_index();
 	FILE *fp = fopen(filename, "r");
 	if (!fp) return redislite_create_database(filename);
-	unsigned char header[100];
-	fread(header, sizeof(unsigned char), 100, fp);
+	unsigned char header[DEFAULT_PAGE_SIZE]; // TODO: read 100 header and then the rest
+	fread(header, sizeof(unsigned char), DEFAULT_PAGE_SIZE, fp);
 	redislite* db = NULL;
 	if (memcmp(header, HEADER_STRING, sizeof(HEADER_STRING)) != 0) goto cleanup; // file exist, but not as a redislite db
 	if (header[23] > READ_FORMAT_VERSION) goto cleanup; // newer format
@@ -180,20 +146,6 @@ redislite* redislite_open_database(const unsigned char *filename) {
 	size_t size = strlen(filename) + 1;
 	db->filename = malloc(size);
 	memcpy(db->filename, filename, size);
-	db->file = NULL;
-	db->page_size = header[21] + (header[20]<<8);
-	db->readonly = (header[22] > WRITE_FORMAT_VERSION);
-	db->number_of_pages = redislite_get_4bytes(&header[28]);
-	db->first_freelist_page = redislite_get_4bytes(&header[32]);
-	db->number_of_freelist_pages = redislite_get_4bytes(&header[36]);
-	db->modified_pages = NULL;
-	db->modified_pages_length = 0;
-	db->modified_pages_free = 0;
-
-	unsigned char *data = malloc(sizeof(unsigned char) * db->page_size - 100);
-	fread(data, sizeof(unsigned char), db->page_size - 100, fp);
-	db->root = redislite_read_index(db, data);
-	free(data);
 
 cleanup:
 	fclose(fp);
@@ -209,7 +161,7 @@ unsigned char *redislite_read_page(redislite *db, int num)
 	for (i=0; i < db->modified_pages_length; i++) {
 		redislite_page *page = db->modified_pages[i];
 		if (page->number == num) {
-			redislite_write_index(&data[0], page->data);
+			redislite_write_index(db, &data[0], page->data);
 			return data;
 		}
 	}

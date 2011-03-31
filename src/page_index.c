@@ -5,9 +5,37 @@
 #include "redislite.h"
 #include "page.h"
 #include "util.h"
+#include "page_first.h"
+#include "page_data.h"
 
-void redislite_write_index(unsigned char *data, redislite_page_index *page)
+void init_index()
 {
+	{
+		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		type->identifier = 'I';
+		type->write_function = &redislite_write_index;
+		type->read_function = &redislite_read_index;
+		redislite_page_register_type(type);
+	}
+	{
+		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		type->identifier = 'D';
+		type->write_function = &redislite_write_data;
+		type->read_function = &redislite_read_data;
+		redislite_page_register_type(type);
+	}
+	{
+		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		type->identifier = 'F';
+		type->write_function = &redislite_write_first;
+		type->read_function = &redislite_read_first;
+		redislite_page_register_type(type);
+	}
+}
+
+void redislite_write_index(void *db, unsigned char *data, void *_page)
+{
+	redislite_page_index *page = (redislite_page_index*)_page;
 	redislite_put_4bytes(&data[0], page->free_space);
 	redislite_put_2bytes(&data[4], page->number_of_keys);
 	redislite_put_4bytes(&data[6], page->right_page);
@@ -23,7 +51,7 @@ void redislite_write_index(unsigned char *data, redislite_page_index *page)
 	}
 }
 
-redislite_page_index *redislite_read_index(void *db, unsigned char *data)
+void *redislite_read_index(void *db, unsigned char *data)
 {
 	redislite* _db = (redislite*)db;
 	redislite_page_index *page = malloc(sizeof(redislite_page_index));
@@ -89,7 +117,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, u
 		}
 
 		int page_num;
-		redislite_page_type type;
+		char type;
 		if (pos == page->number_of_keys) {
 			page_num = page->right_page;
 		} else {
@@ -101,7 +129,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, u
 		}
 
 		redislite_page_index* new_page = redislite_page_get(db, page_num, &type);
-		if (type == redislite_page_type_index) {
+		if (type == REDISLITE_PAGE_TYPE_INDEX) {
 			page = new_page;
 		} else {
 			return NULL;
@@ -142,7 +170,7 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 		if (result == REDISLITE_OOM || result == REDISLITE_OK) return result;
 
 		int page_num;
-		redislite_page_type type;
+		char type;
 		if (pos == page->number_of_keys) {
 			page_num = page->right_page;
 		} else {
@@ -152,7 +180,7 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 		if (page_num == 0) {
 			redislite_page_index* new_page = redislite_page_index_create(db);
 			if (new_page == NULL) return REDISLITE_OOM;
-			page_num = redislite_add_modified_page(db, -1, redislite_page_type_index, new_page);
+			page_num = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_INDEX, new_page);
 			if (pos < page->number_of_keys) {
 				int r = redislite_page_index_add_key(new_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size);
 				if (r != REDISLITE_OK) return r;
@@ -168,7 +196,7 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 		}
 
 		redislite_page_index* new_page = redislite_page_get(db, page_num, &type);
-		if (type == redislite_page_type_index) {
+		if (type == REDISLITE_PAGE_TYPE_INDEX) {
 			page = new_page;
 		} else {
 			redislite_page_index* new_index_page = redislite_page_index_create(db);
@@ -176,7 +204,7 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 			/* assert pos<size */
 			int r = redislite_page_index_add_key(new_index_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size);
 			if (r != REDISLITE_OK) return r;
-			page->keys[pos]->left_page = redislite_add_modified_page(db, -1, redislite_page_type_index, new_index_page);
+			page->keys[pos]->left_page = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_INDEX, new_index_page);
 			page = new_index_page;
 		}
 	}

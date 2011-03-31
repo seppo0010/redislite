@@ -10,7 +10,7 @@ static char *test_add_key(redislite *db, int *left)
 	sprintf(key, "%d", rnd);
 	int size = strlen(key);
 
-	*left = redislite_add_modified_page(db, -1, redislite_page_type_data, NULL);
+	*left = redislite_add_modified_page(db, -1, 'D', NULL);
 	redislite_insert_key(db, key, size, *left);
 	return key;
 }
