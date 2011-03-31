@@ -28,7 +28,8 @@ int main() {
 		key[i] = test_add_key(db, &value[i]);
 
 	for (i=0; i < SIZE; i++)
-		printf("%s %d %d\n", key[i], value[i], 0 < redislite_value_page_for_key(db, key[i], strlen(key[i])));
+		if (0 == redislite_value_page_for_key(db, key[i], strlen(key[i])))
+			printf("%s %d %d\n", key[i], value[i], 0);
 
 	redislite_close_database(db);
 	return 0;

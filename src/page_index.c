@@ -157,7 +157,6 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 				page->keys[pos]->left_page = page_num;
 			}
 			// TODO: set page as dirty
-			left = 0; // TODO: left should point to the data page
 			return redislite_page_index_add_key(new_page, 0, left, key, length);
 		}
 
