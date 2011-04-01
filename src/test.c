@@ -10,7 +10,10 @@ static char *test_add_key(redislite *db, int *left)
 	sprintf(key, "%d", rnd);
 	int size = strlen(key);
 
-	*left = redislite_add_modified_page(db, -1, 'D', NULL);
+	char *data = malloc(sizeof(char) * db->page_size);
+	memset(data, 0, db->page_size);
+	sprintf(data, "%d", rnd);
+	*left = redislite_add_modified_page(db, -1, 'D', data);
 	redislite_insert_key(db, key, size, *left);
 	return key;
 }
@@ -28,8 +31,8 @@ int main() {
 		key[i] = test_add_key(db, &value[i]);
 
 	for (i=0; i < SIZE; i++)
-		if (0 == redislite_value_page_for_key(db, key[i], strlen(key[i])))
-			printf("%s %d %d\n", key[i], value[i], 0);
+		if (value[i] != redislite_value_page_for_key(db, key[i], strlen(key[i])))
+			printf("%s %d %d\n", key[i], value[i], redislite_value_page_for_key(db, key[i], strlen(key[i])));
 
 	redislite_close_database(db);
 	return 0;
