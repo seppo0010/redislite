@@ -36,11 +36,12 @@ void init_index()
 void redislite_write_index(void *db, unsigned char *data, void *_page)
 {
 	redislite_page_index *page = (redislite_page_index*)_page;
-	redislite_put_4bytes(&data[0], page->free_space);
-	redislite_put_2bytes(&data[4], page->number_of_keys);
-	redislite_put_4bytes(&data[6], page->right_page);
+	data[0] = 'I';
+	redislite_put_4bytes(&data[1], page->free_space);
+	redislite_put_2bytes(&data[5], page->number_of_keys);
+	redislite_put_4bytes(&data[7], page->right_page);
 	int i;
-	int pos = 10;
+	int pos = 11;
 	for (i=0; i < page->number_of_keys; i++) {
 		redislite_page_index_key* key = page->keys[i];
 		pos += putVarint32(&data[pos], key->keyname_size);

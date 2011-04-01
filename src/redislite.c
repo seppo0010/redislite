@@ -95,9 +95,8 @@ static int redislite_save_db(redislite *db)
 		redislite_page *page = db->modified_pages[i];
 		unsigned char *data = (unsigned char*)malloc(sizeof(unsigned char) * db->page_size);
 
-		data[0] = page->type->identifier;
-		memset(&data[1], '\0', db->page_size-1);
-		page->type->write_function(db, &data[1], page->data);
+		memset(&data[0], '\0', db->page_size);
+		page->type->write_function(db, &data[0], page->data);
 		fseek(db->file, db->page_size * page->number, SEEK_SET);
 		fwrite(data, db->page_size, sizeof(unsigned char), db->file);
 		free(data);
