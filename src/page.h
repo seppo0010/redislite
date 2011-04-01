@@ -8,6 +8,7 @@ typedef struct {
 	char identifier;
 	void (*write_function)(void *_db, unsigned char *data, void *page);
 	void* (*read_function)(void *_db, unsigned char *data);
+	void (*free_function)(void *_db, void *page);
 } redislite_page_type;
 
 typedef struct {

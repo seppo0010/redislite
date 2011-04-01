@@ -5,6 +5,12 @@
 #include <stdlib.h>
 
 
+void redislite_free_first(void *_db, void *page)
+{
+	redislite *db = (redislite*)_db;
+	free(db->root);
+}
+
 void redislite_write_first(void *_db, unsigned char *data, void *page)
 {
 	redislite *db = (redislite*)_db;

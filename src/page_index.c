@@ -15,6 +15,7 @@ void init_index()
 		type->identifier = 'I';
 		type->write_function = &redislite_write_index;
 		type->read_function = &redislite_read_index;
+		type->free_function = &redislite_free_index;
 		redislite_page_register_type(type);
 	}
 	{
@@ -22,6 +23,7 @@ void init_index()
 		type->identifier = 'D';
 		type->write_function = &redislite_write_data;
 		type->read_function = &redislite_read_data;
+		type->free_function = &redislite_free_data;
 		redislite_page_register_type(type);
 	}
 	{
@@ -29,7 +31,17 @@ void init_index()
 		type->identifier = 'F';
 		type->write_function = &redislite_write_first;
 		type->read_function = &redislite_read_first;
+		type->free_function = &redislite_free_first;
 		redislite_page_register_type(type);
+	}
+}
+
+void redislite_free_index(void *db, void *_page)
+{
+	redislite_page_index *page = (redislite_page_index*)_page;
+	int i;
+	for (i=0; i<page->number_of_keys; i++) {
+		free(page->keys[i]);
 	}
 }
 

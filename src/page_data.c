@@ -1,5 +1,11 @@
 #include "redislite.h"
 #include <string.h>
+#include <stdlib.h>
+
+void redislite_free_data(void *_db, void *page)
+{
+	free(page);
+}
 
 void redislite_write_data(void *_db, unsigned char *data, void *page)
 {

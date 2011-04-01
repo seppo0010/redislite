@@ -99,6 +99,8 @@ static int redislite_save_db(redislite *db)
 		page->type->write_function(db, &data[0], page->data);
 		fseek(db->file, db->page_size * page->number, SEEK_SET);
 		fwrite(data, db->page_size, sizeof(unsigned char), db->file);
+		page->type->free_function(db, page->data);
+		free(page);
 		free(data);
 	}
 	fclose(db->file);
