@@ -103,6 +103,10 @@ static int redislite_save_db(redislite *db)
 		free(page);
 		free(data);
 	}
+	free(db->modified_pages);
+	db->modified_pages = NULL;
+	db->modified_pages_length = 0;
+	db->modified_pages_free = 0;
 	fclose(db->file);
 	db->file = NULL;
 	return REDISLITE_OK;
@@ -178,5 +182,8 @@ unsigned char *redislite_read_page(redislite *db, int num)
 void redislite_close_database(redislite *db) {
 	redislite_save_db(db);
 	if (db->filename) free(db->filename);
+	int i;
+	for (i=0;i<db->modified_pages_length;i++) free(db->modified_pages[i]);
+	free(db->modified_pages);
 	free(db);
 }
