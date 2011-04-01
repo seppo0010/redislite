@@ -13,25 +13,19 @@ int redislite_add_modified_page(redislite *db, int page_number, char type, void 
 
 	int i;
 	// TODO: binary search
-	for (i=0; i<db->modified_pages_length;i++) {
-		if (((redislite_page*)db->modified_pages[i])->number == page_number) {
-			return page_number;
-		}
+	if (page_number != -1) {
+		for (i=0; i<db->modified_pages_length;i++) {
+			if (((redislite_page*)db->modified_pages[i])->number == page_number) {
+				return page_number;
+			}
 
-		if (((redislite_page*)db->modified_pages[i])->number > page_number) {
-			break;
+			if (((redislite_page*)db->modified_pages[i])->number > page_number) {
+				break;
+			}
 		}
 	}
 
 	if (page_number == -1) page_number = db->number_of_pages;
-
-	if (db->modified_pages != NULL) {
-		redislite_page *page;
-		for (i=0; i < db->modified_pages_length; i++) {
-			page = db->modified_pages[i];
-			if (page->number == page_number) return; // TODO: is this ok?
-		}
-	}
 
 	if (db->modified_pages == NULL || (db->modified_pages_length == 0 && db->modified_pages_free == 0)) {
 		db->modified_pages = malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
