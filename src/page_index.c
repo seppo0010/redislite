@@ -36,12 +36,17 @@ void init_index()
 	}
 }
 
+void redislite_free_key(redislite_page_index_key* key) {
+	free(key->keyname);
+	free(key);
+}
+
 void redislite_free_index(void *db, void *_page)
 {
 	redislite_page_index *page = (redislite_page_index*)_page;
 	int i;
 	for (i=0; i<page->number_of_keys; i++) {
-		free(page->keys[i]);
+		redislite_free_key(page->keys[i]);
 	}
 	free(page->keys);
 }
