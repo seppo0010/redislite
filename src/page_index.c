@@ -43,6 +43,7 @@ void redislite_free_index(void *db, void *_page)
 	for (i=0; i<page->number_of_keys; i++) {
 		free(page->keys[i]);
 	}
+	free(page->keys);
 }
 
 void redislite_write_index(void *db, unsigned char *data, void *_page)
@@ -77,8 +78,10 @@ void *redislite_read_index(void *db, unsigned char *data)
 	int i, pos = 10;
 	for (i=0; i<page->number_of_keys; i++) {
 		page->keys[i] = malloc(sizeof(redislite_page_index_key));
+		if (page->keys[i] == NULL) goto cleanup;
 		pos += getVarint32(&data[pos], page->keys[i]->keyname_size);
 		page->keys[i]->keyname = malloc(sizeof(char) * page->keys[i]->keyname_size);
+		if (page->keys[i]->keyname == NULL) goto cleanup;
 		memcpy(&data[pos], page->keys[i]->keyname, page->keys[i]->keyname_size);
 		pos += page->keys[i]->keyname_size;
 		page->keys[i]->left_page = redislite_get_4bytes(&data[pos]);
@@ -86,6 +89,9 @@ void *redislite_read_index(void *db, unsigned char *data)
 	}
 	page->db = db;
 	return page;
+cleanup:
+	// TODO: free memory
+	return NULL;
 }
 
 redislite_page_index *redislite_page_index_create(void* db)
@@ -200,10 +206,12 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 		if (page_num == 0) {
 			redislite_page_index* new_page = redislite_page_index_create(db);
 			if (new_page == NULL) return REDISLITE_OOM;
+			int r = redislite_page_index_add_key(new_page, 0, left, key, length);
+			if (r != REDISLITE_OK) { free(new_page); return r; }
 			page_num = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_INDEX, new_page);
 			if (pos < page->number_of_keys) {
 				int r = redislite_page_index_add_key(new_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size);
-				if (r != REDISLITE_OK) return r;
+				if (r != REDISLITE_OK) { free(new_page); return r; }
 			}
 
 			if (pos == page->number_of_keys) {
@@ -212,7 +220,7 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 				page->keys[pos]->left_page = page_num;
 			}
 			// TODO: set page as dirty
-			return redislite_page_index_add_key(new_page, 0, left, key, length);
+			return REDISLITE_OK;
 		}
 
 		redislite_page_index* new_page = redislite_page_get(db, page_num, &type);

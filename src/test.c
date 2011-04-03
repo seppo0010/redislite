@@ -34,6 +34,9 @@ int main() {
 		if (value[i] != redislite_value_page_for_key(db, key[i], strlen(key[i])))
 			printf("%s %d %d\n", key[i], value[i], redislite_value_page_for_key(db, key[i], strlen(key[i])));
 
+	for (i=0; i < SIZE; i++)
+		free(key[i]);
+
 	redislite_close_database(db);
 	return 0;
 }
