@@ -49,6 +49,7 @@ void redislite_free_index(void *db, void *_page)
 		redislite_free_key(page->keys[i]);
 	}
 	free(page->keys);
+	free(page);
 }
 
 void redislite_write_index(void *db, unsigned char *data, void *_page)
@@ -237,7 +238,7 @@ int redislite_insert_key(void *_db, unsigned char *key, int length, int left)
 			if (new_index_page == NULL) return REDISLITE_OOM;
 			/* assert pos<size */
 			int r = redislite_page_index_add_key(new_index_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size);
-			if (r != REDISLITE_OK) return r;
+			if (r != REDISLITE_OK) { free(new_index_page); return r; }
 			page->keys[pos]->left_page = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_INDEX, new_index_page);
 			page = new_index_page;
 		}
