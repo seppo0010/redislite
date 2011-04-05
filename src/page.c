@@ -23,25 +23,25 @@ void *redislite_page_get(void* _db, int num, char* type) {
 	return result;
 }
 
-static redislite_page_type** types = NULL;
-
-void redislite_page_register_type(redislite_page_type* type) {
-	if (types == NULL) {
-		types = malloc(sizeof(redislite_page_type*) * 256);
+void redislite_page_register_type(void *_db, redislite_page_type* type) {
+	redislite *db = (redislite*)_db;
+	if (db->types == NULL) {
+		db->types = malloc(sizeof(redislite_page_type*) * 256);
 		int i;
 		for (i = 0; i < 256; i++) {
-			types[i] = NULL;
+			db->types[i] = NULL;
 		}
 	}
-	types[type->identifier] = type;
+	db->types[type->identifier] = type;
 }
 
-redislite_page_type *redislite_page_get_type(char identifier) {
-	if (types == NULL) {
+redislite_page_type *redislite_page_get_type(void *_db, char identifier) {
+	redislite *db = (redislite*)_db;
+	if (db->types == NULL) {
 		return NULL;
 	}
-	if (types[identifier] == NULL) {
+	if (db->types[identifier] == NULL) {
 		printf("Unknown identifier: '%c'\n", identifier);
 	}
-	return types[identifier];
+	return db->types[identifier];
 }

@@ -8,34 +8,6 @@
 #include "page_first.h"
 #include "page_data.h"
 
-void init_index()
-{
-	{
-		redislite_page_type* type = malloc(sizeof(redislite_page_type));
-		type->identifier = 'I';
-		type->write_function = &redislite_write_index;
-		type->read_function = &redislite_read_index;
-		type->free_function = &redislite_free_index;
-		redislite_page_register_type(type);
-	}
-	{
-		redislite_page_type* type = malloc(sizeof(redislite_page_type));
-		type->identifier = 'D';
-		type->write_function = &redislite_write_data;
-		type->read_function = &redislite_read_data;
-		type->free_function = &redislite_free_data;
-		redislite_page_register_type(type);
-	}
-	{
-		redislite_page_type* type = malloc(sizeof(redislite_page_type));
-		type->identifier = 'F';
-		type->write_function = &redislite_write_first;
-		type->read_function = &redislite_read_first;
-		type->free_function = &redislite_free_first;
-		redislite_page_register_type(type);
-	}
-}
-
 void redislite_free_key(redislite_page_index_key* key) {
 	free(key->keyname);
 	free(key);

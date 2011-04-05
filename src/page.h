@@ -18,5 +18,6 @@ typedef struct {
 } redislite_page;
 
 void *redislite_page_get(void* db, int num, char* type);
-redislite_page_type *redislite_page_get_type(char identifier);
+void redislite_page_register_type(void *db, redislite_page_type* type);
+redislite_page_type *redislite_page_get_type(void *db, char identifier);
 #endif

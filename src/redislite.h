@@ -26,6 +26,7 @@ typedef struct {
 	int modified_pages_length;
 	int modified_pages_free;
 	void **modified_pages;
+	void **types; // types and handlers
 } redislite;
 
 redislite* redislite_create_database(const unsigned char *filename);
