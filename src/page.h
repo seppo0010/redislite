@@ -3,6 +3,8 @@
 
 #define REDISLITE_PAGE_TYPE_FIRST 'F'
 #define REDISLITE_PAGE_TYPE_INDEX 'I'
+#define REDISLITE_PAGE_TYPE_STRING 'S'
+#define REDISLITE_PAGE_TYPE_STRING_OVERFLOW 'O'
 
 typedef struct {
 	char identifier;

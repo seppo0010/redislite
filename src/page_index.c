@@ -5,8 +5,6 @@
 #include "redislite.h"
 #include "page.h"
 #include "util.h"
-#include "page_first.h"
-#include "page_data.h"
 
 void redislite_free_key(redislite_page_index_key* key) {
 	free(key->keyname);
@@ -27,7 +25,7 @@ void redislite_free_index(void *db, void *_page)
 void redislite_write_index(void *db, unsigned char *data, void *_page)
 {
 	redislite_page_index *page = (redislite_page_index*)_page;
-	data[0] = 'I';
+	data[0] = REDISLITE_PAGE_TYPE_INDEX;
 	redislite_put_4bytes(&data[1], page->free_space);
 	redislite_put_2bytes(&data[5], page->number_of_keys);
 	redislite_put_4bytes(&data[7], page->right_page);

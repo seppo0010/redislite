@@ -16,7 +16,7 @@ void *redislite_page_get(void* _db, int num, char* type) {
 	if (data == NULL) return NULL;
 	void *result = NULL;
 	*type = data[0];
-	if (data[0] == 'I') {
+	if (data[0] == REDISLITE_PAGE_TYPE_INDEX) {
 		result = redislite_read_index(db, data+1);
 	}
 	free(data);

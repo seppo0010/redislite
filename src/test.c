@@ -11,9 +11,9 @@ static char *test_add_key(redislite *db, int *left)
 	int size = strlen(key);
 
 	char *data = malloc(sizeof(char) * db->page_size);
-	memset(data, 0, db->page_size);
+	memset(data, 0, 14);
 	sprintf(data, "%d", rnd);
-	*left = redislite_add_modified_page(db, -1, 'D', data);
+	redislite_insert_string(db, data, strlen(data), left);
 	redislite_insert_key(db, key, size, *left);
 	return key;
 }

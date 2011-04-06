@@ -5,7 +5,7 @@
 #include "page.h"
 #include "page_index.h"
 #include "page_first.h"
-#include "page_data.h"
+#include "page_string.h"
 #include "util.h"
 
 
@@ -93,6 +93,7 @@ static int redislite_save_db(redislite *db)
 
 		memset(&data[0], '\0', db->page_size);
 		page->type->write_function(db, &data[0], page->data);
+printf("%c %d\n", page->type->identifier, db->page_size * page->number);
 		fseek(db->file, db->page_size * page->number, SEEK_SET);
 		fwrite(data, db->page_size, sizeof(unsigned char), db->file);
 		page->type->free_function(db, page->data);
@@ -112,7 +113,7 @@ static void init_db(redislite *db)
 {
 	{
 		redislite_page_type* type = malloc(sizeof(redislite_page_type));
-		type->identifier = 'I';
+		type->identifier = REDISLITE_PAGE_TYPE_INDEX;
 		type->write_function = &redislite_write_index;
 		type->read_function = &redislite_read_index;
 		type->free_function = &redislite_free_index;
@@ -120,15 +121,23 @@ static void init_db(redislite *db)
 	}
 	{
 		redislite_page_type* type = malloc(sizeof(redislite_page_type));
-		type->identifier = 'D';
-		type->write_function = &redislite_write_data;
-		type->read_function = &redislite_read_data;
-		type->free_function = &redislite_free_data;
+		type->identifier = REDISLITE_PAGE_TYPE_STRING;
+		type->write_function = &redislite_write_string;
+		type->read_function = &redislite_read_string;
+		type->free_function = &redislite_free_string;
 		redislite_page_register_type(db, type);
 	}
 	{
 		redislite_page_type* type = malloc(sizeof(redislite_page_type));
-		type->identifier = 'F';
+		type->identifier = REDISLITE_PAGE_TYPE_STRING_OVERFLOW;
+		type->write_function = &redislite_write_string_overflow;
+		type->read_function = &redislite_read_string_overflow;
+		type->free_function = &redislite_free_string_overflow;
+		redislite_page_register_type(db, type);
+	}
+	{
+		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		type->identifier = REDISLITE_PAGE_TYPE_FIRST;
 		type->write_function = &redislite_write_first;
 		type->read_function = &redislite_read_first;
 		type->free_function = &redislite_free_first;
