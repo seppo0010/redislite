@@ -15,6 +15,7 @@ static char *test_add_key(redislite *db, int *left)
 	sprintf(data, "%d", rnd);
 	redislite_insert_string(db, data, strlen(data), left);
 	redislite_insert_key(db, key, size, *left);
+	free(data);
 	return key;
 }
 

@@ -93,7 +93,6 @@ static int redislite_save_db(redislite *db)
 
 		memset(&data[0], '\0', db->page_size);
 		page->type->write_function(db, &data[0], page->data);
-printf("%c %d\n", page->type->identifier, db->page_size * page->number);
 		fseek(db->file, db->page_size * page->number, SEEK_SET);
 		fwrite(data, db->page_size, sizeof(unsigned char), db->file);
 		page->type->free_function(db, page->data);
@@ -222,6 +221,12 @@ void redislite_close_database(redislite *db) {
 	if (db->filename) free(db->filename);
 	int i;
 	for (i=0;i<db->modified_pages_length;i++) free(db->modified_pages[i]);
+	if (db->types) {
+		for (i=0;i<256;i++)
+			if (db->types[i])
+				free(db->types[i]);
+		free(db->types);
+	}
 	free(db->modified_pages);
 	free(db);
 }
