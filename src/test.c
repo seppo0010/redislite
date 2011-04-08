@@ -1,4 +1,5 @@
 #include "redislite.h"
+#include "page_string.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,10 @@ int main() {
 
 	for (i=0; i < SIZE; i++)
 		if (value[i] != redislite_value_page_for_key(db, key[i], strlen(key[i])))
+			printf("%s %d %d\n", key[i], value[i], redislite_value_page_for_key(db, key[i], strlen(key[i])));
+
+	for (i=0; i < SIZE; i++)
+		if (strcmp(key[i],redislite_page_string_get_by_keyname(db, key[i], strlen(key[i]))) != 0)
 			printf("%s %d %d\n", key[i], value[i], redislite_value_page_for_key(db, key[i], strlen(key[i])));
 
 	for (i=0; i < SIZE; i++)

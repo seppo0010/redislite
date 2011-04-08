@@ -21,5 +21,6 @@ typedef struct {
 
 void *redislite_page_get(void* db, int num, char* type);
 void redislite_page_register_type(void *db, redislite_page_type* type);
+void *redislite_page_get_by_keyname(void *_db, char *key_name, int length, char *type);
 redislite_page_type *redislite_page_get_type(void *db, char identifier);
 #endif

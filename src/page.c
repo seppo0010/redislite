@@ -16,11 +16,17 @@ void *redislite_page_get(void* _db, int num, char* type) {
 	if (data == NULL) return NULL;
 	void *result = NULL;
 	*type = data[0];
-	if (data[0] == REDISLITE_PAGE_TYPE_INDEX) {
-		result = redislite_read_index(db, data+1);
+	redislite_page_type* page_type = redislite_page_get_type(db, data[0]);
+	if (page_type) {
+		result = page_type->read_function(db, data+1);
 	}
 	free(data);
 	return result;
+}
+
+void *redislite_page_get_by_keyname(void *_db, char *key_name, int length, char *type) {
+	int num = redislite_value_page_for_key(_db, key_name, length);
+	return redislite_page_get(_db, num, type);
 }
 
 void redislite_page_register_type(void *_db, redislite_page_type* type) {

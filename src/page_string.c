@@ -27,7 +27,17 @@ void redislite_write_string(void *_db, unsigned char *data, void *_page)
 
 void *redislite_read_string(void *_db, unsigned char *data)
 {
-	return NULL;
+	redislite *db = (redislite*)_db;
+	redislite_page_string* page = malloc(sizeof(redislite_page_string));
+
+	page->size = redislite_get_4bytes(&data[1]);
+	page->right_page = redislite_get_4bytes(&data[5]);
+
+	int size = db->page_size-1-4-4;
+	if (size > page->size) size = page->size;
+	page->value = malloc(sizeof(char) * size);
+	memcpy(&data[9], page->value, size);
+	return data;
 }
 
 
@@ -93,4 +103,12 @@ int redislite_insert_string(void *_db, char *str, int length, int* num)
 		page->value = data;
 		*num = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_STRING, page);
 	}
+}
+
+char *redislite_page_string_get_by_keyname(void *_db, char *key_name, int length) {
+	char type;
+	void *_page = redislite_page_get_by_keyname(_db, key_name, length, &type);
+	if (type != REDISLITE_PAGE_TYPE_STRING) return NULL;
+	redislite_page_string* page = (redislite_page_string*)_page;
+	return page->value;
 }
