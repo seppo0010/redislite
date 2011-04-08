@@ -105,10 +105,11 @@ int redislite_insert_string(void *_db, char *str, int length, int* num)
 	}
 }
 
-char *redislite_page_string_get_by_keyname(void *_db, char *key_name, int length) {
+char *redislite_page_string_get_by_keyname(void *_db, char *key_name, int key_length, int* length) {
 	char type;
-	void *_page = redislite_page_get_by_keyname(_db, key_name, length, &type);
+	void *_page = redislite_page_get_by_keyname(_db, key_name, key_length, &type);
 	if (type != REDISLITE_PAGE_TYPE_STRING) return NULL;
 	redislite_page_string* page = (redislite_page_string*)_page;
+	*length = page->size; // TODO: multipage strings
 	return page->value;
 }
