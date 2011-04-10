@@ -11,10 +11,13 @@ static char *test_add_key(changeset *cs, int *left)
 	sprintf(key, "%d", rnd);
 	int size = strlen(key);
 
-	char *data = malloc(sizeof(char) * cs->db->page_size);
-	memset(data, 0, 14);
-	sprintf(data, "%d", rnd);
-	redislite_insert_string(cs, data, strlen(data), left);
+	char *data = malloc(sizeof(char) * cs->db->page_size+1);
+	memset(data, key[0], cs->db->page_size+1);
+	int i;
+	for (i=0;i<cs->db->page_size+1;i++) {
+		data[i] = (char)(((int)key[0] + i) % 256);
+	}
+	redislite_insert_string(cs, data, cs->db->page_size+1, left);
 	redislite_insert_key(cs, key, size, *left);
 	free(data);
 	return key;
@@ -26,7 +29,7 @@ int main() {
 	srand(4);
 	redislite *db = redislite_open_database("test.db");
 	changeset *cs = redislite_create_changeset(db);
-	int i;
+	int i, j;
 
 	char *key[SIZE];
 	int value[SIZE];
@@ -40,8 +43,15 @@ int main() {
 	for (i=0; i < SIZE; i++) {
 		int length = 0;
 		char *value = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &length);
-		if (memcmp(key[i],value, length) != 0)
-			printf("%s %s %d %d\n", value, key[i], value[i], redislite_value_page_for_key(db, key[i], strlen(key[i])));
+		if (length != cs->db->page_size+1) {
+			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size+1);
+		}
+		for (j=0; j < SIZE; j++) {
+			if (value[j] != (char)(((int)key[i][0] + j) % 256))
+				printf("Content mismatch\n");
+			break;
+		}
+		free(value);
 	}
 
 	for (i=0; i < SIZE; i++)
