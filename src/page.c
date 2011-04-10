@@ -3,16 +3,19 @@
 #include "redislite.h"
 #include "page_index.h"
 
-void *redislite_page_get(void* _db, int num, char* type) {
+void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
+	changeset *cs = (changeset*)_cs;
 	redislite *db = (redislite*)_db;
-	int i;
-	for (i = 0; i < db->modified_pages_length; i++) {
-		redislite_page *page = db->modified_pages[i];
-		*type = page->type->identifier;
-		if (page->number == num) return page->data;
+	if (cs) {
+		int i;
+		for (i = 0; i < cs->modified_pages_length; i++) {
+			redislite_page *page = cs->modified_pages[i];
+			*type = page->type->identifier;
+			if (page->number == num) return page->data;
+		}
 	}
 
-	unsigned char *data = redislite_read_page(db, num);
+	unsigned char *data = redislite_read_page(db, _cs, num);
 	if (data == NULL) return NULL;
 	void *result = NULL;
 	*type = data[0];
@@ -24,9 +27,9 @@ void *redislite_page_get(void* _db, int num, char* type) {
 	return result;
 }
 
-void *redislite_page_get_by_keyname(void *_db, char *key_name, int length, char *type) {
-	int num = redislite_value_page_for_key(_db, key_name, length);
-	return redislite_page_get(_db, num, type);
+void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, int length, char *type) {
+	int num = redislite_value_page_for_key(_db, _cs, key_name, length);
+	return redislite_page_get(_db, _cs, num, type);
 }
 
 void redislite_page_register_type(void *_db, redislite_page_type* type) {

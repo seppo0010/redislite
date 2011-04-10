@@ -63,9 +63,10 @@ void *redislite_read_string_overflow(void *_db, unsigned char *data)
 	return NULL;
 }
 
-int redislite_insert_string(void *_db, char *str, int length, int* num)
+int redislite_insert_string(void *_cs, char *str, int length, int* num)
 {
-	redislite *db = (redislite*)_db;
+	changeset *cs = (changeset*)_cs;
+	redislite *db = cs->db;
 	redislite_page_string* page = malloc(sizeof(redislite_page_string));
 	if (page == NULL) return REDISLITE_OOM;
 	page->size = length;
@@ -85,7 +86,7 @@ int redislite_insert_string(void *_db, char *str, int length, int* num)
 			overflow_page->db = db;
 			overflow_page->right_page = next_page;
 			overflow_page->value = data;
-			next_page = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, data);
+			next_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, data);
 			if (page == 0) return REDISLITE_OOM;
 		}
 		page->right_page = next_page;
@@ -93,7 +94,7 @@ int redislite_insert_string(void *_db, char *str, int length, int* num)
 		if (data == NULL) { free(page); return REDISLITE_OOM; }
 		memcpy(data, str, db->page_size - 1 - 4 - 4);
 		page->value = data;
-		*num = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_STRING, page);
+		*num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING, page);
 	} else {
 		total_pages = 1;
 		page->right_page = 0;
@@ -101,13 +102,13 @@ int redislite_insert_string(void *_db, char *str, int length, int* num)
 		if (data == NULL) { free(page); return REDISLITE_OOM; }
 		memcpy(data, str, length);
 		page->value = data;
-		*num = redislite_add_modified_page(db, -1, REDISLITE_PAGE_TYPE_STRING, page);
+		*num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING, page);
 	}
 }
 
-char *redislite_page_string_get_by_keyname(void *_db, char *key_name, int key_length, int* length) {
+char *redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, int key_length, int* length) {
 	char type;
-	void *_page = redislite_page_get_by_keyname(_db, key_name, key_length, &type);
+	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
 	if (type != REDISLITE_PAGE_TYPE_STRING) return NULL;
 	redislite_page_string* page = (redislite_page_string*)_page;
 	*length = page->size; // TODO: multipage strings

@@ -7,8 +7,6 @@
 
 void redislite_free_first(void *_db, void *page)
 {
-	redislite *db = (redislite*)_db;
-	redislite_free_index(db, db->root);
 }
 
 void redislite_write_first(void *_db, unsigned char *data, void *page)
@@ -36,9 +34,6 @@ void* redislite_read_first(void *_db, unsigned char *data)
 	db->number_of_pages = redislite_get_4bytes(&data[28]);
 	db->first_freelist_page = redislite_get_4bytes(&data[32]);
 	db->number_of_freelist_pages = redislite_get_4bytes(&data[36]);
-	db->modified_pages = NULL;
-	db->modified_pages_length = 0;
-	db->modified_pages_free = 0;
 
 	db->root = (redislite_page_index*)redislite_read_index(db, &data[100]);
 	return db->root;
