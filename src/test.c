@@ -23,10 +23,11 @@ static char *test_add_key(changeset *cs, int *left)
 	return key;
 }
 
-#define SIZE 200
+#define SIZE 2
 
 int main() {
 	srand(4);
+	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
 	changeset *cs = redislite_create_changeset(db);
 	int i, j;
@@ -38,7 +39,7 @@ int main() {
 
 	for (i=0; i < SIZE; i++)
 		if (value[i] != redislite_value_page_for_key(db, cs, key[i], strlen(key[i])))
-			printf("%s %d %d\n", key[i], value[i], redislite_value_page_for_key(db, key[i], strlen(key[i])));
+			printf("%s %d %d\n", key[i], value[i], redislite_value_page_for_key(db, cs, key[i], strlen(key[i])));
 
 	for (i=0; i < SIZE; i++) {
 		int length = 0;
@@ -53,12 +54,39 @@ int main() {
 		}
 		free(value);
 	}
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	cs = NULL; // using stored values
+
+	if (1) {
+		for (i=0; i < SIZE; i++) {
+			int v = redislite_value_page_for_key(db, cs, key[i], strlen(key[i]));
+			if (value[i] != v)
+				printf("%s %d %d\n", key[i], value[i], v);
+		}
+
+		for (i=0; i < SIZE; i++) {
+			int length = 0;
+			char *value = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &length);
+			if (!value) {
+				printf("Unable to find key: '%s'\n", key[i]);
+				continue;
+			}
+			if (length != db->page_size+1) {
+				printf("Wrong length (%d) should be %d\n", length, db->page_size+1);
+			}
+			for (j=0; j < SIZE; j++) {
+				if (value[j] != (char)(((int)key[i][0] + j) % 256))
+					printf("Content mismatch\n");
+			}
+
+			free(value);
+		}
+	}
 
 	for (i=0; i < SIZE; i++)
 		free(key[i]);
 
-	redislite_save_changeset(cs);
-	redislite_free_changeset(cs);
 	redislite_close_database(db);
 	return 0;
 }

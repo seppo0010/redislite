@@ -209,6 +209,7 @@ redislite* redislite_create_database(const unsigned char *filename)
 
 unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 {
+	printf("%d\n", num);
 	int i;
 	unsigned char *data = malloc(sizeof(unsigned char) * db->page_size);
 	if (data == NULL) return NULL;
@@ -226,6 +227,9 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 	if (!db->file) {
 		db->file = fopen(db->filename, "rb+");
 	}
+	fseek(db->file, 0L, SEEK_END);
+	int size = ftell(db->file);
+	if (size < db->page_size * (num+1)) { free(data); return NULL; }
 	fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	fread(data, sizeof(unsigned char), db->page_size, db->file);
 	return data;

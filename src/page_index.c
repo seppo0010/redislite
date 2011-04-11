@@ -46,19 +46,19 @@ void *redislite_read_index(void *db, unsigned char *data)
 	redislite* _db = (redislite*)db;
 	redislite_page_index *page = malloc(sizeof(redislite_page_index));
 	if (page == NULL) return NULL;
-	page->free_space = redislite_get_4bytes(&data[0]);
-	page->number_of_keys = redislite_get_2bytes(&data[4]);
+	page->free_space = redislite_get_4bytes(&data[1]);
+	page->number_of_keys = redislite_get_2bytes(&data[5]);
 	page->alloced_keys = page->number_of_keys;
-	page->right_page = redislite_get_4bytes(&data[6]);
+	page->right_page = redislite_get_4bytes(&data[7]);
 	page->keys = malloc(sizeof(redislite_page_index_key) * page->alloced_keys);
-	int i, pos = 10;
+	int i, pos = 11;
 	for (i=0; i<page->number_of_keys; i++) {
 		page->keys[i] = malloc(sizeof(redislite_page_index_key));
 		if (page->keys[i] == NULL) goto cleanup;
 		pos += getVarint32(&data[pos], page->keys[i]->keyname_size);
 		page->keys[i]->keyname = malloc(sizeof(char) * page->keys[i]->keyname_size);
 		if (page->keys[i]->keyname == NULL) goto cleanup;
-		memcpy(&data[pos], page->keys[i]->keyname, page->keys[i]->keyname_size);
+		memcpy(page->keys[i]->keyname, &data[pos], page->keys[i]->keyname_size);
 		pos += page->keys[i]->keyname_size;
 		page->keys[i]->left_page = redislite_get_4bytes(&data[pos]);
 		pos += 4;
@@ -109,7 +109,6 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 					return page->keys[i];
 				}
 				cmp_result = (page->keys[i]->keyname_size > length ? 1 : -1);
-				/* assert != length */
 			}
 
 			if (cmp_result < 0) {
@@ -172,6 +171,9 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 		}
 		redislite_page_index_key *new_key = NULL;
 		int result = redislite_page_index_add_key(page, pos, left, key, length);
+		if (result == REDISLITE_OK) {
+			redislite_add_modified_page(cs, pos, pos == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+		}
 		if (result == REDISLITE_OOM || result == REDISLITE_OK) return result;
 
 		int page_num;

@@ -21,7 +21,7 @@ void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
 	*type = data[0];
 	redislite_page_type* page_type = redislite_page_get_type(db, data[0]);
 	if (page_type) {
-		result = page_type->read_function(db, data+1);
+		result = page_type->read_function(db, data);
 	}
 	free(data);
 	return result;

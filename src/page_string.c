@@ -38,8 +38,8 @@ void *redislite_read_string(void *_db, unsigned char *data)
 	int size = db->page_size-13;
 	if (size > page->size) size = page->size;
 	page->value = malloc(sizeof(char) * size);
-	memcpy(&data[9], page->value, size);
-	return data;
+	memcpy(page->value, &data[9], size);
+	return page;
 }
 
 
@@ -55,7 +55,7 @@ void redislite_write_string_overflow(void *_db, unsigned char *data, void *_page
 	redislite *db = (redislite*)_db;
 	redislite_page_string_overflow* page = (redislite_page_string_overflow*)_page;
 
-	data[0] = REDISLITE_PAGE_TYPE_STRING;
+	data[0] = REDISLITE_PAGE_TYPE_STRING_OVERFLOW;
 	redislite_put_4bytes(&data[1], 0); // reserved
 	redislite_put_4bytes(&data[5], page->right_page);
 	memcpy(&data[9], page->value, db->page_size-9);
@@ -70,8 +70,8 @@ void *redislite_read_string_overflow(void *_db, unsigned char *data)
 
 	int size = db->page_size-9;
 	page->value = malloc(sizeof(char) * size);
-	memcpy(&data[9], page->value, size);
-	return data;
+	memcpy(page->value, &data[9], size);
+	return page;
 }
 
 int redislite_insert_string(void *_cs, char *str, int length, int* num)
