@@ -138,11 +138,14 @@ char *redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name,
 		size = MIN(page->size - pos, db->page_size - 9);
 		memcpy(&data[pos], extra->value, size);
 		next = extra->right_page;
+		if (_cs == NULL) redislite_free_string_overflow(db, extra);
 	}
 
 	*length = page->size;
+	if (_cs == NULL) redislite_free_string(db, page);
 	return data;
 cancel:
+	if (_cs == NULL) redislite_free_string(db, page);
 	free(data);
 	return NULL;
 }
