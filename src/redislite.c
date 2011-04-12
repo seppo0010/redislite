@@ -209,7 +209,6 @@ redislite* redislite_create_database(const unsigned char *filename)
 
 unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 {
-	printf("%d\n", num);
 	int i;
 	unsigned char *data = malloc(sizeof(unsigned char) * db->page_size);
 	if (data == NULL) return NULL;

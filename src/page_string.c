@@ -38,7 +38,7 @@ void *redislite_read_string(void *_db, unsigned char *data)
 	int size = db->page_size-13;
 	if (size > page->size) size = page->size;
 	page->value = malloc(sizeof(char) * size);
-	memcpy(page->value, &data[9], size);
+	memcpy(page->value, &data[13], size);
 	return page;
 }
 
