@@ -107,15 +107,20 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 						page = new_page;
 						break;
 					}
+
+					redislite_page_index_key *ret = malloc(sizeof(redislite_page_index_key));
+					if (ret == NULL) return NULL; // TODO handle OOM
+					ret->keyname_size = page->keys[i]->keyname_size;
+					ret->left_page = page->keys[i]->left_page;
+					ret->keyname = malloc(sizeof(char) * ret->keyname_size);
+					if (ret->keyname == NULL) { free(ret); return NULL; /* TODO: handle OOM */ }
+					memcpy(ret->keyname, page->keys[i]->keyname, ret->keyname_size);
+
 					if (_cs == NULL) {
 						redislite_page_type *page_type = redislite_page_get_type(db, type);
-						redislite_page_index_key *ret = malloc(sizeof(redislite_page_index_key));
-						if (ret == NULL) return NULL; // TODO handle OOM
-						memcpy(ret, page->keys[i], sizeof(redislite_page_index_key));
 						page_type->free_function(db, new_page);
-						return ret;
 					}
-					return page->keys[i];
+					return ret;
 				}
 				cmp_result = (page->keys[i]->keyname_size > length ? 1 : -1);
 			}
@@ -152,10 +157,13 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 
 int redislite_value_page_for_key(void *_db, void *_cs, unsigned char *key, int length)
 {
-	redislite_page_index_key *index_key = redislite_index_key_for_index_name(_db, _cs, key, length);
+	redislite *db = (redislite*)_db;
+	redislite_page_index_key *index_key = redislite_index_key_for_index_name(db, _cs, key, length);
 	int ret = 0;
-	if (index_key != NULL) ret = index_key->left_page;
-	if (index_key != NULL && _cs == NULL) redislite_free_key(index_key);
+	if (index_key != NULL) {
+		ret = index_key->left_page;
+		redislite_free_key(index_key);
+	}
 	return ret;
 }
 

@@ -48,9 +48,10 @@ int main() {
 			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size+1);
 		}
 		for (j=0; j < SIZE; j++) {
-			if (value[j] != (char)(((int)key[i][0] + j) % 256))
+			if (value[j] != (char)(((int)key[i][0] + j) % 256)) {
 				printf("Content mismatch\n");
-			break;
+				break;
+			}
 		}
 		free(value);
 	}

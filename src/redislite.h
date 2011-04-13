@@ -7,6 +7,7 @@
 #define HEADER_STRING "Redislite format 1"
 #define DEFAULT_PAGE_SIZE 512
 #define DEFAULT_MODIFIED_PAGE_SIZE 4
+#define DEFAULT_OPENED_PAGE_SIZE 32
 #define WRITE_FORMAT_VERSION 1
 #define READ_FORMAT_VERSION 1
 
@@ -27,6 +28,10 @@ typedef struct {
 
 typedef struct {
 	redislite *db;
+
+	int opened_pages_length;
+	int opened_pages_free;
+	void **opened_pages;
 
 	int modified_pages_length;
 	int modified_pages_free;
