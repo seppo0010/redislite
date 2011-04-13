@@ -365,7 +365,7 @@ int redislite_get_2bytes(unsigned char *p){
   return p[1] + (p[0]<<8);
 }
 
-int redislite_get_4bytes(const char *p){ 
+int redislite_get_4bytes(const unsigned char *p){ 
   return (p[0]<<24) | (p[1]<<16) | (p[2]<<8) | p[3];
 }
 

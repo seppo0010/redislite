@@ -299,7 +299,10 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 	int size = ftell(db->file);
 	if (size < db->page_size * (num+1)) { free(data); return NULL; }
 	fseek(db->file, (long)db->page_size * num, SEEK_SET);
-	fread(data, sizeof(unsigned char), db->page_size, db->file);
+	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
+	if (read < db->page_size && ferror(db->file)) printf("Error reading\n");
+	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, size was %d, attempt to read %d)\n", (long)db->page_size * num, size, db->page_size);
+	if (read < db->page_size) { free(data); return NULL; }
 
 	return data;
 }

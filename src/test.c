@@ -23,7 +23,7 @@ static char *test_add_key(changeset *cs, int *left)
 	return key;
 }
 
-#define SIZE 2
+#define SIZE 200
 
 int main() {
 	srand(4);
@@ -39,7 +39,7 @@ int main() {
 
 	for (i=0; i < SIZE; i++)
 		if (value[i] != redislite_value_page_for_key(db, cs, key[i], strlen(key[i])))
-			printf("%s %d %d\n", key[i], value[i], redislite_value_page_for_key(db, cs, key[i], strlen(key[i])));
+			printf("%d %s %d %d\n", i, key[i], value[i], redislite_value_page_for_key(db, cs, key[i], strlen(key[i])));
 
 	for (i=0; i < SIZE; i++) {
 		int length = 0;
@@ -60,10 +60,11 @@ int main() {
 	cs = NULL; // using stored values
 
 	if (1) {
+		redislite_value_page_for_key(db, cs, key[57], strlen(key[57]));
 		for (i=0; i < SIZE; i++) {
 			int v = redislite_value_page_for_key(db, cs, key[i], strlen(key[i]));
 			if (value[i] != v)
-				printf("%s %d %d\n", key[i], value[i], v);
+				printf("%d %s %d %d\n", i, key[i], value[i], v);
 		}
 
 		for (i=0; i < SIZE; i++) {
