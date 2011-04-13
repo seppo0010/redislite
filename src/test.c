@@ -60,7 +60,6 @@ int main() {
 	cs = NULL; // using stored values
 
 	if (1) {
-		redislite_value_page_for_key(db, cs, key[57], strlen(key[57]));
 		for (i=0; i < SIZE; i++) {
 			int v = redislite_value_page_for_key(db, cs, key[i], strlen(key[i]));
 			if (value[i] != v)

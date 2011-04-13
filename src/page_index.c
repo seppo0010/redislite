@@ -117,6 +117,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 					memcpy(ret->keyname, page->keys[i]->keyname, ret->keyname_size);
 
 					if (_cs == NULL) {
+						if (page != db->root) redislite_free_index(db, page);
 						redislite_page_type *page_type = redislite_page_get_type(db, type);
 						page_type->free_function(db, new_page);
 					}
