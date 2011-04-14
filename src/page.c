@@ -26,7 +26,7 @@ void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
 			redislite_add_opened_page(cs, num, *type, result);
 		}
 	}
-	free(data);
+	redislite_free(data);
 	return result;
 }
 
@@ -38,7 +38,7 @@ void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, int le
 void redislite_page_register_type(void *_db, redislite_page_type* type) {
 	redislite *db = (redislite*)_db;
 	if (db->types == NULL) {
-		db->types = malloc(sizeof(redislite_page_type*) * 256);
+		db->types = redislite_malloc(sizeof(redislite_page_type*) * 256);
 		int i;
 		for (i = 0; i < 256; i++) {
 			db->types[i] = NULL;

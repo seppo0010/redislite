@@ -11,7 +11,7 @@
 
 changeset *redislite_create_changeset(redislite *db)
 {
-	changeset *cs = malloc(sizeof(changeset));
+	changeset *cs = redislite_malloc(sizeof(changeset));
 	cs->db = db;
 	cs->modified_pages_length = 0;
 	cs->modified_pages_free = 0;
@@ -43,16 +43,16 @@ void redislite_free_changeset(changeset *cs)
 		redislite_page *page = cs->opened_pages[i];
 		if (redislite_is_modified_page(cs, page->number)) continue;
 		page->type->free_function(cs->db, page->data);
-		free(page);
+		redislite_free(page);
 	}
-	free(cs->opened_pages);
+	redislite_free(cs->opened_pages);
 	for (i=0;i<cs->modified_pages_length;i++) {
 		redislite_page *page = cs->modified_pages[i];
 		page->type->free_function(cs->db, page->data);
-		free(page);
+		redislite_free(page);
 	}
-	free(cs->modified_pages);
-	free(cs);
+	redislite_free(cs->modified_pages);
+	redislite_free(cs);
 }
 
 int redislite_save_changeset(changeset *cs)
@@ -69,13 +69,13 @@ int redislite_save_changeset(changeset *cs)
 	int i;
 	for (i=0;i<cs->modified_pages_length;++i) {
 		redislite_page *page = cs->modified_pages[i];
-		unsigned char *data = (unsigned char*)malloc(sizeof(unsigned char) * cs->db->page_size);
+		unsigned char *data = (unsigned char*)redislite_malloc(sizeof(unsigned char) * cs->db->page_size);
 
 		memset(&data[0], '\0', cs->db->page_size); // TODO: we could allow garbage on unused bytes
 		page->type->write_function(cs->db, &data[0], page->data);
 		fseek(file, cs->db->page_size * page->number, SEEK_SET);
 		fwrite(data, cs->db->page_size, sizeof(unsigned char), file);
-		free(data);
+		redislite_free(data);
 	}
 	fclose(file);
 	return REDISLITE_OK;
@@ -98,17 +98,17 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 	}
 
 	if (cs->opened_pages == NULL || (cs->opened_pages_length == 0 && cs->opened_pages_free == 0)) {
-		cs->opened_pages = malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
+		cs->opened_pages = redislite_malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
 		if (cs->opened_pages == NULL) return; // TODO: OOM
 		cs->opened_pages_free = DEFAULT_OPENED_PAGE_SIZE;
 		cs->opened_pages_length = 0;
 	} else if (cs->opened_pages_free == 0) {
-		void **opened_pages = realloc(cs->opened_pages, sizeof(redislite_page) * cs->opened_pages_length * 2);
+		void **opened_pages = redislite_realloc(cs->opened_pages, sizeof(redislite_page) * cs->opened_pages_length * 2);
 		if (opened_pages == NULL) return; // TODO: OOM
 		cs->opened_pages = opened_pages;
 		cs->opened_pages_free = cs->opened_pages_length;
 	}
-	redislite_page *page = (redislite_page *)malloc(sizeof(redislite_page));
+	redislite_page *page = (redislite_page *)redislite_malloc(sizeof(redislite_page));
 	page->type = redislite_page_get_type(cs->db, type);
 	page->number = page_number;
 	page->data = page_data;
@@ -147,17 +147,17 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	if (page_number == -1) page_number = cs->db->number_of_pages;
 
 	if (cs->modified_pages == NULL || (cs->modified_pages_length == 0 && cs->modified_pages_free == 0)) {
-		cs->modified_pages = malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
+		cs->modified_pages = redislite_malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
 		if (cs->modified_pages == NULL) return -REDISLITE_OOM; // TODO: OOM
 		cs->modified_pages_free = DEFAULT_MODIFIED_PAGE_SIZE;
 		cs->modified_pages_length = 0;
 	} else if (cs->modified_pages_free == 0) {
-		void **modified_pages = realloc(cs->modified_pages, sizeof(redislite_page) * cs->modified_pages_length * 2);
+		void **modified_pages = redislite_realloc(cs->modified_pages, sizeof(redislite_page) * cs->modified_pages_length * 2);
 		if (modified_pages == NULL) return -REDISLITE_OOM; // TODO: OOM
 		cs->modified_pages = modified_pages;
 		cs->modified_pages_free = cs->modified_pages_length;
 	}
-	redislite_page *page = (redislite_page *)malloc(sizeof(redislite_page));
+	redislite_page *page = (redislite_page *)redislite_malloc(sizeof(redislite_page));
 	page->type = redislite_page_get_type(cs->db, type);
 	page->number = page_number;
 	page->data = page_data;
@@ -196,7 +196,7 @@ static void redislite_set_root(redislite *db, redislite_page_index *page)
 static void init_db(redislite *db)
 {
 	{
-		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
 		type->identifier = REDISLITE_PAGE_TYPE_INDEX;
 		type->write_function = &redislite_write_index;
 		type->read_function = &redislite_read_index;
@@ -204,7 +204,7 @@ static void init_db(redislite *db)
 		redislite_page_register_type(db, type);
 	}
 	{
-		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
 		type->identifier = REDISLITE_PAGE_TYPE_STRING;
 		type->write_function = &redislite_write_string;
 		type->read_function = &redislite_read_string;
@@ -212,7 +212,7 @@ static void init_db(redislite *db)
 		redislite_page_register_type(db, type);
 	}
 	{
-		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
 		type->identifier = REDISLITE_PAGE_TYPE_STRING_OVERFLOW;
 		type->write_function = &redislite_write_string_overflow;
 		type->read_function = &redislite_read_string_overflow;
@@ -220,7 +220,7 @@ static void init_db(redislite *db)
 		redislite_page_register_type(db, type);
 	}
 	{
-		redislite_page_type* type = malloc(sizeof(redislite_page_type));
+		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
 		type->identifier = REDISLITE_PAGE_TYPE_FIRST;
 		type->write_function = &redislite_write_first;
 		type->read_function = &redislite_read_first;
@@ -238,11 +238,11 @@ redislite* redislite_open_database(const unsigned char *filename) {
 	if (memcmp(header, HEADER_STRING, sizeof(HEADER_STRING)) != 0) goto cleanup; // file exist, but not as a redislite db
 	if (header[23] > READ_FORMAT_VERSION) goto cleanup; // newer format
 
-	db = malloc(sizeof(redislite));
+	db = redislite_malloc(sizeof(redislite));
 	db->types = NULL;
 	init_db(db);
 	size_t size = strlen(filename) + 1;
-	db->filename = malloc(size);
+	db->filename = redislite_malloc(size);
 	memcpy(db->filename, filename, size);
 
 cleanup:
@@ -254,13 +254,13 @@ redislite* redislite_create_database(const unsigned char *filename)
 {
 	int page_size = DEFAULT_PAGE_SIZE;
 
-	redislite* db = malloc(sizeof(redislite));
+	redislite* db = redislite_malloc(sizeof(redislite));
 	if (db == NULL) return;
 	db->types = NULL;
 	init_db(db);
 	
 	size_t size = strlen(filename) + 1;
-	db->filename = malloc(size);
+	db->filename = redislite_malloc(size);
 	memcpy(db->filename, filename, size);
 	db->file = NULL;
 	db->page_size = page_size;
@@ -279,7 +279,7 @@ redislite* redislite_create_database(const unsigned char *filename)
 unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 {
 	int i;
-	unsigned char *data = malloc(sizeof(unsigned char) * db->page_size);
+	unsigned char *data = redislite_malloc(sizeof(unsigned char) * db->page_size);
 	if (data == NULL) return NULL;
 	// TODO: binary search
 	if (cs) {
@@ -297,26 +297,26 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 	}
 	fseek(db->file, 0L, SEEK_END);
 	int size = ftell(db->file);
-	if (size < db->page_size * (num+1)) { free(data); return NULL; }
+	if (size < db->page_size * (num+1)) { redislite_free(data); return NULL; }
 	fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
 	if (read < db->page_size && ferror(db->file)) printf("Error reading\n");
 	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, size was %d, attempt to read %d)\n", (long)db->page_size * num, size, db->page_size);
-	if (read < db->page_size) { free(data); return NULL; }
+	if (read < db->page_size) { redislite_free(data); return NULL; }
 
 	return data;
 }
 
 void redislite_close_database(redislite *db) {
 	if (db->file) fclose(db->file);
-	if (db->filename) free(db->filename);
+	if (db->filename) redislite_free(db->filename);
 	redislite_free_index(db, db->root);
 	int i;
 	if (db->types) {
 		for (i=0;i<256;i++)
 			if (db->types[i])
-				free(db->types[i]);
-		free(db->types);
+				redislite_free(db->types[i]);
+		redislite_free(db->types);
 	}
-	free(db);
+	redislite_free(db);
 }

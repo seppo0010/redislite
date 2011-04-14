@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "page.h"
+#include "memory.h"
 
 #define HEADER_STRING "Redislite format 1"
 #define DEFAULT_PAGE_SIZE 512
