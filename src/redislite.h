@@ -50,5 +50,6 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 #define REDISLITE_OK 0
 #define REDISLITE_ERR 1
 #define REDISLITE_OOM 2
+#define REDISLITE_READONLY 3
 
 #endif
