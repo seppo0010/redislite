@@ -78,6 +78,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
+	if (db->readonly) return -1;
 	redislite_page_string* page = malloc(sizeof(redislite_page_string));
 	if (page == NULL) return REDISLITE_OOM;
 	page->size = length;

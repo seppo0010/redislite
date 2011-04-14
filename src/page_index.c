@@ -51,6 +51,7 @@ void *redislite_read_index(void *db, unsigned char *data)
 	page->alloced_keys = page->number_of_keys;
 	page->right_page = redislite_get_4bytes(&data[7]);
 	page->keys = malloc(sizeof(redislite_page_index_key) * page->alloced_keys);
+	if (page->keys == NULL) goto cleanup;
 	int i, pos = 11;
 	for (i=0; i<page->number_of_keys; i++) {
 		page->keys[i] = malloc(sizeof(redislite_page_index_key));
@@ -66,7 +67,14 @@ void *redislite_read_index(void *db, unsigned char *data)
 	page->db = db;
 	return page;
 cleanup:
-	// TODO: free memory
+	if (page->keys) {
+		for (;i>=0;i--) {
+			if (page->keys[i]->keyname) free(page->keys[i]->keyname);
+			if (page->keys[i]) free(page->keys[i]);
+		}
+		free(page->keys);
+	}
+	free(page);
 	return NULL;
 }
 
@@ -172,6 +180,7 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
+	if (db->readonly) return -1;
 	int pos;
 	int i;
 	int cmp_result;
