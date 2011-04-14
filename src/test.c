@@ -29,7 +29,9 @@ int main() {
 	srand(4);
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on line %d\n", __LINE__); return 0; }
 	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { printf("OOM on line %d\n", __LINE__); return 0; }
 	int i, j;
 
 	char *key[SIZE];

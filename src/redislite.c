@@ -12,6 +12,7 @@
 changeset *redislite_create_changeset(redislite *db)
 {
 	changeset *cs = redislite_malloc(sizeof(changeset));
+	if (cs == NULL) return NULL;
 	cs->db = db;
 	cs->modified_pages_length = 0;
 	cs->modified_pages_free = 0;
