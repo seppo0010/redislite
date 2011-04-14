@@ -100,7 +100,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 			overflow_page->right_page = next_page;
 			overflow_page->value = data;
 			next_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow_page);
-			if (next_page < 0) return -next_page;
+			if (next_page < 0) return next_page;
 			if (page == 0) return REDISLITE_OOM;
 		}
 		page->right_page = next_page;
@@ -109,7 +109,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 		memcpy(data, str, db->page_size - 13);
 		page->value = data;
 		*num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING, page);
-		if (*num < 0) return -(*num);
+		if (*num < 0) return (*num);
 	} else {
 		total_pages = 1;
 		page->right_page = 0;
@@ -118,7 +118,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 		memcpy(data, str, length);
 		page->value = data;
 		*num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING, page);
-		if (*num < 0) return -(*num);
+		if (*num < 0) return (*num);
 	}
 	return REDISLITE_OK;
 }

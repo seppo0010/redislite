@@ -1,6 +1,12 @@
 #include "memory.h"
 
+static int c = 0;
 void *redislite_malloc(size_t size) {
+#ifdef DEBUG
+	if (++c >= 20) {
+		return NULL;
+	}
+#endif
 	return malloc(size);
 }
 

@@ -49,8 +49,8 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num);
 int redislite_add_modified_page(changeset *cs, int page_number, char type, void *page_data);
 
 #define REDISLITE_OK 0
-#define REDISLITE_ERR 1
-#define REDISLITE_OOM 2
-#define REDISLITE_READONLY 3
+#define REDISLITE_ERR -1
+#define REDISLITE_OOM -2
+#define REDISLITE_READONLY -3
 
 #endif

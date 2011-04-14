@@ -17,7 +17,8 @@ static char *test_add_key(changeset *cs, int *left)
 	for (i=0;i<cs->db->page_size+1;i++) {
 		data[i] = (char)(((int)key[0] + i) % 256);
 	}
-	redislite_insert_string(cs, data, cs->db->page_size+1, left);
+	if (redislite_insert_string(cs, data, cs->db->page_size+1, left) == REDISLITE_OOM) return NULL;
+	if (*left == REDISLITE_OOM) return NULL;
 	redislite_insert_key(cs, key, size, *left);
 	free(data);
 	return key;
@@ -29,9 +30,9 @@ int main() {
 	srand(4);
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on line %d\n", __LINE__); return 0; }
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { printf("OOM on line %d\n", __LINE__); return 0; }
+	if (cs == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
 	int i, j;
 
 	char *key[SIZE];
@@ -40,10 +41,11 @@ int main() {
 		key[i] = test_add_key(cs, &value[i]);
 
 	for (i=0; i < SIZE; i++)
-		if (value[i] != redislite_value_page_for_key(db, cs, key[i], strlen(key[i])))
+		if (key[i] != NULL && value[i] != redislite_value_page_for_key(db, cs, key[i], strlen(key[i])))
 			printf("%d %s %d %d\n", i, key[i], value[i], redislite_value_page_for_key(db, cs, key[i], strlen(key[i])));
 
 	for (i=0; i < SIZE; i++) {
+		if (key[i] == NULL) continue;
 		int length = 0;
 		char *value = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &length);
 		if (length != cs->db->page_size+1) {
@@ -63,12 +65,14 @@ int main() {
 
 	if (1) {
 		for (i=0; i < SIZE; i++) {
+			if (key[i] == NULL) continue;
 			int v = redislite_value_page_for_key(db, cs, key[i], strlen(key[i]));
 			if (value[i] != v)
 				printf("%d %s %d %d\n", i, key[i], value[i], v);
 		}
 
 		for (i=0; i < SIZE; i++) {
+			if (key[i] == NULL) continue;
 			int length = 0;
 			char *value = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &length);
 			if (!value) {
@@ -88,7 +92,8 @@ int main() {
 	}
 
 	for (i=0; i < SIZE; i++)
-		free(key[i]);
+		if (key[i] != NULL)
+			free(key[i]);
 
 	redislite_close_database(db);
 	return 0;

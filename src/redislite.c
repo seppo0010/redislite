@@ -137,7 +137,7 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 
 int redislite_add_modified_page(changeset *cs, int page_number, char type, void *page_data)
 {
-	if (cs->db->readonly) return -REDISLITE_READONLY;
+	if (cs->db->readonly) return REDISLITE_READONLY;
 
 	int i;
 	// TODO: binary search
@@ -149,16 +149,17 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 
 	if (cs->modified_pages == NULL || (cs->modified_pages_length == 0 && cs->modified_pages_free == 0)) {
 		cs->modified_pages = redislite_malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
-		if (cs->modified_pages == NULL) return -REDISLITE_OOM; // TODO: OOM
+		if (cs->modified_pages == NULL) return REDISLITE_OOM; // TODO: OOM
 		cs->modified_pages_free = DEFAULT_MODIFIED_PAGE_SIZE;
 		cs->modified_pages_length = 0;
 	} else if (cs->modified_pages_free == 0) {
 		void **modified_pages = redislite_realloc(cs->modified_pages, sizeof(redislite_page) * cs->modified_pages_length * 2);
-		if (modified_pages == NULL) return -REDISLITE_OOM; // TODO: OOM
+		if (modified_pages == NULL) return REDISLITE_OOM; // TODO: OOM
 		cs->modified_pages = modified_pages;
 		cs->modified_pages_free = cs->modified_pages_length;
 	}
 	redislite_page *page = (redislite_page *)redislite_malloc(sizeof(redislite_page));
+	if (page == NULL) return REDISLITE_OOM;
 	page->type = redislite_page_get_type(cs->db, type);
 	page->number = page_number;
 	page->data = page_data;

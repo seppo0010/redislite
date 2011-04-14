@@ -170,7 +170,7 @@ int redislite_value_page_for_key(void *_db, void *_cs, unsigned char *key, int l
 	redislite *db = (redislite*)_db;
 	int status;
 	redislite_page_index_key *index_key = redislite_index_key_for_index_name(db, _cs, key, length, &status);
-	if (status == REDISLITE_OOM) return -REDISLITE_OOM;
+	if (status == REDISLITE_OOM) return REDISLITE_OOM;
 	int ret = 0;
 	if (index_key != NULL) {
 		ret = index_key->left_page;
@@ -183,7 +183,7 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
-	if (db->readonly) return -REDISLITE_READONLY;
+	if (db->readonly) return REDISLITE_READONLY;
 	int pos;
 	int i;
 	int cmp_result;
