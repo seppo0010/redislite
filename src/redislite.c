@@ -191,7 +191,11 @@ static int redislite_set_root(redislite *db, redislite_page_index *page)
 	page->free_space -= 100;
 	changeset *cs = redislite_create_changeset(db);
 	if (cs == NULL) return REDISLITE_OOM;
-	redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, page);
+	int ret = redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, page);
+	if (ret != REDISLITE_OK) {
+		redislite_free_changeset(cs);
+		return ret;
+	}
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	return REDISLITE_OK;
