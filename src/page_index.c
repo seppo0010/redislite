@@ -7,12 +7,14 @@
 #include "util.h"
 
 void redislite_free_key(redislite_page_index_key* key) {
+	if (key == NULL) return;
 	redislite_free(key->keyname);
 	redislite_free(key);
 }
 
 void redislite_free_index(void *db, void *_page)
 {
+	if (_page == NULL) return;
 	redislite_page_index *page = (redislite_page_index*)_page;
 	int i;
 	for (i=0; i<page->number_of_keys; i++) {

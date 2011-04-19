@@ -9,6 +9,7 @@
 void redislite_free_string(void *_db, void *_page)
 {
 	redislite_page_string* page = (redislite_page_string*)_page;
+	if (page == NULL) return;
 	redislite_free(page->value);
 	redislite_free(page);
 }
@@ -17,6 +18,7 @@ void redislite_write_string(void *_db, unsigned char *data, void *_page)
 {
 	redislite *db = (redislite*)_db;
 	redislite_page_string* page = (redislite_page_string*)_page;
+	if (page == NULL) return;
 
 	data[0] = REDISLITE_PAGE_TYPE_STRING;
 	redislite_put_4bytes(&data[1], 0); // reserverd

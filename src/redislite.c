@@ -195,10 +195,11 @@ static void redislite_set_root(redislite *db, redislite_page_index *page)
 	redislite_free_changeset(cs);
 }
 
-static void init_db(redislite *db)
+static int init_db(redislite *db)
 {
 	{
 		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) { redislite_close_database(db); return REDISLITE_OOM; }
 		type->identifier = REDISLITE_PAGE_TYPE_INDEX;
 		type->write_function = &redislite_write_index;
 		type->read_function = &redislite_read_index;
@@ -207,6 +208,7 @@ static void init_db(redislite *db)
 	}
 	{
 		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) { redislite_close_database(db); return REDISLITE_OOM; }
 		type->identifier = REDISLITE_PAGE_TYPE_STRING;
 		type->write_function = &redislite_write_string;
 		type->read_function = &redislite_read_string;
@@ -215,6 +217,7 @@ static void init_db(redislite *db)
 	}
 	{
 		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) { redislite_close_database(db); return REDISLITE_OOM; }
 		type->identifier = REDISLITE_PAGE_TYPE_STRING_OVERFLOW;
 		type->write_function = &redislite_write_string_overflow;
 		type->read_function = &redislite_read_string_overflow;
@@ -223,12 +226,14 @@ static void init_db(redislite *db)
 	}
 	{
 		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) { redislite_close_database(db); return REDISLITE_OOM; }
 		type->identifier = REDISLITE_PAGE_TYPE_FIRST;
 		type->write_function = &redislite_write_first;
 		type->read_function = &redislite_read_first;
 		type->free_function = &redislite_free_first;
 		redislite_page_register_type(db, type);
 	}
+	return REDISLITE_OK;
 }
 
 redislite* redislite_open_database(const unsigned char *filename) {
@@ -241,8 +246,12 @@ redislite* redislite_open_database(const unsigned char *filename) {
 	if (header[23] > READ_FORMAT_VERSION) goto cleanup; // newer format
 
 	db = redislite_malloc(sizeof(redislite));
+	db->root = NULL;
 	db->types = NULL;
-	init_db(db);
+	db->file = NULL;
+	db->filename = NULL;
+	int init = init_db(db);
+	if (init != 0) goto cleanup;
 	size_t size = strlen(filename) + 1;
 	db->filename = redislite_malloc(size);
 	memcpy(db->filename, filename, size);
@@ -258,8 +267,12 @@ redislite* redislite_create_database(const unsigned char *filename)
 
 	redislite* db = redislite_malloc(sizeof(redislite));
 	if (db == NULL) return;
+	db->root = NULL;
 	db->types = NULL;
-	init_db(db);
+	db->file = NULL;
+	db->filename = NULL;
+	int init = init_db(db);
+	if (init != 0) return;
 	
 	size_t size = strlen(filename) + 1;
 	db->filename = redislite_malloc(size);
@@ -273,6 +286,7 @@ redislite* redislite_create_database(const unsigned char *filename)
 	db->readonly = 0;
 
 	redislite_page_index* page = (redislite_page_index*)redislite_page_index_create(db);
+	if (page == NULL) { redislite_close_database(db); return; }
 	redislite_set_root(db, page);
 
 	return db;
