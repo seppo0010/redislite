@@ -27,7 +27,10 @@ static char *test_add_key(changeset *cs, int *left)
 		free(key);
 		return NULL;
 	}
-	redislite_insert_key(cs, key, size, *left);
+	if (redislite_insert_key(cs, key, size, *left) < 0) {
+		free(key);
+		key = NULL;
+	}
 	free(data);
 	return key;
 }
