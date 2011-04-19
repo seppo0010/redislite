@@ -35,16 +35,21 @@ void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, int le
 	return redislite_page_get(_db, _cs, num, type);
 }
 
-void redislite_page_register_type(void *_db, redislite_page_type* type) {
+int redislite_page_register_type(void *_db, redislite_page_type* type) {
 	redislite *db = (redislite*)_db;
 	if (db->types == NULL) {
 		db->types = redislite_malloc(sizeof(redislite_page_type*) * 256);
+		if (db->types == NULL) {
+			redislite_close_database(db);
+			return REDISLITE_OOM;
+		}
 		int i;
 		for (i = 0; i < 256; i++) {
 			db->types[i] = NULL;
 		}
 	}
 	db->types[type->identifier] = type;
+	return REDISLITE_OK;
 }
 
 redislite_page_type *redislite_page_get_type(void *_db, char identifier) {

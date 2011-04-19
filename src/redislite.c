@@ -204,7 +204,8 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_index;
 		type->read_function = &redislite_read_index;
 		type->free_function = &redislite_free_index;
-		redislite_page_register_type(db, type);
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) { free(type); return status; }
 	}
 	{
 		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
@@ -213,7 +214,8 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_string;
 		type->read_function = &redislite_read_string;
 		type->free_function = &redislite_free_string;
-		redislite_page_register_type(db, type);
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) { free(type); return status; }
 	}
 	{
 		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
@@ -222,7 +224,8 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_string_overflow;
 		type->read_function = &redislite_read_string_overflow;
 		type->free_function = &redislite_free_string_overflow;
-		redislite_page_register_type(db, type);
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) { free(type); return status; }
 	}
 	{
 		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
@@ -231,7 +234,8 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_first;
 		type->read_function = &redislite_read_first;
 		type->free_function = &redislite_free_first;
-		redislite_page_register_type(db, type);
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) { free(type); return status; }
 	}
 	return REDISLITE_OK;
 }
