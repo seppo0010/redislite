@@ -112,6 +112,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 			if (cmp_result == 0) {
 				if (page->keys[i]->keyname_size == length) {
 					redislite_page_index* new_page = redislite_page_get(db, cs, page->keys[i]->left_page, &type);
+					if (new_page == NULL) { *status = REDISLITE_OOM; return NULL; }
 					if (type == REDISLITE_PAGE_TYPE_INDEX) {
 						found = 1;
 						if (_cs == NULL && page != db->root) redislite_free_index(db, page);
@@ -158,6 +159,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 		}
 
 		redislite_page_index* new_page = redislite_page_get(db, cs, page_num, &type);
+		if (new_page == NULL) { *status = REDISLITE_OOM; return NULL; }
 		if (_cs == NULL && page != db->root) redislite_free_index(db, page);
 		if (type == REDISLITE_PAGE_TYPE_INDEX) {
 			page = new_page;
@@ -243,6 +245,7 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 		}
 
 		redislite_page_index* new_page = redislite_page_get(db, cs, page_num, &type);
+		if (new_page == NULL) return REDISLITE_OOM;
 		if (type == REDISLITE_PAGE_TYPE_INDEX) {
 			page = new_page;
 		} else {
