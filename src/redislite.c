@@ -71,6 +71,7 @@ int redislite_save_changeset(changeset *cs)
 	for (i=0;i<cs->modified_pages_length;++i) {
 		redislite_page *page = cs->modified_pages[i];
 		unsigned char *data = (unsigned char*)redislite_malloc(sizeof(unsigned char) * cs->db->page_size);
+		if (data == NULL) return REDISLITE_OOM;
 
 		memset(&data[0], '\0', cs->db->page_size); // TODO: we could allow garbage on unused bytes
 		page->type->write_function(cs->db, &data[0], page->data);
@@ -196,9 +197,9 @@ static int redislite_set_root(redislite *db, redislite_page_index *page)
 		redislite_free_changeset(cs);
 		return ret;
 	}
-	redislite_save_changeset(cs);
+	ret = redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
-	return REDISLITE_OK;
+	return ret;
 }
 
 static int init_db(redislite *db)
