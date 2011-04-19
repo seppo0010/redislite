@@ -17,8 +17,16 @@ static char *test_add_key(changeset *cs, int *left)
 	for (i=0;i<cs->db->page_size+1;i++) {
 		data[i] = (char)(((int)key[0] + i) % 256);
 	}
-	if (redislite_insert_string(cs, data, cs->db->page_size+1, left) == REDISLITE_OOM) return NULL;
-	if (*left == REDISLITE_OOM) return NULL;
+	if (redislite_insert_string(cs, data, cs->db->page_size+1, left) == REDISLITE_OOM) {
+		free(data);
+		free(key);
+		return NULL;
+	}
+	if (*left == REDISLITE_OOM) {
+		free(data);
+		free(key);
+		return NULL;
+	}
 	redislite_insert_key(cs, key, size, *left);
 	free(data);
 	return key;
