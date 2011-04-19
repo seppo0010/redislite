@@ -64,21 +64,39 @@ int redislite_save_changeset(changeset *cs)
 	}
 
 	if (!file) {
+		fclose(file);
 		return REDISLITE_ERR;
+	}
+
+	unsigned char **data = (unsigned char**)redislite_malloc(sizeof(unsigned char*) * cs->modified_pages_length);
+	if (data == NULL) {
+		fclose(file);
+		return REDISLITE_OOM;
 	}
 
 	int i;
 	for (i=0;i<cs->modified_pages_length;++i) {
-		redislite_page *page = cs->modified_pages[i];
-		unsigned char *data = (unsigned char*)redislite_malloc(sizeof(unsigned char) * cs->db->page_size);
-		if (data == NULL) return REDISLITE_OOM;
-
-		memset(&data[0], '\0', cs->db->page_size); // TODO: we could allow garbage on unused bytes
-		page->type->write_function(cs->db, &data[0], page->data);
-		fseek(file, cs->db->page_size * page->number, SEEK_SET);
-		fwrite(data, cs->db->page_size, sizeof(unsigned char), file);
-		redislite_free(data);
+		data[i] = (unsigned char*)redislite_malloc(sizeof(unsigned char) * cs->db->page_size);
+		if (data[i] == NULL) {
+			for (--i;i>=0;--i) {
+				redislite_free(data[i]);
+			}
+			redislite_free(data);
+			fclose(file);
+			return REDISLITE_OOM;
+		}
 	}
+
+	for (i=0;i<cs->modified_pages_length;++i) {
+		redislite_page *page = cs->modified_pages[i];
+
+		memset(&data[i][0], '\0', cs->db->page_size); // TODO: we could allow garbage on unused bytes
+		page->type->write_function(cs->db, &data[i][0], page->data);
+		fseek(file, cs->db->page_size * page->number, SEEK_SET);
+		fwrite(data[i], cs->db->page_size, sizeof(unsigned char), file);
+		redislite_free(data[i]);
+	}
+	redislite_free(data);
 	fclose(file);
 	return REDISLITE_OK;
 }
