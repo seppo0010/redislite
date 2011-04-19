@@ -48,14 +48,19 @@ int main() {
 	for (i=0; i < SIZE; i++)
 		key[i] = test_add_key(cs, &value[i]);
 
-	for (i=0; i < SIZE; i++)
-		if (key[i] != NULL && value[i] != redislite_value_page_for_key(db, cs, key[i], strlen(key[i])))
-			printf("%d %s %d %d\n", i, key[i], value[i], redislite_value_page_for_key(db, cs, key[i], strlen(key[i])));
-
 	for (i=0; i < SIZE; i++) {
 		if (key[i] == NULL) continue;
 		int length = 0;
-		char *value = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &length);
+		char *value = NULL;
+		int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+		if (found == REDISLITE_OOM) {
+			continue;
+		}
+		if (found == REDISLITE_ERR) {
+			printf("Key '%s' not found\n", key[i]);
+			continue;
+		}
+
 		if (length != cs->db->page_size+1) {
 			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size+1);
 		}
@@ -74,15 +79,18 @@ int main() {
 	if (1) {
 		for (i=0; i < SIZE; i++) {
 			if (key[i] == NULL) continue;
-			int v = redislite_value_page_for_key(db, cs, key[i], strlen(key[i]));
-			if (value[i] != v)
-				printf("%d %s %d %d\n", i, key[i], value[i], v);
-		}
-
-		for (i=0; i < SIZE; i++) {
-			if (key[i] == NULL) continue;
 			int length = 0;
-			char *value = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &length);
+			char *value = NULL;
+			int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+			if (found == REDISLITE_OOM) {
+				continue;
+			}
+
+			if (found == REDISLITE_ERR) {
+				printf("Key '%s' not found\n", key[i]);
+				continue;
+			}
+
 			if (!value) {
 				printf("Unable to find key: '%s'\n", key[i]);
 				continue;

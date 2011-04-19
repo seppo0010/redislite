@@ -134,13 +134,18 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 	return REDISLITE_OK;
 }
 
-char *redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, int key_length, int* length) {
+int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, int key_length, char **str, int* length) {
 	redislite *db = (redislite*)_db;
 	char type;
 	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
-	if (type != REDISLITE_PAGE_TYPE_STRING) return NULL;
+	if (_page == NULL) return REDISLITE_OOM;
+	if (type != REDISLITE_PAGE_TYPE_STRING) return REDISLITE_ERR;
 	redislite_page_string* page = (redislite_page_string*)_page;
 	char *data = redislite_malloc(sizeof(char) * page->size);
+	if (data == NULL) {
+		if (_cs == NULL) redislite_free_string(db, page);
+		return REDISLITE_OOM;
+	}
 	memcpy(data, page->value, MIN(page->size, db->page_size-13));
 
 	int next = page->right_page;
@@ -159,9 +164,10 @@ char *redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name,
 
 	*length = page->size;
 	if (_cs == NULL) redislite_free_string(db, page);
-	return data;
+	*str = data;
+	return REDISLITE_OK;
 cancel:
 	if (_cs == NULL) redislite_free_string(db, page);
 	redislite_free(data);
-	return NULL;
+	return REDISLITE_ERR;
 }
