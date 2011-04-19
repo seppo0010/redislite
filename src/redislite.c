@@ -280,6 +280,7 @@ redislite* redislite_create_database(const unsigned char *filename)
 	
 	size_t size = strlen(filename) + 1;
 	db->filename = redislite_malloc(size);
+	if (db->filename == NULL) { redislite_close_database(db); return NULL; }
 	memcpy(db->filename, filename, size);
 	db->file = NULL;
 	db->page_size = page_size;
