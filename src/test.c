@@ -32,7 +32,7 @@ int main() {
 	redislite *db = redislite_open_database("test.db");
 	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
 	int i, j;
 
 	char *key[SIZE];
