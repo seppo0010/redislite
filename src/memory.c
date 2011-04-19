@@ -2,19 +2,26 @@
 
 static int c = 0;
 void *redislite_malloc(size_t size) {
-#ifdef DEBUG
-	if (++c >= 20) {
-		return NULL;
-	}
+#ifdef OOM_SIMULATION
+	if (++c > OOM_SIMULATION)
+	return NULL;
 #endif
 	return malloc(size);
 }
 
 void *redislite_calloc(size_t num, size_t size) {
+#ifdef OOM_SIMULATION
+	if (++c > OOM_SIMULATION)
+	return NULL;
+#endif
 	return calloc(num, size);
 }
 
 void *redislite_realloc(void *ptr, size_t size) {
+#ifdef OOM_SIMULATION
+	if (++c > OOM_SIMULATION)
+	return NULL;
+#endif
 	return realloc(ptr, size);
 }
 
