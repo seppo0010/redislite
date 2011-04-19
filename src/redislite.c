@@ -185,14 +185,16 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	return page_number;
 }
 
-static void redislite_set_root(redislite *db, redislite_page_index *page)
+static int redislite_set_root(redislite *db, redislite_page_index *page)
 {
 	db->root = page;
 	page->free_space -= 100;
 	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) return REDISLITE_OOM;
 	redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, page);
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
+	return REDISLITE_OK;
 }
 
 static int init_db(redislite *db)
@@ -292,7 +294,11 @@ redislite* redislite_create_database(const unsigned char *filename)
 
 	redislite_page_index* page = (redislite_page_index*)redislite_page_index_create(db);
 	if (page == NULL) { redislite_close_database(db); return; }
-	redislite_set_root(db, page);
+	int ret = redislite_set_root(db, page);
+	if (ret != REDISLITE_OK) {
+		redislite_close_database(db);
+		return NULL;
+	}
 
 	return db;
 }
