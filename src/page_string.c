@@ -116,7 +116,11 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 		memcpy(data, str, db->page_size - 13);
 		page->value = data;
 		*num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING, page);
-		if (*num < 0) return (*num);
+		if (*num < 0) {
+			redislite_free(page);
+			redislite_free(data);
+			return (*num);
+		}
 	} else {
 		total_pages = 1;
 		page->right_page = 0;
