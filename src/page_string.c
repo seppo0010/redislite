@@ -102,7 +102,12 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 			overflow_page->right_page = next_page;
 			overflow_page->value = data;
 			next_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow_page);
-			if (next_page < 0) return next_page;
+			if (next_page < 0) {
+				redislite_free(page);
+				redislite_free(overflow_page);
+				redislite_free(data);
+				return next_page;
+			}
 			if (page == 0) return REDISLITE_OOM;
 		}
 		page->right_page = next_page;
