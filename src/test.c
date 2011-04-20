@@ -110,6 +110,32 @@ int main() {
 		}
 	}
 
+	cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
+	for (i=0; i < SIZE/2; i++) {
+		redislite_delete_key(cs, key[i*2], strlen(key[i*2]));
+	}
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	cs = NULL; // using stored values
+
+	for (i=0; i < SIZE; i++) {
+		if (key[i] == NULL) continue;
+		int length = 0;
+		char *value = NULL;
+		int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+		if (found == REDISLITE_OOM) {
+			continue;
+		}
+
+		if (i % 2 == 0 && found != REDISLITE_ERR) {
+			printf("Key '%s' found after deleted\n", key[i]);
+		} else if (i % 2 == 1 && found == REDISLITE_ERR) {
+			printf("Key '%s' not found\n", key[i]);
+		}
+		free(value);
+	}
+
 	for (i=0; i < SIZE; i++)
 		if (key[i] != NULL)
 			free(key[i]);

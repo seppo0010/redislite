@@ -5,12 +5,14 @@
 #define REDISLITE_PAGE_TYPE_INDEX 'I'
 #define REDISLITE_PAGE_TYPE_STRING 'S'
 #define REDISLITE_PAGE_TYPE_STRING_OVERFLOW 'O'
+#define REDISLITE_PAGE_TYPE_FREELIST 'R'
 
 typedef struct {
 	char identifier;
 	void (*write_function)(void *_db, unsigned char *data, void *page);
 	void* (*read_function)(void *_db, unsigned char *data);
 	void (*free_function)(void *_db, void *page);
+	void (*delete_function)(void *_db, void *page);
 } redislite_page_type;
 
 typedef struct {
@@ -23,4 +25,5 @@ void *redislite_page_get(void* db, void* _cs, int num, char* type);
 int redislite_page_register_type(void *db, redislite_page_type* type);
 void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, int length, char *type);
 redislite_page_type *redislite_page_get_type(void *db, char identifier);
+int redislite_page_delete(void *_cs, int num);
 #endif

@@ -2,6 +2,7 @@
 #include "page.h"
 #include "redislite.h"
 #include "page_index.h"
+#include "page_freelist.h"
 
 void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
 	changeset *cs = (changeset*)_cs;
@@ -10,6 +11,11 @@ void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
 		int i;
 		for (i = 0; i < cs->modified_pages_length; i++) {
 			redislite_page *page = cs->modified_pages[i];
+			*type = page->type->identifier;
+			if (page->number == num) return page->data;
+		}
+		for (i = 0; i < cs->opened_pages_length; i++) {
+			redislite_page *page = cs->opened_pages[i];
 			*type = page->type->identifier;
 			if (page->number == num) return page->data;
 		}
@@ -34,6 +40,36 @@ void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, int le
 	int num = redislite_value_page_for_key(_db, _cs, key_name, length);
 	if (num < 0) return NULL;
 	return redislite_page_get(_db, _cs, num, type);
+}
+
+int redislite_page_delete(void *_cs, int num) {
+	changeset *cs = (changeset*)_cs;
+	redislite *db = cs->db;
+
+	int i;
+	for (i = 0; i < cs->modified_pages_length; i++) {
+		redislite_page *page = cs->modified_pages[i];
+		if (page->number == num) {
+			page->type->identifier = REDISLITE_PAGE_TYPE_FREELIST;
+		}
+	}
+
+	char type;
+	void *data = redislite_page_get(db, cs, num, &type);
+	redislite_page_type *page_type = redislite_page_get_type(db, type);
+	if (page_type->delete_function) {
+		page_type->delete_function(cs, data);
+	}
+
+	redislite_page_freelist* page = redislite_malloc(sizeof(redislite_page_freelist));
+	if (page == NULL){ return REDISLITE_OOM; }
+	page->right_page = db->first_freelist_page;
+	db->first_freelist_page = num; // TODO: multithread safeness
+	i = redislite_add_modified_page(cs, num, REDISLITE_PAGE_TYPE_FREELIST, page);
+	if (i < 0) {
+		redislite_free(page);
+	}
+	return i;
 }
 
 int redislite_page_register_type(void *_db, redislite_page_type* type) {

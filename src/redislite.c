@@ -6,6 +6,7 @@
 #include "page_index.h"
 #include "page_first.h"
 #include "page_string.h"
+#include "page_freelist.h"
 #include "util.h"
 
 
@@ -42,8 +43,9 @@ void redislite_free_changeset(changeset *cs)
 	int i;
 	for (i=0;i<cs->opened_pages_length;i++) {
 		redislite_page *page = cs->opened_pages[i];
-		if (redislite_is_modified_page(cs, page->number)) continue;
-		page->type->free_function(cs->db, page->data);
+		//if (!redislite_is_modified_page(cs, page->number)) { // TODO: doesn't this make sense?
+			page->type->free_function(cs->db, page->data);
+		//}
 		redislite_free(page);
 	}
 	redislite_free(cs->opened_pages);
@@ -105,17 +107,18 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 	}
 
 	if (cs->opened_pages == NULL || (cs->opened_pages_length == 0 && cs->opened_pages_free == 0)) {
-		cs->opened_pages = redislite_malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
-		if (cs->opened_pages == NULL) return; // TODO: OOM
+		cs->opened_pages = redislite_malloc(sizeof(redislite_page) * DEFAULT_OPENED_PAGE_SIZE);
+		if (cs->opened_pages == NULL) return REDISLITE_OOM;
 		cs->opened_pages_free = DEFAULT_OPENED_PAGE_SIZE;
 		cs->opened_pages_length = 0;
 	} else if (cs->opened_pages_free == 0) {
 		void **opened_pages = redislite_realloc(cs->opened_pages, sizeof(redislite_page) * cs->opened_pages_length * 2);
-		if (opened_pages == NULL) return; // TODO: OOM
+		if (opened_pages == NULL) return REDISLITE_OOM;
 		cs->opened_pages = opened_pages;
 		cs->opened_pages_free = cs->opened_pages_length;
 	}
 	redislite_page *page = (redislite_page *)redislite_malloc(sizeof(redislite_page));
+	if (page == NULL) return REDISLITE_OOM;
 	page->type = redislite_page_get_type(cs->db, type);
 	page->number = page_number;
 	page->data = page_data;
@@ -151,7 +154,10 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 		if (redislite_is_modified_page(cs, page_number)) return page_number;
 	}
 
-	if (page_number == -1) page_number = cs->db->number_of_pages;
+	if (page_number == -1) {
+		if (cs->db->first_freelist_page) page_number = cs->db->first_freelist_page;
+		else page_number = cs->db->number_of_pages;
+	}
 
 	if (cs->modified_pages == NULL || (cs->modified_pages_length == 0 && cs->modified_pages_free == 0)) {
 		cs->modified_pages = redislite_malloc(sizeof(redislite_page) * DEFAULT_MODIFIED_PAGE_SIZE);
@@ -216,6 +222,7 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_index;
 		type->read_function = &redislite_read_index;
 		type->free_function = &redislite_free_index;
+		type->delete_function = NULL;
 		int status = redislite_page_register_type(db, type);
 		if (status != REDISLITE_OK) { free(type); return status; }
 	}
@@ -226,6 +233,7 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_string;
 		type->read_function = &redislite_read_string;
 		type->free_function = &redislite_free_string;
+		type->delete_function = &redislite_delete_string;
 		int status = redislite_page_register_type(db, type);
 		if (status != REDISLITE_OK) { free(type); return status; }
 	}
@@ -236,6 +244,7 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_string_overflow;
 		type->read_function = &redislite_read_string_overflow;
 		type->free_function = &redislite_free_string_overflow;
+		type->delete_function = &redislite_delete_string_overflow;
 		int status = redislite_page_register_type(db, type);
 		if (status != REDISLITE_OK) { free(type); return status; }
 	}
@@ -246,6 +255,18 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_first;
 		type->read_function = &redislite_read_first;
 		type->free_function = &redislite_free_first;
+		type->delete_function = NULL;
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) { free(type); return status; }
+	}
+	{
+		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) { redislite_close_database(db); return REDISLITE_OOM; }
+		type->identifier = REDISLITE_PAGE_TYPE_FREELIST;
+		type->write_function = &redislite_write_freelist;
+		type->read_function = &redislite_read_freelist;
+		type->free_function = &redislite_free_freelist;
+		type->delete_function = NULL;
 		int status = redislite_page_register_type(db, type);
 		if (status != REDISLITE_OK) { free(type); return status; }
 	}

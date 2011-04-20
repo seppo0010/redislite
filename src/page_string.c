@@ -6,6 +6,15 @@
 #include <math.h>
 
 
+void redislite_delete_string(void *_cs, void *_page)
+{
+	redislite_page_string* page = (redislite_page_string*)_page;
+	if (page == NULL) return;
+	if (page->right_page != 0) {
+		redislite_page_delete(_cs, page->right_page);
+	}
+}
+
 void redislite_free_string(void *_db, void *_page)
 {
 	redislite_page_string* page = (redislite_page_string*)_page;
@@ -44,6 +53,15 @@ void *redislite_read_string(void *_db, unsigned char *data)
 	return page;
 }
 
+
+void redislite_delete_string_overflow(void *_db, void *_page)
+{
+	redislite_page_string_overflow* page = (redislite_page_string_overflow*)_page;
+	if (page == NULL) return;
+	if (page->right_page != 0) {
+		redislite_page_delete(_db, page->right_page);
+	}
+}
 
 void redislite_free_string_overflow(void *_db, void *_page)
 {
@@ -139,7 +157,11 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 	char type;
 	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
 	if (_page == NULL) return REDISLITE_OOM;
-	if (type != REDISLITE_PAGE_TYPE_STRING) return REDISLITE_ERR;
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		redislite_page_type * page_type = redislite_page_get_type(db, type);
+		page_type->free_function(db, _page);
+		return REDISLITE_ERR;
+	}
 	redislite_page_string* page = (redislite_page_string*)_page;
 	char *data = redislite_malloc(sizeof(char) * page->size);
 	if (data == NULL) {
