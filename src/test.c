@@ -1,5 +1,6 @@
 #include "redislite.h"
 #include "page_string.h"
+#include "page_index.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +10,7 @@ static char *test_add_key(changeset *cs, int *left)
 	int rnd = rand();
 	char *key = (char*)malloc(sizeof(char) * 14);
 	sprintf(key, "%d", rnd);
-	int size = strlen(key);
+	size_t size = strlen(key);
 
 	char *data = malloc(sizeof(char) * cs->db->page_size+1);
 	memset(data, key[0], cs->db->page_size+1);
@@ -27,7 +28,7 @@ static char *test_add_key(changeset *cs, int *left)
 		free(key);
 		return NULL;
 	}
-	if (redislite_insert_key(cs, key, size, *left) < 0) {
+	if (redislite_insert_key(cs, key, (int)size, *left) < 0) {
 		free(key);
 		key = NULL;
 	}
@@ -55,7 +56,7 @@ int main() {
 		if (key[i] == NULL) continue;
 		int length = 0;
 		char *value = NULL;
-		int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+		size_t found = redislite_page_string_get_by_keyname(db, cs, key[i], (int)strlen(key[i]), &value, &length);
 		if (found == REDISLITE_OOM) {
 			continue;
 		}
@@ -84,7 +85,7 @@ int main() {
 			if (key[i] == NULL) continue;
 			int length = 0;
 			char *value = NULL;
-			int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+			size_t found = redislite_page_string_get_by_keyname(db, cs, key[i], (int)strlen(key[i]), &value, &length);
 			if (found == REDISLITE_OOM) {
 				continue;
 			}
@@ -113,7 +114,7 @@ int main() {
 	cs = redislite_create_changeset(db);
 	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
 	for (i=0; i < SIZE/2; i++) {
-		redislite_delete_key(cs, key[i*2], strlen(key[i*2]));
+		redislite_delete_key(cs, key[i*2], (int)strlen(key[i*2]));
 	}
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
@@ -123,7 +124,7 @@ int main() {
 		if (key[i] == NULL) continue;
 		int length = 0;
 		char *value = NULL;
-		int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+		size_t found = redislite_page_string_get_by_keyname(db, cs, key[i], (int)strlen(key[i]), &value, &length);
 		if (found == REDISLITE_OOM) {
 			continue;
 		}

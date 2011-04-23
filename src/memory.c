@@ -1,6 +1,9 @@
 #include "memory.h"
 
+#ifdef OOM_SIMULATION
 static int c = 0;
+#endif
+
 void *redislite_malloc(size_t size) {
 #ifdef OOM_SIMULATION
 	if (++c > OOM_SIMULATION)

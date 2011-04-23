@@ -45,7 +45,6 @@ void redislite_write_index(void *db, unsigned char *data, void *_page)
 
 void *redislite_read_index(void *db, unsigned char *data)
 {
-	redislite* _db = (redislite*)db;
 	redislite_page_index *page = redislite_malloc(sizeof(redislite_page_index));
 	if (page == NULL) return NULL;
 	page->free_space = redislite_get_4bytes(&data[1]);
@@ -94,7 +93,7 @@ redislite_page_index *redislite_page_index_create(void* db)
 	return page;
 }
 
-static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, void *_cs, unsigned char *key, int length, int* status)
+static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, void *_cs, char *key, int length, int* status)
 {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = (redislite*)_db;
@@ -167,9 +166,10 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 			return NULL;
 		}
 	}
+	return NULL;
 }
 
-int redislite_value_page_for_key(void *_db, void *_cs, unsigned char *key, int length)
+int redislite_value_page_for_key(void *_db, void *_cs, char *key, int length)
 {
 	redislite *db = (redislite*)_db;
 	int status;
@@ -183,7 +183,7 @@ int redislite_value_page_for_key(void *_db, void *_cs, unsigned char *key, int l
 	return ret;
 }
 
-int redislite_delete_key(void *_cs, unsigned char *key, int length)
+int redislite_delete_key(void *_cs, char *key, int length)
 {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
@@ -197,7 +197,7 @@ int redislite_delete_key(void *_cs, unsigned char *key, int length)
 	return REDISLITE_OK;
 }
 
-int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
+int redislite_insert_key(void *_cs, char *key, int length, int left)
 {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
@@ -221,7 +221,7 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 				break;
 			}
 		}
-		redislite_page_index_key *new_key = NULL;
+
 		int result = redislite_page_index_add_key(page, pos, left, key, length);
 		if (result == REDISLITE_OK) {
 			result = redislite_add_modified_page(cs, pos, pos == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
@@ -275,12 +275,12 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 	return REDISLITE_ERR;
 }
 
-int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, unsigned char *key, int length)
+int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, char *key, int length)
 {
 	redislite_page_index_key *index_key = redislite_malloc(sizeof(redislite_page_index_key));
 	if (index_key == NULL) return REDISLITE_OOM;
 
-	char length_str[9];
+	unsigned char length_str[9];
 	int new_key_length = length + 4;
 	new_key_length += putVarint32(length_str, length);
 	if (page->free_space < new_key_length) {

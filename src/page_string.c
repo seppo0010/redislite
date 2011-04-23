@@ -106,7 +106,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 	int total_pages;
 	if (first_page_size < length) {
 		total_pages = (int)ceil((float)(length-first_page_size)/(db->page_size - 9));
-		int i, size, next_page=0,left=0;
+		int i, size, next_page=0;
 		for (i=total_pages; i>=1;i--) {
 			redislite_page_string_overflow* overflow_page = redislite_malloc(sizeof(redislite_page_string_overflow));
 			if (overflow_page == NULL){ redislite_free(page); return REDISLITE_OOM; }

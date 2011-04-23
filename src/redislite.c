@@ -273,7 +273,7 @@ static int init_db(redislite *db)
 	return REDISLITE_OK;
 }
 
-redislite* redislite_open_database(const unsigned char *filename) {
+redislite* redislite_open_database(const char *filename) {
 	FILE *fp = fopen(filename, "r");
 	if (!fp) return redislite_create_database(filename);
 	unsigned char header[DEFAULT_PAGE_SIZE]; // TODO: read 100 header and then the rest
@@ -298,18 +298,18 @@ cleanup:
 	return db;
 }
 
-redislite* redislite_create_database(const unsigned char *filename)
+redislite* redislite_create_database(const char *filename)
 {
 	int page_size = DEFAULT_PAGE_SIZE;
 
 	redislite* db = redislite_malloc(sizeof(redislite));
-	if (db == NULL) return;
+	if (db == NULL) return NULL;
 	db->root = NULL;
 	db->types = NULL;
 	db->file = NULL;
 	db->filename = NULL;
 	int init = init_db(db);
-	if (init != 0) return;
+	if (init != 0) return NULL;
 	
 	size_t size = strlen(filename) + 1;
 	db->filename = redislite_malloc(size);
@@ -324,7 +324,7 @@ redislite* redislite_create_database(const unsigned char *filename)
 	db->readonly = 0;
 
 	redislite_page_index* page = (redislite_page_index*)redislite_page_index_create(db);
-	if (page == NULL) { redislite_close_database(db); return; }
+	if (page == NULL) { redislite_close_database(db); return NULL; }
 	int ret = redislite_set_root(db, page);
 	if (ret != REDISLITE_OK) {
 		redislite_close_database(db);
@@ -354,12 +354,12 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		db->file = fopen(db->filename, "rb+");
 	}
 	fseek(db->file, 0L, SEEK_END);
-	int size = ftell(db->file);
+	long size = ftell(db->file);
 	if (size < db->page_size * (num+1)) { redislite_free(data); return NULL; }
 	fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
 	if (read < db->page_size && ferror(db->file)) printf("Error reading\n");
-	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, size was %d, attempt to read %d)\n", (long)db->page_size * num, size, db->page_size);
+	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, size was %ld, attempt to read %d)\n", (long)db->page_size * num, (long)size, db->page_size);
 	if (read < db->page_size) { redislite_free(data); return NULL; }
 
 	return data;
