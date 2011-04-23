@@ -1,5 +1,6 @@
 #include "redislite.h"
 #include "page_string.h"
+#include "page_index.h"
 #include "util.h"
 #include <string.h>
 #include <stdlib.h>
@@ -103,9 +104,8 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 	if (page == NULL) return REDISLITE_OOM;
 	page->size = length;
 	int first_page_size = db->page_size - 13;
-	int total_pages;
 	if (first_page_size < length) {
-		total_pages = (int)ceil((float)(length-first_page_size)/(db->page_size - 9));
+		int total_pages = (int)ceil((float)(length-first_page_size)/(db->page_size - 9));
 		int i, size, next_page=0;
 		for (i=total_pages; i>=1;i--) {
 			redislite_page_string_overflow* overflow_page = redislite_malloc(sizeof(redislite_page_string_overflow));
@@ -140,7 +140,6 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 			return (*num);
 		}
 	} else {
-		total_pages = 1;
 		page->right_page = 0;
 		char *data = redislite_malloc(sizeof(char) * length);
 		if (data == NULL) { redislite_free(page); return REDISLITE_OOM; }
@@ -192,4 +191,21 @@ cancel:
 	if (_cs == NULL) redislite_free_string(db, page);
 	redislite_free(data);
 	return REDISLITE_ERR;
+}
+
+
+int redislite_page_string_set_key_string(void *_cs, char *key_name, int key_length, char *str, int length) {
+	changeset *cs = (changeset*)_cs;
+	int left;
+	int status = redislite_insert_string(cs, str, length, &left);
+	if (status != REDISLITE_OK) {
+		return status;
+	}
+
+	status = redislite_insert_key(cs, key_name, key_length, left);
+	if (status < 0) {
+		return status;
+	}
+
+	return REDISLITE_OK;
 }

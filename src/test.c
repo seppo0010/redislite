@@ -10,7 +10,7 @@ static char *test_add_key(changeset *cs, int *left)
 	int rnd = rand();
 	char *key = (char*)malloc(sizeof(char) * 14);
 	sprintf(key, "%d", rnd);
-	size_t size = strlen(key);
+	int size = (int)strlen(key);
 
 	char *data = malloc(sizeof(char) * cs->db->page_size+1);
 	memset(data, key[0], cs->db->page_size+1);
@@ -18,17 +18,9 @@ static char *test_add_key(changeset *cs, int *left)
 	for (i=0;i<cs->db->page_size+1;i++) {
 		data[i] = (char)(((int)key[0] + i) % 256);
 	}
-	if (redislite_insert_string(cs, data, cs->db->page_size+1, left) == REDISLITE_OOM) {
-		free(data);
-		free(key);
-		return NULL;
-	}
-	if (*left == REDISLITE_OOM) {
-		free(data);
-		free(key);
-		return NULL;
-	}
-	if (redislite_insert_key(cs, key, (int)size, *left) < 0) {
+
+	int insert = redislite_page_string_set_key_string(cs, key, size, data, cs->db->page_size+1);
+	if (insert != REDISLITE_OK) {
 		free(key);
 		key = NULL;
 	}
