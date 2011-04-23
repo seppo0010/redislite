@@ -79,35 +79,33 @@ int main() {
 	redislite_free_changeset(cs);
 	cs = NULL; // using stored values
 
-	if (1) {
-		for (i=0; i < SIZE; i++) {
-			if (key[i] == NULL) continue;
-			int length = 0;
-			char *value = NULL;
-			int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
-			if (found == REDISLITE_OOM) {
-				continue;
-			}
-
-			if (found == REDISLITE_ERR) {
-				printf("Key '%s' not found\n", key[i]);
-				continue;
-			}
-
-			if (!value) {
-				printf("Unable to find key: '%s'\n", key[i]);
-				continue;
-			}
-			if (length != db->page_size+1) {
-				printf("Wrong length (%d) should be %d\n", length, db->page_size+1);
-			}
-			for (j=0; j < SIZE; j++) {
-				if (value[j] != (char)(((int)key[i][0] + j) % 256))
-					printf("Content mismatch\n");
-			}
-
-			free(value);
+	for (i=0; i < SIZE; i++) {
+		if (key[i] == NULL) continue;
+		int length = 0;
+		char *value = NULL;
+		int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+		if (found == REDISLITE_OOM) {
+			continue;
 		}
+
+		if (found == REDISLITE_ERR) {
+			printf("Key '%s' not found\n", key[i]);
+			continue;
+		}
+
+		if (!value) {
+			printf("Unable to find key: '%s'\n", key[i]);
+			continue;
+		}
+		if (length != db->page_size+1) {
+			printf("Wrong length (%d) should be %d\n", length, db->page_size+1);
+		}
+		for (j=0; j < SIZE; j++) {
+			if (value[j] != (char)(((int)key[i][0] + j) % 256))
+				printf("Content mismatch\n");
+		}
+
+		free(value);
 	}
 
 	cs = redislite_create_changeset(db);
@@ -133,6 +131,47 @@ int main() {
 		} else if (i % 2 == 1 && found == REDISLITE_ERR) {
 			printf("Key '%s' not found\n", key[i]);
 		}
+		free(value);
+	}
+
+	cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
+	for (i=1; i < SIZE; i+=2) {
+		if (key[i] != NULL)
+			free(key[i]);
+		key[i] = test_add_key(cs, &value[i]);
+	}
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	cs = NULL; // using stored values
+
+	if (0)
+	for (i=0; i < SIZE; i++) {
+		if (key[i] == NULL) continue;
+		int length = 0;
+		char *value = NULL;
+		int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
+		if (found == REDISLITE_OOM) {
+			continue;
+		}
+
+		if (found == REDISLITE_ERR) {
+			printf("Key '%s' not found\n", key[i]);
+			continue;
+		}
+
+		if (!value) {
+			printf("Unable to find key: '%s'\n", key[i]);
+			continue;
+		}
+		if (length != db->page_size+1) {
+			printf("Wrong length (%d) should be %d\n", length, db->page_size+1);
+		}
+		for (j=0; j < SIZE; j++) {
+			if (value[j] != (char)(((int)key[i][0] + j) % 256))
+				printf("Content mismatch\n");
+		}
+
 		free(value);
 	}
 

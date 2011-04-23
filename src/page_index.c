@@ -206,6 +206,7 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 	int i;
 	int cmp_result;
 	redislite_page_index *page = (redislite_page_index*)db->root;
+	int page_num = 0;
 
 	while (page != NULL) {
 		pos = 0;
@@ -224,13 +225,12 @@ int redislite_insert_key(void *_cs, unsigned char *key, int length, int left)
 		redislite_page_index_key *new_key = NULL;
 		int result = redislite_page_index_add_key(page, pos, left, key, length);
 		if (result == REDISLITE_OK) {
-			result = redislite_add_modified_page(cs, pos, pos == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+			result = redislite_add_modified_page(cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
 			if (result < 0) return -result;
 			return REDISLITE_OK;
 		}
 		if (result == REDISLITE_OOM || result == REDISLITE_OK) return result;
 
-		int page_num;
 		char type;
 		if (pos == page->number_of_keys) {
 			page_num = page->right_page;

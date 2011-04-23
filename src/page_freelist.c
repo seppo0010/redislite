@@ -30,6 +30,7 @@ void *redislite_read_freelist(void *_db, unsigned char *data)
 {
 	redislite *db = (redislite*)_db;
 	redislite_page_string* page = redislite_malloc(sizeof(redislite_page_string));
+	if (page == NULL) return NULL;
 
 	page->right_page = redislite_get_4bytes(&data[5]);
 

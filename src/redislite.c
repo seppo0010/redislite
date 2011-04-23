@@ -43,9 +43,9 @@ void redislite_free_changeset(changeset *cs)
 	int i;
 	for (i=0;i<cs->opened_pages_length;i++) {
 		redislite_page *page = cs->opened_pages[i];
-		//if (!redislite_is_modified_page(cs, page->number)) { // TODO: doesn't this make sense?
+		if (!redislite_is_modified_page(cs, page->number)) { // TODO: doesn't this make sense?
 			page->type->free_function(cs->db, page->data);
-		//}
+		}
 		redislite_free(page);
 	}
 	redislite_free(cs->opened_pages);
@@ -147,6 +147,9 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 int redislite_add_modified_page(changeset *cs, int page_number, char type, void *page_data)
 {
 	if (cs->db->readonly) return REDISLITE_READONLY;
+	if (page_number == 0) {
+		printf("%c\n", type);
+	}
 
 	int i;
 	// TODO: binary search
@@ -155,8 +158,18 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	}
 
 	if (page_number == -1) {
-		if (cs->db->first_freelist_page) page_number = cs->db->first_freelist_page;
-		else page_number = cs->db->number_of_pages;
+		if (cs->db->first_freelist_page) {
+			page_number = cs->db->first_freelist_page;
+			char type;
+			redislite_page_freelist* freelist_page = redislite_page_get(cs->db, cs, page_number, &type);
+			if (freelist_page == NULL) return REDISLITE_OOM;
+			cs->db->first_freelist_page = freelist_page->right_page;
+		} else {
+			page_number = cs->db->number_of_pages;
+		}
+	}
+	if (page_number == 3 || page_number == 4) {
+		printf("1");
 	}
 
 	if (cs->modified_pages == NULL || (cs->modified_pages_length == 0 && cs->modified_pages_free == 0)) {
