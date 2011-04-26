@@ -30,13 +30,12 @@ static char *test_add_key(changeset *cs, int *left)
 
 #define SIZE 200
 
-int main() {
-	srand(4);
+int test_insert_and_find() {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
 	int i, j;
 
 	char *key[SIZE];
@@ -103,6 +102,16 @@ int main() {
 		}
 	}
 
+	for (i=0; i < SIZE; i++)
+		if (key[i] != NULL)
+			free(key[i]);
+	redislite_close_database(db);
+	// TODO: check for leaks
+	return REDISLITE_OK;
+}
+
+int test_delete_and_find() {
+/*
 	cs = redislite_create_changeset(db);
 	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
 	for (i=0; i < SIZE/2; i++) {
@@ -128,11 +137,22 @@ int main() {
 		}
 		free(value);
 	}
+*/
+	return REDISLITE_ERR;
+}
 
-	for (i=0; i < SIZE; i++)
-		if (key[i] != NULL)
-			free(key[i]);
+int main() {
+	srand(4);
+	int test;
+	const char * test_name;
 
-	redislite_close_database(db);
+	test = test_insert_and_find();
+	test_name = "Insert and Find";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d", test_name, __LINE__);
+	}
+
 	return 0;
 }
