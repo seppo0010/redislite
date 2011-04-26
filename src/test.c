@@ -110,6 +110,31 @@ int test_insert_and_find() {
 	return REDISLITE_OK;
 }
 
+int test_insert_middle_and_find() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char key[412];
+	memset(key, 'a', 412);
+	key[0] = 'a';
+	redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	key[0] = 'c';
+	redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	key[0] = 'b';
+	redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	redislite_page_string_set_key_string(cs, key, 2, "1", 1);
+
+	char *value;
+	int length;
+	size_t found = redislite_page_string_get_by_keyname(db, cs, key, 200, &value, &length);
+	free(value);
+
+	return found == REDISLITE_OK;
+}
+
+
 int test_delete_and_find() {
 /*
 	cs = redislite_create_changeset(db);
@@ -149,10 +174,18 @@ int main() {
 	test = test_insert_and_find();
 	test_name = "Insert and Find";
 	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d", test_name, __LINE__);
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d", test_name, __LINE__);
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-
+	
+	test = test_insert_middle_and_find();
+	test_name = "Insert Middle and Find";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+	
 	return 0;
 }
