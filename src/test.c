@@ -119,21 +119,53 @@ int test_insert_middle_and_find() {
 	char key[412];
 	memset(key, 'a', 412);
 	key[0] = 'a';
-	redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	int r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	if (r < 0) return REDISLITE_SKIP;
 	key[0] = 'c';
-	redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	if (r < 0) return REDISLITE_SKIP;
 	key[0] = 'b';
-	redislite_page_string_set_key_string(cs, key, 200, "1", 1);
-	redislite_page_string_set_key_string(cs, key, 2, "1", 1);
+	r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	if (r < 0) return REDISLITE_SKIP;
+	r = redislite_page_string_set_key_string(cs, key, 2, "1", 1);
+	if (r < 0) return REDISLITE_SKIP;
 
 	char *value;
 	int length;
 	size_t found = redislite_page_string_get_by_keyname(db, cs, key, 200, &value, &length);
 	free(value);
 
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	redislite_close_database(db);
+
 	return found == REDISLITE_OK;
 }
 
+int test_setnx() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char key[10];
+	memset(key, 'a', 10);
+	int r = redislite_page_string_set_key_string(cs, key, 10, "1", 1);
+	if (r < 0) return REDISLITE_SKIP;
+	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
+	if (r < 0) return REDISLITE_SKIP;
+	else if (r > 0) return REDISLITE_ERR;
+	key[0] = 'b';
+	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
+	if (r < 0) return REDISLITE_SKIP;
+	else if (r == 0) return REDISLITE_ERR;
+
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	redislite_close_database(db);
+
+	return REDISLITE_OK;
+}
 
 int test_delete_and_find() {
 /*
@@ -181,6 +213,14 @@ int main() {
 	
 	test = test_insert_middle_and_find();
 	test_name = "Insert Middle and Find";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+	
+	test = test_setnx();
+	test_name = "setnx for existing and non-existing key";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {

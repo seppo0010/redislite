@@ -209,3 +209,17 @@ int redislite_page_string_set_key_string(void *_cs, char *key_name, int key_leng
 
 	return REDISLITE_OK;
 }
+
+int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_length, char *str, int length) {
+	changeset *cs = (changeset*)_cs;
+	int exists = redislite_value_page_for_key(cs->db, cs, key_name, key_length);
+	if (exists < 0) {
+		return exists; // error
+	} else if (exists == 0) {
+		exists = redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);
+		if (exists == REDISLITE_OK) return 1;
+		else return exists; // error
+	} else {
+		return 0; // key already exists
+	}
+}

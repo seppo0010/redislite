@@ -22,3 +22,4 @@ void redislite_delete_string_overflow(void *_cs, void *page);
 int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, int key_length, char **str, int* length);
 int redislite_insert_string(void *_cs, char *str, int length, int* num);
 int redislite_page_string_set_key_string(void *_cs, char *key_name, int key_length, char *str, int length);
+int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_length, char *str, int length);
