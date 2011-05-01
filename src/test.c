@@ -106,7 +106,6 @@ int test_insert_and_find() {
 		if (key[i] != NULL)
 			free(key[i]);
 	redislite_close_database(db);
-	// TODO: check for leaks
 	return REDISLITE_OK;
 }
 
@@ -168,9 +167,17 @@ int test_setnx() {
 }
 
 int test_delete_and_find() {
-/*
 	cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return 0; }
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	int i, j;
+
+	char *key[SIZE];
+	int value[SIZE];
+	for (i=0; i < SIZE; i++)
+		key[i] = test_add_key(cs, &value[i]);
+
 	for (i=0; i < SIZE/2; i++) {
 		redislite_delete_key(cs, key[i*2], (int)strlen(key[i*2]));
 	}
@@ -194,7 +201,6 @@ int test_delete_and_find() {
 		}
 		free(value);
 	}
-*/
 	return REDISLITE_ERR;
 }
 
