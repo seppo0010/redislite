@@ -46,14 +46,6 @@ int redislite_page_delete(void *_cs, int num) {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
 
-	int i;
-	for (i = 0; i < cs->modified_pages_length; i++) {
-		redislite_page *page = cs->modified_pages[i];
-		if (page->number == num) {
-			page->type->identifier = REDISLITE_PAGE_TYPE_FREELIST;
-		}
-	}
-
 	char type;
 	void *data = redislite_page_get(db, cs, num, &type);
 	redislite_page_type *page_type = redislite_page_get_type(db, type);
@@ -65,11 +57,11 @@ int redislite_page_delete(void *_cs, int num) {
 	if (page == NULL){ return REDISLITE_OOM; }
 	page->right_page = db->first_freelist_page;
 	db->first_freelist_page = num; // TODO: multithread safeness
-	i = redislite_add_modified_page(cs, num, REDISLITE_PAGE_TYPE_FREELIST, page);
-	if (i < 0) {
+	int status = redislite_add_modified_page(cs, num, REDISLITE_PAGE_TYPE_FREELIST, page);
+	if (status < 0) {
 		redislite_free(page);
 	}
-	return i;
+	return status;
 }
 
 int redislite_page_register_type(void *_db, redislite_page_type* type) {

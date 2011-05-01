@@ -24,18 +24,18 @@ changeset *redislite_create_changeset(redislite *db)
 	return cs;
 }
 
-static int redislite_is_modified_page(changeset *cs, int page_number) {
+static redislite_page* redislite_modified_page(changeset *cs, int page_number) {
 	int i;
 	for (i=0; i<cs->modified_pages_length;i++) {
 		if (((redislite_page*)cs->modified_pages[i])->number == page_number) {
-			return 1;
+			return ((redislite_page*)cs->modified_pages[i]);
 		}
 
 		if (((redislite_page*)cs->modified_pages[i])->number > page_number) {
 			break;
 		}
 	}
-	return 0;
+	return NULL;
 }
 
 void redislite_free_changeset(changeset *cs)
@@ -43,7 +43,7 @@ void redislite_free_changeset(changeset *cs)
 	int i;
 	for (i=0;i<cs->opened_pages_length;i++) {
 		redislite_page *page = cs->opened_pages[i];
-		//if (!redislite_is_modified_page(cs, page->number)) { // TODO: doesn't this make sense?
+		//if (!redislite_modified_page(cs, page->number)) { // TODO: doesn't this make sense?
 			page->type->free_function(cs->db, page->data);
 		//}
 		redislite_free(page);
@@ -51,7 +51,8 @@ void redislite_free_changeset(changeset *cs)
 	redislite_free(cs->opened_pages);
 	for (i=0;i<cs->modified_pages_length;i++) {
 		redislite_page *page = cs->modified_pages[i];
-		page->type->free_function(cs->db, page->data);
+		if (page->data != cs->db->root)
+			page->type->free_function(cs->db, page->data);
 		redislite_free(page);
 	}
 	redislite_free(cs->modified_pages);
@@ -151,7 +152,15 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	int i;
 	// TODO: binary search
 	if (page_number != -1) {
-		if (redislite_is_modified_page(cs, page_number)) return page_number;
+		redislite_page* page = redislite_modified_page(cs, page_number);
+		if (page) {
+			if (page->data != page_data) {
+				page->type->free_function(cs->db, page->data);
+				page->type = redislite_page_get_type(cs->db, type);
+				page->data = page_data;
+			}
+			return page_number;
+		}
 	}
 
 	if (page_number == -1) {
