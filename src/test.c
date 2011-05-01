@@ -19,7 +19,7 @@ static char *test_add_key(changeset *cs, int *left)
 		data[i] = (char)(((int)key[0] + i) % 256);
 	}
 
-	int insert = redislite_page_string_set_key_string(cs, key, size, data, cs->db->page_size+1);
+	int insert = redislite_set_command(cs, key, size, data, cs->db->page_size+1);
 	if (insert != REDISLITE_OK) {
 		free(key);
 		key = NULL;
@@ -119,15 +119,15 @@ int test_insert_middle_and_find() {
 	char key[412];
 	memset(key, 'a', 412);
 	key[0] = 'a';
-	int r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	int r = redislite_set_command(cs, key, 200, "1", 1);
 	if (r < 0) return REDISLITE_SKIP;
 	key[0] = 'c';
-	r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	r = redislite_set_command(cs, key, 200, "1", 1);
 	if (r < 0) return REDISLITE_SKIP;
 	key[0] = 'b';
-	r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
+	r = redislite_set_command(cs, key, 200, "1", 1);
 	if (r < 0) return REDISLITE_SKIP;
-	r = redislite_page_string_set_key_string(cs, key, 2, "1", 1);
+	r = redislite_set_command(cs, key, 2, "1", 1);
 	if (r < 0) return REDISLITE_SKIP;
 
 	char *value;
@@ -150,13 +150,13 @@ int test_setnx() {
 	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
 	char key[10];
 	memset(key, 'a', 10);
-	int r = redislite_page_string_set_key_string(cs, key, 10, "1", 1);
+	int r = redislite_set_command(cs, key, 10, "1", 1);
 	if (r < 0) return REDISLITE_SKIP;
-	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
+	r = redislite_setnx_command(cs, key, 10, "1", 1);
 	if (r < 0) return REDISLITE_SKIP;
 	else if (r > 0) return REDISLITE_ERR;
 	key[0] = 'b';
-	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
+	r = redislite_setnx_command(cs, key, 10, "1", 1);
 	if (r < 0) return REDISLITE_SKIP;
 	else if (r == 0) return REDISLITE_ERR;
 
