@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static char *dummy = NULL;
 static char *test_add_key(changeset *cs, int *left)
 {
 	int rnd = rand();
@@ -12,23 +13,26 @@ static char *test_add_key(changeset *cs, int *left)
 	sprintf(key, "%d", rnd);
 	int size = (int)strlen(key);
 
-	char *data = malloc(sizeof(char) * cs->db->page_size+1);
-	memset(data, key[0], cs->db->page_size+1);
-	int i;
-	for (i=0;i<cs->db->page_size+1;i++) {
-		data[i] = (char)(((int)key[0] + i) % 256);
+	if (dummy == NULL) {
+		dummy = malloc(sizeof(char) * cs->db->page_size+1);
+		memset(dummy, 'a', cs->db->page_size+1);
+		int i;
+		for (i=0;i<cs->db->page_size+1;i++) {
+			dummy[i] = (char)(('a' + i) % 128);
+		}
 	}
+	dummy[0] = key[0];
+	dummy[cs->db->page_size] = key[1];
 
-	int insert = redislite_page_string_set_key_string(cs, key, size, data, cs->db->page_size+1);
+	int insert = redislite_page_string_set_key_string(cs, key, size, dummy, cs->db->page_size+1);
 	if (insert != REDISLITE_OK) {
 		free(key);
 		key = NULL;
 	}
-	free(data);
 	return key;
 }
 
-#define SIZE 5
+#define SIZE 20
 
 int test_insert_and_find() {
 	remove("test.db");
@@ -60,11 +64,10 @@ int test_insert_and_find() {
 		if (length != cs->db->page_size+1) {
 			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size+1);
 		}
-		for (j=0; j < SIZE; j++) {
-			if (value[j] != (char)(((int)key[i][0] + j) % 256)) {
-				printf("Content mismatch\n");
-				break;
-			}
+
+		if (value[0] != key[i][0] || value[length-1] != key[i][1]) {
+			printf("Content mismatch\n");
+			break;
 		}
 		free(value);
 	}
@@ -95,9 +98,8 @@ int test_insert_and_find() {
 			if (length != db->page_size+1) {
 				printf("Wrong length (%d) should be %d\n", length, db->page_size+1);
 			}
-			for (j=0; j < SIZE; j++) {
-				if (value[j] != (char)(((int)key[i][0] + j) % 256))
-					printf("Content mismatch\n");
+			if (value[0] != key[i][0] || value[length-1] != key[i][1]) {
+				printf("Content mismatch\n");
 			}
 
 			free(value);
@@ -261,7 +263,7 @@ int main() {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 	
-	test = REDISLITE_SKIP;//test_delete_and_find();
+	test = test_delete_and_find();
 	test_name = "Delete key and find";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
@@ -277,5 +279,7 @@ int main() {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 	
+	free(dummy);
+
 	return 0;
 }
