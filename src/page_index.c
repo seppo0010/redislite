@@ -111,7 +111,6 @@ static int redislite_keys_cmp(redislite_page_index_key* key1, redislite_page_ind
 
 static int redislite_remove_key(void *_cs, void *_key)
 {
-	changeset *cs = (changeset*)_cs;
 	redislite_page_index_key *key = (redislite_page_index_key*)_key;
 	redislite_page_index *page = (redislite_page_index*)key->page;
 	if (page == NULL) return REDISLITE_ERR;
@@ -236,7 +235,6 @@ int redislite_delete_key(void *_cs, char *key, int length)
 	if (status != REDISLITE_OK) return status;
 	if (index_key != NULL) {
 		if (index_key->page) {
-			redislite_page_index* page = index_key->page;
 			int left_page = index_key->left_page;
 			status = redislite_remove_key(_cs, index_key);
 			index_key = NULL;

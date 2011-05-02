@@ -175,7 +175,7 @@ int test_delete_and_find() {
 	changeset *cs = redislite_create_changeset(db);
 	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
 	int status = REDISLITE_OK;
-	int i, j;
+	int i;
 
 	char *key[SIZE];
 	int value[SIZE];
