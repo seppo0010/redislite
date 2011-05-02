@@ -371,13 +371,15 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 	if (!db->file) {
 		db->file = fopen(db->filename, "rb+");
 	}
+#ifdef DEBUG
 	fseek(db->file, 0L, SEEK_END);
 	long size = ftell(db->file);
 	if (size < db->page_size * (num+1)) { redislite_free(data); return NULL; }
+#endif
 	fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
 	if (read < db->page_size && ferror(db->file)) printf("Error reading\n");
-	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, size was %ld, attempt to read %d)\n", (long)db->page_size * num, (long)size, db->page_size);
+	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, attempt to read %d)\n", (long)db->page_size * num, db->page_size);
 	if (read < db->page_size) { redislite_free(data); return NULL; }
 
 	return data;
