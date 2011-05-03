@@ -285,6 +285,21 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 			}
 		}
 
+		if (pos < page->number_of_keys) {
+			if (page->keys[pos]->type == REDISLITE_PAGE_TYPE_INDEX) {
+				redislite_page_index* new_page = redislite_page_get(db, cs, page->keys[pos]->left_page, REDISLITE_PAGE_TYPE_INDEX);
+				if (new_page == NULL) return REDISLITE_OOM;
+				page = new_page;
+				continue;
+			}
+		} else {
+			if (page->right_page > 0) {
+				redislite_page_index* new_page = redislite_page_get(db, cs, page->right_page, REDISLITE_PAGE_TYPE_INDEX);
+				if (new_page == NULL) return REDISLITE_OOM;
+				page = new_page;
+			}
+		}
+
 		int result = redislite_page_index_add_key(page, pos, left, key, length, type);
 		if (result == REDISLITE_OK) {
 			result = redislite_add_modified_page(cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);

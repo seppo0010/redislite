@@ -256,7 +256,7 @@ int main() {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 	
-	test = REDISLITE_SKIP;//test_insert_middle_and_find();
+	test = test_insert_middle_and_find();
 	test_name = "Insert Middle and Find";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
