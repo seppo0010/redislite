@@ -47,7 +47,6 @@ void *redislite_read_string(void *_db, unsigned char *data)
 	page->right_page = redislite_get_4bytes(&data[8]);
 
 	int size = db->page_size-12;
-	if (size > page->size) size = page->size;
 	page->value = redislite_malloc(sizeof(char) * size);
 	memcpy(page->value, &data[12], size);
 	return page;
@@ -139,7 +138,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int* num)
 		}
 	} else {
 		page->right_page = 0;
-		char *data = redislite_malloc(sizeof(char) * length);
+		char *data = redislite_malloc(sizeof(char) * db->page_size - 12);
 		if (data == NULL) { redislite_free(page); return REDISLITE_OOM; }
 		memcpy(data, str, length);
 		page->value = data;
@@ -215,5 +214,82 @@ int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_le
 		else return exists; // error
 	} else {
 		return 0; // key already exists
+	}
+}
+
+int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_length, char *str, int length) {
+	changeset *cs = (changeset*)_cs;
+	redislite* db = cs->db;
+
+	char type;
+	int page_num = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
+	if (page_num) {
+		if (type != REDISLITE_PAGE_TYPE_STRING) {
+			return REDISLITE_ERR; // TODO: error for wrong type
+		}
+		redislite_page_string* page = redislite_page_get(cs->db, _cs, page_num, type);
+		int previous_length = page->size;
+		if (page->right_page > 0) {
+			int pos = cs->db->page_size - 12;
+			redislite_page_string_overflow* overflow = redislite_page_get(cs->db, _cs, page_num, type);
+			int overflow_page_num = overflow->right_page;
+			while (overflow->right_page != 0) {
+				overflow = redislite_page_get(cs->db, _cs, overflow->right_page, type);
+				if (overflow->right_page != 0) {
+					pos += cs->db->page_size - 8;
+					overflow_page_num = overflow->right_page;
+				}
+			}
+			int page_pos = previous_length - pos;
+			int free_bytes = cs->db->page_size - page_pos - 8;
+			if (length <= free_bytes) {
+				memcpy(&overflow->value[page_pos], str, length);
+				redislite_add_modified_page(cs, overflow_page_num, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow);
+				page->size += length;
+				redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+			} else {
+				// TODO
+			}
+		} else {
+			if (cs->db->page_size >= page->size + length + 8) {
+				memcpy(&page->value[page->size], str, length);
+				page->size += length;
+				redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+			} else {
+				int first_page_size = db->page_size - 12;
+
+				// FIXME: code duplication; aweful!
+				int total_pages = (int)ceil((float)((length+page->size)-first_page_size)/(db->page_size - 8));
+				int i, size, next_page=0;
+				for (i=total_pages; i>=1;i--) {
+					redislite_page_string_overflow* overflow_page = redislite_malloc(sizeof(redislite_page_string_overflow));
+					if (overflow_page == NULL){ redislite_free(page); return REDISLITE_OOM; }
+					char *data = redislite_malloc(sizeof(char) * (db->page_size - 8));
+					if (data == NULL) { redislite_free(page); redislite_free(overflow_page); return REDISLITE_OOM; }
+					memset(data, 0, db->page_size - 8);
+					if (i == total_pages) size = length+page->size - (db->page_size - 12) - (db->page_size - 8) * (total_pages-1);
+					else size = db->page_size - 8;
+					memcpy(data, &str[(db->page_size - 12 - page->size) + (db->page_size - 8) * (i-1)], size);
+					overflow_page->db = db;
+					overflow_page->right_page = next_page;
+					overflow_page->value = data;
+					next_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow_page);
+					if (next_page < 0) {
+						redislite_free(page);
+						redislite_free(overflow_page);
+						redislite_free(data);
+						return next_page;
+					}
+					if (page == 0) return REDISLITE_OOM;
+				}
+				page->right_page = next_page;
+				memcpy(&page->value[page->size], str, db->page_size - 12 - page->size);
+				page->size += length;
+				redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+			}
+		}
+		return REDISLITE_OK;
+	} else {
+		return redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);
 	}
 }
