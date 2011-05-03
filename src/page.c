@@ -4,19 +4,17 @@
 #include "page_index.h"
 #include "page_freelist.h"
 
-void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
+void *redislite_page_get(void* _db, void *_cs, int num, char type) {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = (redislite*)_db;
 	if (cs) {
 		int i;
 		for (i = 0; i < cs->modified_pages_length; i++) {
 			redislite_page *page = cs->modified_pages[i];
-			*type = page->type->identifier;
 			if (page->number == num) return page->data;
 		}
 		for (i = 0; i < cs->opened_pages_length; i++) {
 			redislite_page *page = cs->opened_pages[i];
-			*type = page->type->identifier;
 			if (page->number == num) return page->data;
 		}
 	}
@@ -24,12 +22,11 @@ void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
 	unsigned char *data = redislite_read_page(db, _cs, num);
 	if (data == NULL) return NULL;
 	void *result = NULL;
-	*type = data[0];
-	redislite_page_type* page_type = redislite_page_get_type(db, data[0]);
+	redislite_page_type* page_type = redislite_page_get_type(db, type);
 	if (page_type) {
 		result = page_type->read_function(db, data);
 		if (cs) {
-			redislite_add_opened_page(cs, num, *type, result);
+			redislite_add_opened_page(cs, num, type, result);
 		}
 	}
 	redislite_free(data);
@@ -37,17 +34,16 @@ void *redislite_page_get(void* _db, void *_cs, int num, char* type) {
 }
 
 void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, int length, char *type) {
-	int num = redislite_value_page_for_key(_db, _cs, key_name, length);
+	int num = redislite_value_page_for_key(_db, _cs, key_name, length, type);
 	if (num < 0) return NULL;
-	return redislite_page_get(_db, _cs, num, type);
+	return redislite_page_get(_db, _cs, num, *type);
 }
 
-int redislite_page_delete(void *_cs, int num) {
+int redislite_page_delete(void *_cs, int num, char type) {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
 
-	char type;
-	void *data = redislite_page_get(db, cs, num, &type);
+	void *data = redislite_page_get(db, cs, num, type);
 	redislite_page_type *page_type = redislite_page_get_type(db, type);
 	if (page_type->delete_function) {
 		page_type->delete_function(cs, data);

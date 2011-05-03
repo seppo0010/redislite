@@ -154,20 +154,21 @@ int test_setnx() {
 	char key[10];
 	memset(key, 'a', 10);
 	int r = redislite_page_string_set_key_string(cs, key, 10, "1", 1);
-	if (r < 0) return REDISLITE_SKIP;
+	int status = REDISLITE_OK;
+	if (r < 0) status = REDISLITE_SKIP;
 	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
-	if (r < 0) return REDISLITE_SKIP;
-	else if (r > 0) return REDISLITE_ERR;
+	if (r < 0) status = REDISLITE_SKIP;
+	else if (r > 0) status = REDISLITE_ERR;
 	key[0] = 'b';
 	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
-	if (r < 0) return REDISLITE_SKIP;
-	else if (r == 0) return REDISLITE_ERR;
+	if (r < 0) status = REDISLITE_SKIP;
+	else if (r == 0) status = REDISLITE_ERR;
 
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	redislite_close_database(db);
 
-	return REDISLITE_OK;
+	return status;
 }
 
 int test_delete_and_find() {

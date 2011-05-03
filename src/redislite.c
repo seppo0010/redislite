@@ -1,3 +1,4 @@
+#define DEBUG
 #include "redislite.h"
 #include <stdio.h>
 #include <string.h>
@@ -374,12 +375,19 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 #ifdef DEBUG
 	fseek(db->file, 0L, SEEK_END);
 	long size = ftell(db->file);
-	if (size < db->page_size * (num+1)) { redislite_free(data); return NULL; }
+	if (size < db->page_size * (num+1)) {
+		redislite_free(data);
+		return NULL;
+	}
 #endif
 	fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
 	if (read < db->page_size && ferror(db->file)) printf("Error reading\n");
+#ifdef DEBUG
+	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, size was %ld, attempt to read %d)\n", (long)db->page_size * num, size, db->page_size);
+#else
 	if (read < db->page_size && feof(db->file)) printf("Early EOF (seek to pos %ld, attempt to read %d)\n", (long)db->page_size * num, db->page_size);
+#endif
 	if (read < db->page_size) { redislite_free(data); return NULL; }
 
 	return data;
