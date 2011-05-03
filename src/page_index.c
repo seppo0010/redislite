@@ -140,7 +140,6 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 	int pos, found;
 	int i;
 	int cmp_result;
-	char type;
 	redislite_page_index *page = (redislite_page_index*)db->root;
 
 	*status = REDISLITE_OK;

@@ -1,4 +1,3 @@
-#define DEBUG
 #include "redislite.h"
 #include <stdio.h>
 #include <string.h>
