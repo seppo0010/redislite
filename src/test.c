@@ -275,7 +275,7 @@ int test_append() {
 			goto cleanup;
 		}
 	}
-	
+
 	redislite_page_string_append_key_string(cs, key, 10, value, 500);
 	found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
 	if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
@@ -315,7 +315,7 @@ cleanup:
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	redislite_close_database(db);
-	
+
 	return status;
 }
 
@@ -331,7 +331,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_insert_middle_and_find();
 	test_name = "Insert Middle and Find";
 	if (test == REDISLITE_SKIP) {
@@ -339,7 +339,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_delete_and_find();
 	test_name = "Delete key and find";
 	if (test == REDISLITE_SKIP) {
@@ -347,7 +347,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_setnx();
 	test_name = "setnx for existing and non-existing key";
 	if (test == REDISLITE_SKIP) {
@@ -355,7 +355,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_append();
 	test_name = "append string";
 	if (test == REDISLITE_SKIP) {
@@ -363,7 +363,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	free(dummy);
 
 	return 0;

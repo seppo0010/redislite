@@ -328,7 +328,7 @@ redislite* redislite_create_database(const char *filename)
 	db->filename = NULL;
 	int init = init_db(db);
 	if (init != 0) return NULL;
-	
+
 	size_t size = strlen(filename) + 1;
 	db->filename = redislite_malloc(size);
 	if (db->filename == NULL) { redislite_close_database(db); return NULL; }
