@@ -323,7 +323,8 @@ int redislite_insert_key(void *_cs, char *key, int length, int left)
 			/* assert pos<size */
 			int r = redislite_page_index_add_key(new_index_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size);
 			if (r != REDISLITE_OK) { redislite_free(new_index_page); return r; }
-			page->keys[pos]->left_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_INDEX, new_index_page);
+			page_num = page->keys[pos]->left_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_INDEX, new_index_page);
+			page->keys[pos]->page = new_index_page;
 			page = new_index_page;
 		}
 	}

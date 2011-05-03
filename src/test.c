@@ -32,7 +32,7 @@ static char *test_add_key(changeset *cs, int *left)
 	return key;
 }
 
-#define SIZE 20
+#define SIZE 50
 
 int test_insert_and_find() {
 	remove("test.db");
