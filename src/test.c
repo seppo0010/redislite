@@ -136,13 +136,19 @@ int test_insert_middle_and_find() {
 	char *value;
 	int length;
 	size_t found = redislite_page_string_get_by_keyname(db, cs, key, 200, &value, &length);
-	free(value);
+	int status;
+	if (found == REDISLITE_OK) {
+		free(value);
+		status = REDISLITE_OK;
+	} else {
+		status = REDISLITE_ERR;
+	}
 
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	redislite_close_database(db);
 
-	return found == REDISLITE_OK;
+	return status;
 }
 
 int test_setnx() {
