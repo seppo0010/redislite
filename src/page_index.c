@@ -297,6 +297,7 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 				redislite_page_index* new_page = redislite_page_get(db, cs, page->right_page, REDISLITE_PAGE_TYPE_INDEX);
 				if (new_page == NULL) return REDISLITE_OOM;
 				page = new_page;
+				continue;
 			}
 		}
 
