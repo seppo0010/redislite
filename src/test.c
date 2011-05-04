@@ -274,12 +274,14 @@ int test_append() {
 	int lookup_length;
 	size_t found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
 	if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
-	else {
+	else if (found == REDISLITE_OK) {
 		if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[9]) {
 			printf("Content mismatch on line %d\n", __LINE__);
 			status = REDISLITE_ERR;
+			redislite_free(lookup_value);
 			goto cleanup;
 		}
+		redislite_free(lookup_value);
 	}
 
 	redislite_page_string_append_key_string(cs, key, 10, value, 500);
@@ -289,8 +291,10 @@ int test_append() {
 		if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[499]) {
 			printf("Content mismatch on line %d\n", __LINE__);
 			status = REDISLITE_ERR;
+			redislite_free(lookup_value);
 			goto cleanup;
 		}
+		redislite_free(lookup_value);
 	}
 
 	/* TODO
@@ -313,8 +317,10 @@ int test_append() {
 		if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[0]) {
 			printf("Content mismatch on line %d\n", __LINE__);
 			status = REDISLITE_ERR;
+			redislite_free(lookup_value);
 			goto cleanup;
 		}
+		redislite_free(lookup_value);
 	}
 
 cleanup:
