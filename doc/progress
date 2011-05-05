@@ -1,0 +1,132 @@
+FULLY IMPLEMENTED (6)
+APPEND key value
+GET key
+INCR key
+INCRBY key increment
+SET key value
+SETNX key value
+
+PARTIALLY IMPLEMENTED (1)
+DEL key [key ...]
+
+EASY TO IMPLEMENT (small tweaks required) (6)
+DECR key
+DECRBY key decrement
+ECHO message
+EXISTS key
+FLUSHALL
+TYPE key
+
+NOT IMPLEMENTED (on roadmap) (78)
+DBSIZE
+DISCARD
+EXEC
+GETBIT key offset
+GETRANGE key start end
+GETSET key value
+HDEL key field
+HEXISTS key field
+HGET key field
+HGETALL key
+HINCRBY key field increment
+HKEYS key
+HLEN key
+HMGET key field [field ...]
+HMSET key field value [field value ...]
+HSET key field value
+HSETNX key field value
+HVALS key
+INFO
+KEYS pattern
+LINDEX key index
+LINSERT key BEFORE|AFTER pivot value
+LLEN key
+LPOP key
+LPUSH key value
+LPUSHX key value
+LRANGE key start stop
+LREM key count value
+LSET key index value
+LTRIM key start stop
+MGET key [key ...]
+MSET key value [key value ...]
+MSETNX key value [key value ...]
+MULTI
+RANDOMKEY
+RENAME key newkey
+RENAMENX key newkey
+RPOP key
+RPOPLPUSH source destination
+RPUSH key value
+RPUSHX key value
+SADD key member
+SAVE
+SCARD key
+SDIFF key [key ...]
+SDIFFSTORE destination key [key ...]
+SETBIT key offset value
+SETRANGE key offset value
+SINTER key [key ...]
+SINTERSTORE destination key [key ...]
+SISMEMBER key member
+SMEMBERS key
+SMOVE source destination member
+SORT key [BY pattern] [LIMIT offset count] [GET pattern [GET pattern ...]] [ASC|DESC] [ALPHA] [STORE destination]
+SPOP key
+SRANDMEMBER key
+SREM key member
+STRLEN key
+SUNION key [key ...]
+SUNIONSTORE destination key [key ...]
+UNWATCH
+WATCH key [key ...]
+ZADD key score member
+ZCARD key
+ZCOUNT key min max
+ZINCRBY key increment member
+ZINTERSTORE destination numkeys key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE SUM|MIN|MAX]
+ZRANGE key start stop [WITHSCORES]
+ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]
+ZRANK key member
+ZREM key member
+ZREMRANGEBYRANK key start stop
+ZREMRANGEBYSCORE key min max
+ZREVRANGE key start stop [WITHSCORES]
+ZREVRANGEBYSCORE key max min [WITHSCORES] [LIMIT offset count]
+ZREVRANK key member
+ZSCORE key member
+ZUNIONSTORE destination numkeys key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE SUM|MIN|MAX]
+
+NOT GOING TO BE IMPLEMENTED (32)
+AUTH password
+BGREWRITEAOF
+BGSAVE
+BLPOP key [key ...] timeout
+BRPOP key [key ...] timeout
+BRPOPLPUSH source destination timeout
+CONFIG GET parameter
+CONFIG SET parameter value
+CONFIG RESETSTAT
+DEBUG OBJECT key
+DEBUG SEGFAULT
+EXPIRE key seconds
+EXPIREAT key timestamp
+FLUSHDB
+LASTSAVE
+MONITOR
+MOVE key db
+OBJECT subcommand [arguments [arguments ...]]
+PERSIST key
+PING
+PSUBSCRIBE pattern [pattern ...]
+PUBLISH channel message
+PUNSUBSCRIBE [pattern [pattern ...]]
+QUIT
+SELECT index
+SETEX key seconds value
+SHUTDOWN
+SLAVEOF host port
+SUBSCRIBE channel [channel ...]
+SYNC
+TTL key
+UNSUBSCRIBE [channel [channel ...]]
