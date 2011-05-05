@@ -276,8 +276,15 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 		for (i=0; i < page->number_of_keys; i++) {
 			cmp_result = (memcmp(page->keys[i]->keyname, key, MIN(page->keys[i]->keyname_size, length)));
 			if (cmp_result == 0) {
+				if (page->keys[i]->keyname_size == length) {
+					redislite_page_delete(_cs, page->keys[i]->left_page, page->keys[i]->type);
+					page->keys[i]->left_page = left;
+					page->keys[i]->type = type;
+					int result = redislite_add_modified_page(cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+					if (result < 0) return result;
+					return REDISLITE_OK;
+				}
 				cmp_result = (page->keys[i]->keyname_size > length ? 1 : -1);
-				/* assert != length */
 			}
 			if (cmp_result < 0) {
 				pos = i+1;
