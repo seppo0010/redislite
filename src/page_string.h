@@ -23,4 +23,5 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 int redislite_insert_string(void *_cs, char *str, int length, int* num);
 int redislite_page_string_set_key_string(void *_cs, char *key_name, int key_length, char *str, int length);
 int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_length, char *str, int length);
-int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_length, char *str, int length);
+int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_length, char *str, int length, int *new_length);
+int redislite_page_string_incr_key_string(void *_cs, char *key_name, int key_length, long long *new_value);

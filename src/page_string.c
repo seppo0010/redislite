@@ -5,7 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <limits.h>
+#include <errno.h>
 
 void redislite_delete_string(void *_cs, void *_page)
 {
@@ -217,13 +218,13 @@ int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_le
 	}
 }
 
-int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_length, char *str, int length) {
+int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_length, char *str, int length, int *new_length) {
 	changeset *cs = (changeset*)_cs;
 	redislite* db = cs->db;
 
 	char type;
 	int page_num = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
-	if (page_num) {
+	if (page_num >= 0) {
 		if (type != REDISLITE_PAGE_TYPE_STRING) {
 			return REDISLITE_ERR; // TODO: error for wrong type
 		}
@@ -288,8 +289,50 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 				redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
 			}
 		}
+		if (new_length) *new_length = page->size;
 		return REDISLITE_OK;
 	} else {
+		if (new_length) *new_length = length;
 		return redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);
 	}
+}
+
+int redislite_page_string_incr_key_string(void *_cs, char *key_name, int key_length, long long *new_value) {
+	changeset *cs = (changeset*)_cs;
+	redislite* db = cs->db;
+
+	char type;
+	int page_num = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
+	if (page_num < 0) {
+		if (new_value) *new_value = 1;
+		return redislite_page_string_set_key_string(_cs, key_name, key_length, "1", 1);
+	}
+
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		return REDISLITE_ERR; // TODO: type error
+	}
+
+	redislite_page_string* page = redislite_page_get(cs->db, _cs, page_num, type);
+	if (page->right_page || page->size > db->page_size - 13) {
+		return REDISLITE_ERR; // TODO: not integer or out of range
+	}
+
+	long long value;
+	char *eptr;
+	page->value[page->size] = '\0';
+	value = strtoll(page->value, &eptr, 10);
+	if (eptr[0] != '\0') return REDISLITE_ERR;
+	if (errno == ERANGE && (value == LLONG_MIN || value == LLONG_MAX))
+		return REDISLITE_ERR; // TODO: not integer or out of range
+
+	value += 1;
+
+	if (new_value) *new_value = value;
+	page->size = sprintf(page->value, "%lld", value);
+	if (page->size > 0) {
+		int ret = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+		if (ret < 0) return ret;
+		return REDISLITE_OK;
+	}
+	return REDISLITE_ERR;
 }
