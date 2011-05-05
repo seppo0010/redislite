@@ -1,25 +1,43 @@
-index
-data
-freelist
+FIRST
+First page will have the first 100 bytes reserved for redislite info. From the byte 101 to the end of the page, it will behave like an index.
+0-20 header
+20-21 bytes size for each page
+22 write format version; if the value is higher than the supported one, the file will not be writtable
+23 read format version; if higher than the supported one (or an unsupported version), the file would not be readable or writtable
+24-27 reserved for versioning
+28-31 first freelist page
+32-35 number of freelist pages
+36-100 reserved for future usage
+101-end index
 
-index
-1 byte type
-4 bytes reserved
-4 bytes free space (from the end)
-2 bytes number of keys
-list of keys, sorted
-    varint keyname size
-    keyname
-    4 bytes left page
-        if index, this key is the last value
-        if only result, data
-4 bytes nextpage
-    0s if last
+INDEX
+Each index page will contain a sorted list of keys. Keys are compared binary safe. The right page will have keys higher than the last of this page.
+0-3 reserved for versioning
+4-7 free bytes on this page
+8-9 number of keys
+10-14 slibing index page to the right
+14-end keys
 
-freelist
-4 bytes next freelist
-garbage
+KEY
+If the type is index, all the values will be to the left of this key, or the key itself. If the type is not a key, it will be the data page.
+0-v size of key (v==varInt32 size)
+(v+1) type byte (as defined as constants on page.h)
+(v+2)-(v+2+key_size) keyname
+(v+1+key_size)-(v+1+key_size+4) page to look for. 
 
-data
-# Each datatype will implement its own type of pages. The first byte of the first page should be an indicator of the value type. If the value requires more than one page, the other pages does not need to include the type.
-# This document will be updated with each datatype page description
+FREELIST
+Empty page for future usage. Works as a linked list, pointing the next one to use.
+0-3 reserved for versioning
+4-7 next freelist page (0 if final)
+8-end garbage
+
+STRING
+0-3 reserved for versioning
+4-7 string total length
+8-11 next string page (0 if the string fits in this page)
+12-end string value
+
+STRING OVERFLOW
+0-3 reserved for versioning
+4-7 next string page (0 if the string finishes in this page)
+8-end string value
