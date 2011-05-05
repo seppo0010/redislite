@@ -19,18 +19,15 @@ void redislite_write_freelist(void *_db, unsigned char *data, void *_page)
 	redislite_page_string* page = (redislite_page_string*)_page;
 	if (page == NULL) return;
 
-	data[0] = REDISLITE_PAGE_TYPE_FREELIST;
-	redislite_put_4bytes(&data[1], 0); // reserverd
-	redislite_put_4bytes(&data[5], page->right_page);
-	int size = db->page_size-9;
-	memset(&data[9], 0, size);
+	redislite_put_4bytes(&data[0], 0); // reserverd
+	redislite_put_4bytes(&data[4], page->right_page);
+	int size = db->page_size-8;
+	memset(&data[8], 0, size);
 }
 
 void *redislite_read_freelist(void *_db, unsigned char *data)
 {
 	redislite_page_string* page = redislite_malloc(sizeof(redislite_page_string));
-
-	page->right_page = redislite_get_4bytes(&data[5]);
-
+	page->right_page = redislite_get_4bytes(&data[8]);
 	return page;
 }
