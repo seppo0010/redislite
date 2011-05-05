@@ -395,7 +395,7 @@ int test_incr() {
 		printf("Failed to create a numeric random key\n");
 		goto cleanup;
 	}
-
+	
 	long long new_value;
 	status = redislite_page_string_incr_key_string(cs, key, 7, &new_value);
 	if (status != REDISLITE_OK) {
@@ -407,7 +407,7 @@ int test_incr() {
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
-
+	
 	status = redislite_page_string_incr_key_string(cs, key, 6, &new_value);
 	if (status != REDISLITE_OK) {
 		printf("Failed to incr an unexisting key\n");
@@ -418,7 +418,7 @@ int test_incr() {
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
-
+	
 	status = redislite_page_string_set_key_string(cs, key, 6, "asd", 3);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
@@ -431,7 +431,67 @@ int test_incr() {
 		printf("Able to incr a non-numeric key\n");
 		status = REDISLITE_ERR;
 	}
+	
+cleanup:
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
 
+int test_decr() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char* key = "testkey";
+	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a numeric random key\n");
+		goto cleanup;
+	}
+	
+	long long new_value;
+	status = redislite_page_string_decr_by_key_string(cs, key, 7, 10, &new_value);
+	if (status != REDISLITE_OK) {
+		printf("Failed to increment a numeric key\n");
+		goto cleanup;
+	}
+	if (new_value != -7) {
+		printf("After decr 3 by 10, result should be -7 but it is '%lld'\n", new_value);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	
+	status = redislite_page_string_decr_key_string(cs, key, 6, &new_value);
+	if (status != REDISLITE_OK) {
+		printf("Failed to decr an unexisting key\n");
+		goto cleanup;
+	}
+	if (new_value != -1) {
+		printf("After incr unexisting key, result should be -1 but it is '%lld'\n", new_value);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	
+	status = redislite_page_string_set_key_string(cs, key, 6, "asd", 3);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a random key\n");
+		goto cleanup;
+	}
+	status = redislite_page_string_decr_key_string(cs, key, 6, &new_value);
+	if (status == REDISLITE_ERR) {
+		status = REDISLITE_OK;
+	} else if (status == REDISLITE_OK) {
+		printf("Able to decr a non-numeric key\n");
+		status = REDISLITE_ERR;
+	}
+	
 cleanup:
 	if (cs) {
 		redislite_free_changeset(cs);
@@ -495,7 +555,15 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-
+	
+	test = test_decr();
+	test_name = "decr and decrby string";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+	
 	free(dummy);
 
 	return 0;

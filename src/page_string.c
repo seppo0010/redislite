@@ -297,15 +297,18 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 	}
 }
 
-int redislite_page_string_incr_key_string(void *_cs, char *key_name, int key_length, long long *new_value) {
+int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, int key_length, long long incr, long long *new_value) {
 	changeset *cs = (changeset*)_cs;
 	redislite* db = cs->db;
 
 	char type;
 	int page_num = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
 	if (page_num < 0) {
-		if (new_value) *new_value = 1;
-		return redislite_page_string_set_key_string(_cs, key_name, key_length, "1", 1);
+		char s_value[21];
+		if (new_value) *new_value = incr;
+		int size = sprintf(s_value, "%lld", incr);
+		if (size < 0) return REDISLITE_ERR;
+		return redislite_page_string_set_key_string(_cs, key_name, key_length, s_value, size);
 	}
 
 	if (type != REDISLITE_PAGE_TYPE_STRING) {
@@ -325,7 +328,7 @@ int redislite_page_string_incr_key_string(void *_cs, char *key_name, int key_len
 	if (errno == ERANGE && (value == LLONG_MIN || value == LLONG_MAX))
 		return REDISLITE_ERR; // TODO: not integer or out of range
 
-	value += 1;
+	value += incr;
 
 	if (new_value) *new_value = value;
 	page->size = sprintf(page->value, "%lld", value);
@@ -335,4 +338,14 @@ int redislite_page_string_incr_key_string(void *_cs, char *key_name, int key_len
 		return REDISLITE_OK;
 	}
 	return REDISLITE_ERR;
+}
+
+int redislite_page_string_incr_key_string(void *_cs, char *key_name, int key_length, long long *new_value) {
+	return redislite_page_string_incr_by_key_string(_cs, key_name, key_length, 1, new_value);
+}
+int redislite_page_string_decr_key_string(void *_cs, char *key_name, int key_length, long long *new_value) {
+	return redislite_page_string_incr_by_key_string(_cs, key_name, key_length, -1, new_value);
+}
+int redislite_page_string_decr_by_key_string(void *_cs, char *key_name, int key_length, long long decr, long long *new_value) {
+	return redislite_page_string_incr_by_key_string(_cs, key_name, key_length, -decr, new_value);
 }

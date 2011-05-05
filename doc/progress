@@ -1,5 +1,7 @@
-FULLY IMPLEMENTED (6)
+FULLY IMPLEMENTED (8)
 APPEND key value
+DECR key
+DECRBY key decrement
 GET key
 INCR key
 INCRBY key increment
@@ -9,9 +11,7 @@ SETNX key value
 PARTIALLY IMPLEMENTED (1)
 DEL key [key ...]
 
-EASY TO IMPLEMENT (small tweaks required) (6)
-DECR key
-DECRBY key decrement
+EASY TO IMPLEMENT (small tweaks required) (4)
 ECHO message
 EXISTS key
 FLUSHALL
