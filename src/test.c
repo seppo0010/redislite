@@ -250,11 +250,6 @@ int test_delete_and_find() {
 }
 
 int test_append() {
-	remove("test.db");
-	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
 	char key[10];
 	char value[1026];
 	memset(key, 'a', 10);
@@ -264,70 +259,127 @@ int test_append() {
 	value[499] = 'f';
 	value[1026] = 'g';
 
-	int r = redislite_page_string_set_key_string(cs, key, 10, value, 9);
+	redislite *db;
+	changeset *cs;
 	int status = REDISLITE_OK;
-	if (r < 0) status = REDISLITE_SKIP;
+	int i;
+	for (i = 0; i < 5; i++) {
+		remove("test.db");
 
-	redislite_page_string_append_key_string(cs, key, 10, value, 10);
+		db = redislite_open_database("test.db");
+		if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+		cs = redislite_create_changeset(db);
+		if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
 
-	char *lookup_value;
-	int lookup_length;
-	size_t found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
-	if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
-	else if (found == REDISLITE_OK) {
-		if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[9]) {
-			printf("Content mismatch on line %d\n", __LINE__);
-			status = REDISLITE_ERR;
+		int r = redislite_page_string_set_key_string(cs, key, 10, value, 9);
+		if (r < 0) status = REDISLITE_SKIP;
+
+		redislite_page_string_append_key_string(cs, key, 10, value, 10);
+		if (i == 0) {
+			redislite_save_changeset(cs);
+			redislite_free_changeset(cs);
+			cs = NULL;
+		}
+
+		char *lookup_value;
+		int lookup_length;
+		size_t found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
+		if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
+		else if (found == REDISLITE_OK) {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[9]) {
+				printf("Content mismatch on line %d\n", __LINE__);
+				status = REDISLITE_ERR;
+				redislite_free(lookup_value);
+				goto cleanup;
+			}
 			redislite_free(lookup_value);
-			goto cleanup;
 		}
-		redislite_free(lookup_value);
-	}
+		if (cs == NULL) {
+			redislite_close_database(db);
+			db = NULL;
+			continue;
+		}
 
-	redislite_page_string_append_key_string(cs, key, 10, value, 500);
-	found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
-	if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
-	else {
-		if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[499]) {
-			printf("Content mismatch on line %d\n", __LINE__);
-			status = REDISLITE_ERR;
+		redislite_page_string_append_key_string(cs, key, 10, value, 500);
+		if (i == 1) {
+			redislite_save_changeset(cs);
+			redislite_free_changeset(cs);
+			cs = NULL;
+		}
+		found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
+		if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
+		else {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[499]) {
+				printf("Content mismatch on line %d\n", __LINE__);
+				status = REDISLITE_ERR;
+				redislite_free(lookup_value);
+				goto cleanup;
+			}
 			redislite_free(lookup_value);
-			goto cleanup;
 		}
-		redislite_free(lookup_value);
-	}
-
-	/* TODO
-	redislite_page_string_append_key_string(cs, key, 10, value, 1025);
-	found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
-	if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
-	else {
-		if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[1025]) {
-			printf("Content mismatch on line %d\n", __LINE__);
-			status = REDISLITE_ERR;
-			goto cleanup;
+		if (cs == NULL) {
+			redislite_close_database(db);
+			db = NULL;
+			continue;
 		}
-	}
-	 */
 
-	redislite_page_string_append_key_string(cs, key, 10, value, 1);
-	found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
-	if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
-	else {
-		if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[0]) {
-			printf("Content mismatch on line %d\n", __LINE__);
-			status = REDISLITE_ERR;
+		/* TODO
+		redislite_page_string_append_key_string(cs, key, 10, value, 1025);
+		if (i == 2) {
+			redislite_save_changeset(cs);
+			redislite_free_changeset(cs);
+			cs = NULL;
+		}
+		found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
+		if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
+		else {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[1025]) {
+				printf("Content mismatch on line %d\n", __LINE__);
+				status = REDISLITE_ERR;
+				goto cleanup;
+			}
+		}
+		if (cs == NULL) {
+			redislite_close_database(db);
+			db = NULL;
+			continue;
+		}
+		 */
+
+		redislite_page_string_append_key_string(cs, key, 10, value, 1);
+		if (i == 3) {
+			redislite_save_changeset(cs);
+			redislite_free_changeset(cs);
+			cs = NULL;
+		}
+		found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
+		if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
+		else {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[0]) {
+				printf("Content mismatch on line %d\n", __LINE__);
+				status = REDISLITE_ERR;
+				redislite_free(lookup_value);
+				goto cleanup;
+			}
 			redislite_free(lookup_value);
-			goto cleanup;
 		}
-		redislite_free(lookup_value);
+		if (cs == NULL) {
+			redislite_close_database(db);
+			db = NULL;
+			continue;
+		}
+		redislite_free_changeset(cs);
+		cs = NULL;
+		redislite_close_database(db);
+		db = NULL;
 	}
-
 cleanup:
-	redislite_save_changeset(cs);
-	redislite_free_changeset(cs);
-	redislite_close_database(db);
-
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
 	return status;
 }
 
