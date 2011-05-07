@@ -235,7 +235,7 @@ int redislite_value_page_for_key(void *_db, void *_cs, char *key, int length, ch
 	return ret;
 }
 
-int redislite_delete_key(void *_cs, char *key, int length)
+static int redislite_delete_key(void *_cs, char *key, int length)
 {
 	changeset *cs = (changeset*)_cs;
 	redislite *db = cs->db;
@@ -257,6 +257,18 @@ int redislite_delete_key(void *_cs, char *key, int length)
 	}
 	if (index_key)
 		redislite_free_key(index_key);
+	return status;
+}
+
+int redislite_delete_keys(void *_cs, int q, char **keys, int* lengths)
+{
+	int status = REDISLITE_OK;
+	int i;
+	for (i = 0; i < q; i++) {
+		status = redislite_delete_key(_cs, keys[i], lengths[i]);
+		if (status != REDISLITE_OK) break;
+	}
+
 	return status;
 }
 

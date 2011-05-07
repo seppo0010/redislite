@@ -191,10 +191,14 @@ int test_delete_and_find() {
 	for (i=0; i < SIZE; i++)
 		key[i] = test_add_key(cs, &value[i]);
 
+	char **keys = malloc(sizeof(char*) * (SIZE/2));
+	int *lengths = malloc(sizeof(int) * (SIZE/2));
 	for (i=0; i < SIZE/2; i++) {
 		int size = (int)strlen(key[i*2]);
-		redislite_delete_key(cs, key[i*2], size);
+		keys[i] = key[i*2];
+		lengths[i] = size;
 	}
+	redislite_delete_keys(cs, SIZE/2, keys, lengths);
 
 	for (i=0; i < SIZE; i++) {
 		if (key[i] == NULL) continue;

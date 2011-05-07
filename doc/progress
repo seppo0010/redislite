@@ -2,14 +2,12 @@ FULLY IMPLEMENTED (8)
 APPEND key value
 DECR key
 DECRBY key decrement
+DEL key [key ...]
 GET key
 INCR key
 INCRBY key increment
 SET key value
 SETNX key value
-
-PARTIALLY IMPLEMENTED (1)
-DEL key [key ...]
 
 EASY TO IMPLEMENT (small tweaks required) (4)
 ECHO message
