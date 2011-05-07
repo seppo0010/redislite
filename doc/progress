@@ -8,10 +8,10 @@ INCR key
 INCRBY key increment
 SET key value
 SETNX key value
+EXISTS key
 
 EASY TO IMPLEMENT (small tweaks required) (4)
 ECHO message
-EXISTS key
 FLUSHALL
 TYPE key
 

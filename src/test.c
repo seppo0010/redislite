@@ -507,6 +507,49 @@ cleanup:
 	return status;
 }
 
+int test_exists() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char* key = "testkey";
+	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a random key\n");
+		goto cleanup;
+	}
+
+	status = redislite_exists_key(db, cs, key, 7);
+	if (status == 0)
+	{
+		printf("Failed to find existing key\n");
+		goto cleanup;
+	} else if (status != 1) {
+		goto cleanup;
+	}
+
+	status = redislite_exists_key(db, cs, key, 6);
+	if (status == 1)
+	{
+		printf("Failed to not-find non existing key\n");
+		goto cleanup;
+	} else if (status != 1) {
+		goto cleanup;
+	}
+
+cleanup:
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
+
 int main() {
 	srand(4);
 	int test;
@@ -568,6 +611,14 @@ int main() {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 	
+	test = test_exists();
+	test_name = "check for key existance";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
 	free(dummy);
 
 	return 0;
