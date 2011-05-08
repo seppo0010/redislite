@@ -623,6 +623,49 @@ int test_echo() {
 	return status;
 }
 
+int test_strlen() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char* key = "testkey";
+	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a random key\n");
+		goto cleanup;
+	}
+
+	status = redislite_page_string_strlen_key_string(db, cs, key, 7);
+	if (status == 1) {
+		status = REDISLITE_OK;
+	} else {
+		printf("Unable to get string length (expected %d, got %d)", 1, status);
+		if (status > 1) status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_strlen_key_string(db, cs, key, 7);
+	if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("Unable to get unexisting string length (expected %d, got %d)", 0, status);
+		if (status > 1) status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	// TODO: add test for different key type
+
+cleanup:
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
 
 int main() {
 	srand(4);

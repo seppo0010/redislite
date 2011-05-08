@@ -361,3 +361,21 @@ int redislite_echo(char *src_name, int src_length, char **dst_name, int *dst_len
 	}
 	return REDISLITE_ERR;
 }
+
+int redislite_page_string_strlen_key_string(void *_db, void *_cs, char *key_name, int key_length) {
+	redislite *db = (redislite*)_db;
+	char type;
+	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
+	if (_page == NULL) return 0; // this is what redis returns for strlen on unexisting keys
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		if (_cs == NULL) {
+			redislite_page_type * page_type = redislite_page_get_type(db, type);
+			page_type->free_function(db, _page);
+		}
+		return REDISLITE_ERR;
+	}
+	redislite_page_string* page = (redislite_page_string*)_page;
+	int len = page->size;
+	if (_cs == NULL) redislite_free_string(db, page);
+	return len;
+}

@@ -1,4 +1,4 @@
-FULLY IMPLEMENTED (12)
+FULLY IMPLEMENTED (13)
 APPEND key value
 DECR key
 DECRBY key decrement
@@ -10,12 +10,13 @@ SET key value
 SETNX key value
 EXISTS key
 ECHO message
+STRLEN key
 TYPE key
 
 EASY TO IMPLEMENT (small tweaks required) (1)
 FLUSHALL
 
-NOT IMPLEMENTED (on roadmap) (78)
+NOT IMPLEMENTED (on roadmap) (77)
 DBSIZE
 DISCARD
 EXEC
@@ -73,7 +74,6 @@ SORT key [BY pattern] [LIMIT offset count] [GET pattern [GET pattern ...]] [ASC|
 SPOP key
 SRANDMEMBER key
 SREM key member
-STRLEN key
 SUNION key [key ...]
 SUNIONSTORE destination key [key ...]
 UNWATCH
