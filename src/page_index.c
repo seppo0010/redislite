@@ -237,7 +237,6 @@ int redislite_value_page_for_key(void *_db, void *_cs, char *key, int length, ch
 
 int redislite_exists_key(void *_db, void *_cs, char *key, int length)
 {
-	changeset *cs = (changeset*)_cs;
 	redislite *db = (redislite*)_db;
 	int status;
 	redislite_page_index_key *index_key = redislite_index_key_for_index_name(db, _cs, key, length, &status);
