@@ -349,3 +349,15 @@ int redislite_page_string_decr_key_string(void *_cs, char *key_name, int key_len
 int redislite_page_string_decr_by_key_string(void *_cs, char *key_name, int key_length, long long decr, long long *new_value) {
 	return redislite_page_string_incr_by_key_string(_cs, key_name, key_length, -decr, new_value);
 }
+
+int redislite_echo(char *src_name, int src_length, char **dst_name, int *dst_length) {
+	if (src_length > 0 && dst_name && dst_length) {
+		char *dst = redislite_malloc(sizeof(char) * src_length);
+		if (dst == NULL) return REDISLITE_OOM;
+		memcpy(dst, src_name, src_length);
+		*dst_name = dst;
+		*dst_length = src_length;
+		return REDISLITE_OK;
+	}
+	return REDISLITE_ERR;
+}

@@ -549,6 +549,23 @@ cleanup:
 	return status;
 }
 
+int test_echo() {
+	char *test_str = malloc(sizeof(char) * 100);
+	memset(test_str, 'a', 100);
+	char *dst;
+	int dst_length;
+	int status = redislite_echo(test_str, 100, &dst, &dst_length);
+	if (status == REDISLITE_OOM) {
+		dst = NULL;
+	}
+	if (status == REDISLITE_OK) {
+		status = memcmp(dst, test_str, 100) == 0 ? REDISLITE_OK : REDISLITE_ERR;
+	}
+	if (dst) redislite_free(dst);
+	free(test_str);
+	return status;
+}
+
 
 int main() {
 	srand(4);
@@ -602,7 +619,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_decr();
 	test_name = "decr and decrby string";
 	if (test == REDISLITE_SKIP) {
@@ -610,9 +627,17 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_exists();
 	test_name = "check for key existance";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_echo();
+	test_name = "testing echo";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {
