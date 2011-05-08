@@ -399,7 +399,7 @@ int test_incr() {
 		printf("Failed to create a numeric random key\n");
 		goto cleanup;
 	}
-	
+
 	long long new_value;
 	status = redislite_page_string_incr_key_string(cs, key, 7, &new_value);
 	if (status != REDISLITE_OK) {
@@ -411,7 +411,7 @@ int test_incr() {
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
-	
+
 	status = redislite_page_string_incr_key_string(cs, key, 6, &new_value);
 	if (status != REDISLITE_OK) {
 		printf("Failed to incr an unexisting key\n");
@@ -422,7 +422,7 @@ int test_incr() {
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
-	
+
 	status = redislite_page_string_set_key_string(cs, key, 6, "asd", 3);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
@@ -435,7 +435,7 @@ int test_incr() {
 		printf("Able to incr a non-numeric key\n");
 		status = REDISLITE_ERR;
 	}
-	
+
 cleanup:
 	if (cs) {
 		redislite_free_changeset(cs);
@@ -459,7 +459,7 @@ int test_decr() {
 		printf("Failed to create a numeric random key\n");
 		goto cleanup;
 	}
-	
+
 	long long new_value;
 	status = redislite_page_string_decr_by_key_string(cs, key, 7, 10, &new_value);
 	if (status != REDISLITE_OK) {
@@ -471,7 +471,7 @@ int test_decr() {
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
-	
+
 	status = redislite_page_string_decr_key_string(cs, key, 6, &new_value);
 	if (status != REDISLITE_OK) {
 		printf("Failed to decr an unexisting key\n");
@@ -482,7 +482,7 @@ int test_decr() {
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
-	
+
 	status = redislite_page_string_set_key_string(cs, key, 6, "asd", 3);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
@@ -495,7 +495,7 @@ int test_decr() {
 		printf("Able to decr a non-numeric key\n");
 		status = REDISLITE_ERR;
 	}
-	
+
 cleanup:
 	if (cs) {
 		redislite_free_changeset(cs);
@@ -594,7 +594,7 @@ int test_type() {
 	} else {
 		status = REDISLITE_OK;
 	}
-	
+
 cleanup:
 	if (cs) {
 		redislite_free_changeset(cs);
@@ -700,7 +700,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_type();
 	test_name = "testing type";
 	if (test == REDISLITE_SKIP) {
