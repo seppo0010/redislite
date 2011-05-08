@@ -1,4 +1,4 @@
-FULLY IMPLEMENTED (8)
+FULLY IMPLEMENTED (10)
 APPEND key value
 DECR key
 DECRBY key decrement
@@ -10,7 +10,7 @@ SET key value
 SETNX key value
 EXISTS key
 
-EASY TO IMPLEMENT (small tweaks required) (4)
+EASY TO IMPLEMENT (small tweaks required) (3)
 ECHO message
 FLUSHALL
 TYPE key
