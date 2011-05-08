@@ -549,6 +549,63 @@ cleanup:
 	return status;
 }
 
+int test_type() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char* key = "testkey";
+	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a random key\n");
+		goto cleanup;
+	}
+
+	char type;
+	status = redislite_page_index_type(db, cs, key, 7, &type);
+	if (status == REDISLITE_OOM)
+	{
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	} else if (status != REDISLITE_OK)
+	{
+		printf("Failed to get type of existing key\n");
+		goto cleanup;
+	}
+
+	if (type != REDISLITE_PAGE_TYPE_STRING)
+	{
+		status = REDISLITE_ERR;
+		printf("Wrong type: expecting '%c', got '%c' instead", REDISLITE_PAGE_TYPE_STRING, type);
+		goto cleanup;
+	}
+
+	status = redislite_page_index_type(db, cs, key, 6, &type);
+	if (status == REDISLITE_OOM)
+	{
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	} else if (status != REDISLITE_ERR)
+	{
+		status = REDISLITE_ERR;
+		printf("Getting type of non-existing key\n");
+		goto cleanup;
+	} else {
+		status = REDISLITE_OK;
+	}
+	
+cleanup:
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int test_echo() {
 	char *test_str = malloc(sizeof(char) * 100);
 	memset(test_str, 'a', 100);
@@ -643,7 +700,14 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-
+	
+	test = test_type();
+	test_name = "testing type";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
 	free(dummy);
 
 	return 0;

@@ -23,6 +23,7 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type);
 int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, char *key, int length, char type);
 void redislite_write_index(void *_db, unsigned char *data, void *page);
 void *redislite_read_index(void *db, unsigned char *data);
+int redislite_page_index_type(void *_db, void *_cs, char *key, int length, char *type);
 int redislite_value_page_for_key(void *_db, void *_cs, char *key, int length, char* type);
 void redislite_free_index(void *db, void *_page);
 int redislite_delete_keys(void *_cs, int q, char **keys, int* lengths);

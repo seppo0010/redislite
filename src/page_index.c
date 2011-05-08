@@ -220,13 +220,27 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 	return NULL;
 }
 
+int redislite_page_index_type(void *_db, void *_cs, char *key, int length, char *type) {
+	redislite *db = (redislite*)_db;
+	int status;
+	redislite_page_index_key *index_key = redislite_index_key_for_index_name(db, _cs, key, length, &status);
+	if (status == REDISLITE_OOM) return REDISLITE_OOM;
+	int ret = REDISLITE_ERR;
+	if (index_key != NULL) {
+		ret = REDISLITE_OK;
+		*type = index_key->type;
+	}
+	redislite_free_key(index_key);
+	return ret;
+}
+
 int redislite_value_page_for_key(void *_db, void *_cs, char *key, int length, char* type)
 {
 	redislite *db = (redislite*)_db;
 	int status;
 	redislite_page_index_key *index_key = redislite_index_key_for_index_name(db, _cs, key, length, &status);
 	if (status == REDISLITE_OOM) return REDISLITE_OOM;
-	int ret = -1;
+	int ret = REDISLITE_ERR;
 	if (index_key != NULL) {
 		ret = index_key->left_page;
 		*type = index_key->type;

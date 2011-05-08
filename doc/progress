@@ -1,4 +1,4 @@
-FULLY IMPLEMENTED (11)
+FULLY IMPLEMENTED (12)
 APPEND key value
 DECR key
 DECRBY key decrement
@@ -10,10 +10,10 @@ SET key value
 SETNX key value
 EXISTS key
 ECHO message
-
-EASY TO IMPLEMENT (small tweaks required) (2)
-FLUSHALL
 TYPE key
+
+EASY TO IMPLEMENT (small tweaks required) (1)
+FLUSHALL
 
 NOT IMPLEMENTED (on roadmap) (78)
 DBSIZE
