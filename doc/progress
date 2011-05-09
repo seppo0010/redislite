@@ -14,13 +14,11 @@ ECHO message
 STRLEN key
 TYPE key
 
-EASY TO IMPLEMENT (small tweaks required) (1)
-FLUSHALL
-
-NOT IMPLEMENTED (on roadmap) (78)
+NOT IMPLEMENTED (on roadmap) (79)
 DBSIZE
 DISCARD
 EXEC
+FLUSHALL
 GETBIT key offset
 GETRANGE key start end
 HDEL key field
