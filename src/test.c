@@ -248,6 +248,8 @@ int test_delete_and_find() {
 		if (key[i] != NULL)
 			free(key[i]);
 
+	free(keys);
+	free(lengths);
 	redislite_close_database(db);
 
 	return status;
