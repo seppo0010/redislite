@@ -669,6 +669,74 @@ cleanup:
 	return status;
 }
 
+int test_getset() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char* key = "testkey";
+	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a random key\n");
+		goto cleanup;
+	}
+
+	char* previous_value;
+	int previous_value_length;
+	status = redislite_page_string_getset_key_string(cs, key, 7, "41", 2, &previous_value, &previous_value_length);
+	if (status !=  REDISLITE_OK) {
+		printf("Unable to getset string\n");
+		goto cleanup;
+	}
+	if (previous_value_length != 1) {
+		printf("Expecting getset previous length %d, got %d instead\n", 1, previous_value_length);
+		goto cleanup;
+	}
+	if (previous_value[0] != '3') {
+		printf("Expecting getset previous value '%c', got '%c' instead\n", '3', previous_value[0]);
+		goto cleanup;
+	}
+
+	redislite_free(previous_value);
+	status = redislite_page_string_getset_key_string(cs, key, 7, "41", 2, &previous_value, &previous_value_length);
+	if (status !=  REDISLITE_OK) {
+		printf("Unable to getset string\n");
+		goto cleanup;
+	}
+	if (previous_value_length != 2) {
+		printf("Expecting getset previous length %d, got %d instead\n", 2, previous_value_length);
+		goto cleanup;
+	}
+	if (previous_value[0] != '4' || previous_value[1] != '1') {
+		printf("Expecting getset previous value '%c%c', got '%c%c' instead\n", '4', '1', previous_value[0], previous_value[1]);
+		goto cleanup;
+	}
+	redislite_free(previous_value);
+
+	status = redislite_page_string_getset_key_string(cs, key, 6, "4", 1, &previous_value, &previous_value_length);
+	if (status !=  REDISLITE_OK) {
+		printf("Unable to getset string\n");
+		goto cleanup;
+	}
+	if (previous_value_length != 0) {
+		printf("Expecting getset previous length %d, got %d instead\n", 0, previous_value_length);
+		goto cleanup;
+	}
+
+	// TODO: add test for different key type
+
+cleanup:
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int main() {
 	srand(4);
 	int test;
@@ -753,6 +821,15 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
+
+	test = test_getset();
+	test_name = "testing getset";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
 	free(dummy);
 
 	return 0;

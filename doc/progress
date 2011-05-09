@@ -1,9 +1,10 @@
-FULLY IMPLEMENTED (13)
+FULLY IMPLEMENTED (14)
 APPEND key value
 DECR key
 DECRBY key decrement
 DEL key [key ...]
 GET key
+GETSET key value
 INCR key
 INCRBY key increment
 SET key value
@@ -16,13 +17,12 @@ TYPE key
 EASY TO IMPLEMENT (small tweaks required) (1)
 FLUSHALL
 
-NOT IMPLEMENTED (on roadmap) (77)
+NOT IMPLEMENTED (on roadmap) (78)
 DBSIZE
 DISCARD
 EXEC
 GETBIT key offset
 GETRANGE key start end
-GETSET key value
 HDEL key field
 HEXISTS key field
 HGET key field

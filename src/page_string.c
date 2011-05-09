@@ -153,12 +153,16 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 	redislite *db = (redislite*)_db;
 	char type;
 	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
-	if (_page == NULL) return REDISLITE_ERR; // TODO: more descriptive states?
+	if (_page == NULL) {
+		*length = 0;
+		return REDISLITE_ERR; // TODO: more descriptive states?
+	}
 	if (type != REDISLITE_PAGE_TYPE_STRING) {
 		if (_cs == NULL) {
 			redislite_page_type * page_type = redislite_page_get_type(db, type);
 			page_type->free_function(db, _page);
 		}
+		*length = 0;
 		return REDISLITE_ERR;
 	}
 	redislite_page_string* page = (redislite_page_string*)_page;
@@ -188,6 +192,17 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 	return REDISLITE_OK;
 }
 
+
+int redislite_page_string_getset_key_string(void *_cs, char *key_name, int key_length, char *str, int length, char** previous_value, int* previous_value_length) {
+	changeset* cs = (changeset*)_cs;
+	int status = redislite_page_string_get_by_keyname(cs->db, _cs, key_name, key_length, previous_value, previous_value_length);
+	if (status != REDISLITE_OK && status != REDISLITE_ERR) { // ERR is expected, since the key may not exists
+		return status;
+	}
+	status = redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);
+	// FIXME: there should be a more efficient way to do this instead of two different calls
+	return status;
+}
 
 int redislite_page_string_set_key_string(void *_cs, char *key_name, int key_length, char *str, int length) {
 	changeset *cs = (changeset*)_cs;
