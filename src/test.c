@@ -608,6 +608,82 @@ cleanup:
 	return status;
 }
 
+int test_getrange() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char* key = "testkey";
+	char value[1024];
+	memset(value, 'a', 1024);
+	value[0] = 'b';
+	value[550] = 'c';
+	value[1023] = 'd';
+	int status = redislite_page_string_set_key_string(cs, key, 7, value, 1024);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a random key\n");
+		goto cleanup;
+	}
+
+	char *str;
+	int str_length;
+	status = redislite_page_string_getrange_key_string(db, cs, key, 7, 0, 0, &str, &str_length);
+	if (status != REDISLITE_OK) {
+		printf("Failed to getrange\n");
+		goto cleanup;
+	} else if (str_length != 1) {
+		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1, str_length);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	} else if (str[0] != value[0]) {
+		printf("getrange mismatch; character expected to be '%c' but got '%c' instead\n", value[0], str[0]);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	redislite_free(str);
+
+	status = redislite_page_string_getrange_key_string(db, cs, key, 7, 0, 1023, &str, &str_length);
+	if (status != REDISLITE_OK) {
+		printf("Failed to getrange\n");
+		goto cleanup;
+	} else if (str_length != 1024) {
+		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1024, str_length);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	} else if (memcmp(value, str, 1024)) {
+		printf("getrange mismatch; full range select does not match strings\n");
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	redislite_free(str);
+
+	status = redislite_page_string_getrange_key_string(db, cs, key, 7, -1, -1, &str, &str_length);
+	if (status != REDISLITE_OK) {
+		printf("Failed to getrange\n");
+		goto cleanup;
+	} else if (str_length != 1) {
+		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1, str_length);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	} else if (str[0] != value[1023]) {
+		printf("getrange mismatch; expecting last char to be '%c' but got '%c' instead\n", value[1023], str[0]);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	redislite_free(str);
+
+cleanup:
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int test_echo() {
 	char *test_str = malloc(sizeof(char) * 100);
 	memset(test_str, 'a', 100);
@@ -813,7 +889,7 @@ int main() {
 	} else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-
+	
 	test = test_type();
 	test_name = "testing type";
 	if (test == REDISLITE_SKIP) {
@@ -824,6 +900,14 @@ int main() {
 
 	test = test_getset();
 	test_name = "testing getset";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_getrange();
+	test_name = "testing getrange";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {

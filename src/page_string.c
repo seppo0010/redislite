@@ -178,6 +178,7 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 	int pos, size;
 	while (next != 0) {
 		void *_extra = redislite_page_get(_db, _cs, next, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
+		// TODO handle OOM
 		redislite_page_string_overflow* extra = (redislite_page_string_overflow*)_extra;
 		pos = db->page_size - 12 + i++ * (db->page_size - 8);
 		size = MIN(page->size - pos, db->page_size - 8);
@@ -393,4 +394,79 @@ int redislite_page_string_strlen_key_string(void *_db, void *_cs, char *key_name
 	int len = page->size;
 	if (_cs == NULL) redislite_free_string(db, page);
 	return len;
+}
+
+int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_name, int key_length, int _start, int _end, char** str, int* str_length) {
+	redislite *db = (redislite*)_db;
+	char type;
+	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
+	if (_page == NULL) {
+		// redis returns an empty string
+		if (str_length) *str_length = 0;
+		return REDISLITE_OK;
+	}
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		if (_cs == NULL) {
+			redislite_page_type * page_type = redislite_page_get_type(db, type);
+			page_type->free_function(db, _page);
+		}
+		return REDISLITE_ERR;
+	}
+	redislite_page_string* page = (redislite_page_string*)_page;
+	int len = page->size;
+	int start = (_start < 0 ? _start + len : _start);
+	int end = (_end < 0 ? _end + len : _end) + 1;
+	if (start > len) start = len;
+	if (end > len) end = len;
+	if (start >= end) {
+		if (str_length) *str_length = 0;
+		return REDISLITE_OK;
+	}
+
+	char *response =redislite_malloc(sizeof(char) * (end - start));
+	if (response == NULL) {
+		if (_cs == NULL) {
+			redislite_free_string(db, page);
+		}
+		return REDISLITE_OOM;
+	}
+
+	int page_end = db->page_size - 12;
+	int copied = 0;
+	if (start < page_end) {
+		copied += MIN(end, page_end) - start;
+		memcpy(response, &page->value[start], copied);
+	}
+
+	int next = page->right_page;
+
+	int p = 0;
+	while (copied < end - start)
+	{
+		redislite_page_string_overflow *page_overflow = redislite_page_get(_db, _cs, next, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
+		if (page_overflow == NULL) {
+			if (_cs == NULL) redislite_free_string(_db, page);
+			return REDISLITE_OOM;
+		}
+		page_end = db->page_size - 8;
+
+		if (start < copied+page_end*p+db->page_size+12) {
+			int size = MIN(end - copied - start, page_end);
+			int pos = 0;
+			if (copied == 0) pos = start - page_end * p - db->page_size + 12;
+			memcpy(&response[copied], &page_overflow->value[pos], size);
+			copied += size;
+		}
+
+		next = page_overflow->right_page;
+		if (_cs == NULL) redislite_free_string_overflow(_db, page_overflow);
+
+		if (next == 0) {
+			break;
+		}
+		p++;
+	}
+	*str = response;
+	*str_length = copied;
+	return REDISLITE_OK;
 }
