@@ -1,9 +1,10 @@
-FULLY IMPLEMENTED (15)
+FULLY IMPLEMENTED (16)
 APPEND key value
 DECR key
 DECRBY key decrement
 DEL key [key ...]
 GET key
+GETBIT key offset
 GETRANGE key start end
 GETSET key value
 INCR key
@@ -15,12 +16,11 @@ ECHO message
 STRLEN key
 TYPE key
 
-NOT IMPLEMENTED (on roadmap) (78)
+NOT IMPLEMENTED (on roadmap) (77)
 DBSIZE
 DISCARD
 EXEC
 FLUSHALL
-GETBIT key offset
 HDEL key field
 HEXISTS key field
 HGET key field

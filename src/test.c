@@ -813,6 +813,129 @@ cleanup:
 	return status;
 }
 
+int test_getbit() {
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char* key = "testkey";
+	int status = redislite_page_string_set_key_string(cs, key, 7, "1", 1);
+	if (status != REDISLITE_OK) {
+		printf("Failed to create a random key\n");
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 0);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 0, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 1);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 1, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 2);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 1) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 1, 2, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 3);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 1) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 1, 3, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 4);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 4, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 5);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 5, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 6);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 6, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 7);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 1) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 1, 7, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 8);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 8, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+cleanup:
+	if (cs) {
+		redislite_free_changeset(cs);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int main() {
 	srand(4);
 	int test;
@@ -908,6 +1031,14 @@ int main() {
 
 	test = test_getrange();
 	test_name = "testing getrange";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_getbit();
+	test_name = "testing getbit";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {

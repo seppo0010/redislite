@@ -470,3 +470,37 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	*str_length = copied;
 	return REDISLITE_OK;
 }
+
+int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name, int key_length, long long bitoffset) {
+	if ((bitoffset < 0) || ((unsigned long long)bitoffset >> 3) >= (512*1024*1024))
+	{
+		// bit offset is not an integer or out of range
+		return REDISLITE_ERR;
+	}
+
+	char type;
+	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
+	if (_page == NULL) {
+		// redis returns an empty string
+		return 0;
+	}
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		if (_cs == NULL) {
+			redislite_page_type * page_type = redislite_page_get_type(_db, type);
+			page_type->free_function(_db, _page);
+		}
+		// wrong type
+		return REDISLITE_ERR;
+	}
+
+	redislite_page_string* page = (redislite_page_string*)_page;
+	size_t byte = bitoffset >> 3;
+	size_t bit = 7 - (bitoffset & 0x7);
+	size_t bitval = 0;
+
+	if (byte < page->size) { // TODO: handle bites beyond the first page? Seems unlikely
+		bitval = ((char*)page->value)[byte] & (1 << bit);
+	}
+
+	return bitval == 0 ? 0 : 1;
+}

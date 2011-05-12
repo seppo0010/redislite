@@ -32,3 +32,4 @@ int redislite_page_string_decr_key_string(void *_cs, char *key_name, int key_len
 int redislite_page_string_strlen_key_string(void *_db, void *_cs, char *key_name, int key_length);
 int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_name, int key_length, int _start, int _end, char** str, int* str_length);
 int redislite_echo(char *src_name, int src_length, char **dst_name, int *dst_length);
+int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name, int key_length, long long bitoffset);
