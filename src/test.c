@@ -925,6 +925,35 @@ int test_getbit() {
 		goto cleanup;
 	}
 
+	char test[600];
+	memset(test, 'a', 600);
+	status = redislite_page_string_set_key_string(cs, key, 7, test, 600);
+	if (status < 0 || status != REDISLITE_OK) {
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 4098);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 1) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value aaa(600)aaa on bit %d, got %d instead\n", 1, 4098, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 4096);
+	if (status < 0) {
+		goto cleanup;
+	} else if (status == 0) {
+		status = REDISLITE_OK;
+	} else {
+		printf("getbit expected %d for value aaa(600)aaa on bit %d, got %d instead\n", 0, 4096, status);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
 cleanup:
 	if (cs) {
 		redislite_free_changeset(cs);

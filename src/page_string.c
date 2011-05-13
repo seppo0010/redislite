@@ -478,6 +478,7 @@ int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name
 		return REDISLITE_ERR;
 	}
 
+	redislite* db = (redislite*)_db;
 	char type;
 	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
 	if (_page == NULL) {
@@ -498,8 +499,23 @@ int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name
 	size_t bit = 7 - (bitoffset & 0x7);
 	size_t bitval = 0;
 
-	if (byte < page->size) { // TODO: handle bites beyond the first page? Seems unlikely
-		bitval = ((char*)page->value)[byte] & (1 << bit);
+	if (byte < page->size) {
+		if (byte <= db->page_size - 12) {
+			bitval = ((char*)page->value)[byte] & (1 << bit);
+		} else {
+			int next = page->right_page;
+			redislite_page_string_overflow *overflow;
+			int pos = db->page_size - 12;
+			while (next > 0) {
+				overflow = redislite_page_get(_db, _cs, next, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
+				if (byte <= pos + db->page_size - 8) {
+					bitval = ((char*)overflow->value)[byte - pos] & (1 << bit);
+					break;
+				}
+				pos += db->page_size - 8;
+				if (_cs == NULL) redislite_free_string_overflow(_db, overflow);
+			}
+		}
 	}
 
 	return bitval == 0 ? 0 : 1;
