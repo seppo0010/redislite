@@ -18,4 +18,6 @@ int redislite_get_2bytes(const unsigned char *p);
 #define MIN(A,B) ((A) > (B) ? (B) : (A))
 #define MAX(A,B) ((A) < (B) ? (B) : (A))
 
+int intlen(int integer);
+
 #endif

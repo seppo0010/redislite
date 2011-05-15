@@ -296,6 +296,7 @@ redislite* redislite_open_database(const char *filename) {
 	if (!fp) return redislite_create_database(filename);
 	unsigned char header[DEFAULT_PAGE_SIZE]; // TODO: read 100 header and then the rest
 	fread(header, sizeof(unsigned char), DEFAULT_PAGE_SIZE, fp);
+	// TODO: check fread result
 	redislite* db = NULL;
 	if (memcmp(header, HEADER_STRING, sizeof(HEADER_STRING)) != 0) goto cleanup; // file exist, but not as a redislite db
 	if (header[23] > READ_FORMAT_VERSION) goto cleanup; // newer format

@@ -1,3 +1,5 @@
+#include <math.h>
+
 #define SLOT_2_0     0x001fc07f
 #define SLOT_4_2_0   0xf01fc07f
 
@@ -369,3 +371,7 @@ int redislite_get_4bytes(const unsigned char *p){
   return (p[0]<<24) | (p[1]<<16) | (p[2]<<8) | p[3];
 }
 
+int intlen(int integer)
+{
+	return (int)floor(log10(integer)) + 1;
+}

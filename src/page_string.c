@@ -155,15 +155,16 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
 	if (_page == NULL) {
 		*length = 0;
-		return REDISLITE_ERR; // TODO: more descriptive states?
+		return REDISLITE_NOT_FOUND; // TODO: more descriptive states?
 	}
 	if (type != REDISLITE_PAGE_TYPE_STRING) {
 		if (_cs == NULL) {
 			redislite_page_type * page_type = redislite_page_get_type(db, type);
 			page_type->free_function(db, _page);
 		}
+
 		*length = 0;
-		return REDISLITE_ERR;
+		return REDISLITE_WRONG_TYPE;
 	}
 	redislite_page_string* page = (redislite_page_string*)_page;
 	char *data = redislite_malloc(sizeof(char) * page->size);
@@ -197,7 +198,7 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 int redislite_page_string_getset_key_string(void *_cs, char *key_name, int key_length, char *str, int length, char** previous_value, int* previous_value_length) {
 	changeset* cs = (changeset*)_cs;
 	int status = redislite_page_string_get_by_keyname(cs->db, _cs, key_name, key_length, previous_value, previous_value_length);
-	if (status != REDISLITE_OK && status != REDISLITE_ERR) { // ERR is expected, since the key may not exists
+	if (status != REDISLITE_OK && status != REDISLITE_NOT_FOUND) {
 		return status;
 	}
 	status = redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);

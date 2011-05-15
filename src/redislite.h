@@ -54,5 +54,10 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 #define REDISLITE_OOM -2
 #define REDISLITE_READONLY -3
 #define REDISLITE_SKIP -4
+#define REDISLITE_NOT_FOUND -5
+#define REDISLITE_WRONG_TYPE -6
+#define REDISLITE_EXPECT_STRING -7
+#define REDISLITE_EXPECT_INTEGER -8
+#define REDISLITE_EXPECT_DOUBLE -9
 
 #endif

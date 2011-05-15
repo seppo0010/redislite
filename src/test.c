@@ -1,6 +1,7 @@
 #include "redislite.h"
 #include "page_string.h"
 #include "page_index.h"
+#include "public_api.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,7 +211,7 @@ int test_delete_and_find() {
 			continue;
 		}
 
-		if (i % 2 == 0 && found != REDISLITE_ERR) {
+		if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
 			printf("Key '%s' found after deleted\n", key[i]);
 			status = REDISLITE_ERR;
 		} else if (i % 2 == 1 && found == REDISLITE_ERR) {
@@ -234,7 +235,7 @@ int test_delete_and_find() {
 			continue;
 		}
 
-		if (i % 2 == 0 && found != REDISLITE_ERR) {
+		if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
 			printf("Key '%s' found after deleted\n", key[i]);
 			status = REDISLITE_ERR;
 		} else if (i % 2 == 1 && found == REDISLITE_ERR) {
@@ -762,7 +763,7 @@ int test_getset() {
 	int previous_value_length;
 	status = redislite_page_string_getset_key_string(cs, key, 7, "41", 2, &previous_value, &previous_value_length);
 	if (status !=  REDISLITE_OK) {
-		printf("Unable to getset string\n");
+		printf("Unable to getset string on line %d - received %d\n", __LINE__, status);
 		goto cleanup;
 	}
 	if (previous_value_length != 1) {
@@ -777,7 +778,7 @@ int test_getset() {
 	redislite_free(previous_value);
 	status = redislite_page_string_getset_key_string(cs, key, 7, "41", 2, &previous_value, &previous_value_length);
 	if (status !=  REDISLITE_OK) {
-		printf("Unable to getset string\n");
+		printf("Unable to getset string on line %d - received %d\n", __LINE__, status);
 		goto cleanup;
 	}
 	if (previous_value_length != 2) {
@@ -792,7 +793,7 @@ int test_getset() {
 
 	status = redislite_page_string_getset_key_string(cs, key, 6, "4", 1, &previous_value, &previous_value_length);
 	if (status !=  REDISLITE_OK) {
-		printf("Unable to getset string\n");
+		printf("Unable to getset string on line %d - received %d\n", __LINE__, status);
 		goto cleanup;
 	}
 	if (previous_value_length != 0) {
@@ -965,6 +966,173 @@ cleanup:
 	return status;
 }
 
+int test_get_publicapi()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	changeset *cs = redislite_create_changeset(db);
+	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char key[10];
+	memset(key, 'a', 10);
+	int r = redislite_page_string_set_key_string(cs, key, 10, "1", 1);
+	int status = REDISLITE_OK;
+	if (r < 0) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+
+	redislite_params *params = redislite_create_params();
+	if (params == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->type = REDISLITE_PARAM_ARRAY;
+	params->element = redislite_malloc(sizeof(redislite_params*));
+	if (params->element == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->element[0] = redislite_malloc(sizeof(redislite_params));
+	if (params->element[0] == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->element[0]->type = REDISLITE_PARAM_STRING;
+	params->element[0]->str = redislite_malloc(sizeof(char) * 10);
+	if (params->element[0]->str == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	memcpy(params->element[0]->str, key, 10);
+	params->element[0]->len = 10;
+	params->elements = 1;
+	redislite_reply *reply = redislite_get_command(db, params);
+	if (reply == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_STRING) {
+		printf("Expecting string after getting key using public API, got %d instead\n", reply->type);
+		status = REDISLITE_ERR;
+		redislite_free_reply(reply);
+		goto cleanup;
+	}
+	redislite_free_reply(reply);
+
+cleanup:
+	if (params) {
+		redislite_free_params(params);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
+int test_set_publicapi()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char key[10];
+	memset(key, 'a', 10);
+	int status = REDISLITE_OK;
+
+	redislite_params *params = redislite_create_params();
+	if (params == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->type = REDISLITE_PARAM_ARRAY;
+	params->element = redislite_malloc(sizeof(redislite_params*) * 2);
+	if (params->element == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->element[0] = redislite_malloc(sizeof(redislite_params));
+	if (params->element[0] == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->element[0]->type = REDISLITE_PARAM_STRING;
+	params->element[0]->str = redislite_malloc(sizeof(char) * 10);
+	if (params->element[0]->str == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	memcpy(params->element[0]->str, key, 10);
+	params->element[0]->len = 10;
+
+	params->element[1] = redislite_malloc(sizeof(redislite_params));
+	if (params->element[1] == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->element[1]->type = REDISLITE_PARAM_STRING;
+	params->element[1]->str = redislite_malloc(sizeof(char) * 11);
+	if (params->element[1]->str == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	memcpy(params->element[1]->str, key, 10);
+	params->element[1]->str[10] = 'x';
+	params->element[1]->len = 11;
+
+	params->elements = 2;
+	redislite_reply *reply = redislite_set_command(db, params);
+	if (reply == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_STATUS && memcmp(reply->str, "OK", 2) != 0) {
+		printf("Expecting status OK after getting key using public API, got %d instead\n", reply->type);
+		if (reply->type == REDISLITE_REPLY_STATUS || reply->type == REDISLITE_REPLY_ERROR) {
+			printf("Result str (status or error) was '%s'\n", reply->str);
+		}
+		status = REDISLITE_ERR;
+		redislite_free_reply(reply);
+		goto cleanup;
+	}
+	redislite_free_reply(reply);
+
+	char *value;
+	int length;
+	size_t found = redislite_page_string_get_by_keyname(db, NULL, key, 10, &value, &length);
+
+	if (found < 0) {
+		goto cleanup;
+	}
+
+	if (length != 11) {
+		printf("Wrong length (%d) should be %d\n", length, 11);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (memcmp(value, key, 10) != 0 || value[10] != 'x') {
+		printf("Content mismatch\n");
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	free(value);
+
+cleanup:
+	if (params) {
+		redislite_free_params(params);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int main() {
 	srand(4);
 	int test;
@@ -1068,6 +1236,22 @@ int main() {
 
 	test = test_getbit();
 	test_name = "testing getbit";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_get_publicapi();
+	test_name = "testing get on publicapi";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_set_publicapi();
+	test_name = "testing set on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {
