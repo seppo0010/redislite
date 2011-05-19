@@ -328,10 +328,11 @@ struct redislite_command redisliteCommandTable[] = {
 	// NIY {"unwatch",unwatchCommand,1,0}
 };
 
-/* Helper function for redisvFormatCommand(). */
-static int addArgument(redislite_params *target, char *str, int len) {
+/* Helper function for redislitev_format_command(). */
+static int add_argument(redislite_params *target, char *str, int len) {
 	if (target->elements == 0)
 	{
+		target->type = REDISLITE_PARAM_ARRAY;
 		target->element = redislite_malloc(sizeof(redislite_params*) * 1);
 		if (target->element == NULL) {
 			redislite_free_params_value(target);
@@ -347,13 +348,15 @@ static int addArgument(redislite_params *target, char *str, int len) {
 	}
 	redislite_params *param = redislite_create_params();
 	param->type = REDISLITE_PARAM_STRING;
-	param->str = str;
+	param->str = redislite_malloc(sizeof(char) * len);
+	if (param->str == NULL) return REDISLITE_OOM;
+	memcpy(param->str, str, len);
 	param->len = len;
 	target->element[target->elements++] = param;
 	return REDISLITE_OK;
 }
 
-int redisvFormatCommand(redislite_params **target, const char *format, va_list ap) {
+int redislitev_format_command(redislite_params **target, const char *format, va_list ap) {
     size_t size;
     const char *arg, *c = format;
     redislite_params *cmd = NULL; /* final command */
@@ -378,7 +381,8 @@ int redisvFormatCommand(redislite_params **target, const char *format, va_list a
         if (*c != '%' || c[1] == '\0') {
             if (*c == ' ') {
                 if (sdslen(current) != 0) {
-                    addArgument(cmd, current, sdslen(current));
+                    add_argument(cmd, current, sdslen(current));
+					sdsfree(current);
                     current = sdsempty();
                     interpolated = 0;
                 }
@@ -465,10 +469,9 @@ int redisvFormatCommand(redislite_params **target, const char *format, va_list a
 
     /* Add the last argument if needed */
     if (interpolated || sdslen(current) != 0) {
-		addArgument(cmd, current, sdslen(current));
-    } else {
-        sdsfree(current);
+		add_argument(cmd, current, sdslen(current));
     }
+	sdsfree(current);
 
     *target = cmd;
     return totlen;
@@ -483,14 +486,14 @@ int redisvFormatCommand(redislite_params **target, const char *format, va_list a
  * When using %b you need to provide both the pointer to the string
  * and the length in bytes. Examples:
  *
- * len = redisFormatCommand(target, "GET %s", mykey);
- * len = redisFormatCommand(target, "SET %s %b", mykey, myval, myvallen);
+ * len = redislite_format_command(target, "GET %s", mykey);
+ * len = redislite_format_command(target, "SET %s %b", mykey, myval, myvallen);
  */
-int redisFormatCommand(redislite_params **target, const char *format, ...) {
+int redislite_format_command(redislite_params **target, const char *format, ...) {
     va_list ap;
     int len;
     va_start(ap,format);
-    len = redisvFormatCommand(target,format,ap);
+    len = redislitev_format_command(target,format,ap);
     va_end(ap);
     return len;
 }
@@ -500,7 +503,7 @@ int redisFormatCommand(redislite_params **target, const char *format, ...) {
  * lengths. If the latter is set to NULL, strlen will be used to compute the
  * argument lengths.
  */
-int redisFormatCommandArgv(char **target, int argc, const char **argv, const size_t *argvlen) {
+int redislite_format_command_argv(char **target, int argc, const char **argv, const size_t *argvlen) {
     char *cmd = NULL; /* final command */
     int pos; /* position in final command */
     size_t len;

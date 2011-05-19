@@ -1133,6 +1133,66 @@ cleanup:
 	return status;
 }
 
+int test_format_get_set_publicapi()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	char key[10];
+	memset(key, 'a', 10);
+	int status = REDISLITE_OK;
+
+	redislite_params *params;
+	redislite_format_command(&params, "%s %b", "test", "tesasdasdad", 5);
+	redislite_reply *reply = redislite_set_command(db, params);
+	if (reply == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_STATUS && memcmp(reply->str, "OK", 2) != 0) {
+		printf("Expecting status OK after setting key using public API's formatter, got %d instead\n", reply->type);
+		if (reply->type == REDISLITE_REPLY_STATUS || reply->type == REDISLITE_REPLY_ERROR) {
+			printf("Result str (status or error) was '%s'\n", reply->str);
+		}
+		status = REDISLITE_ERR;
+		redislite_free_reply(reply);
+		goto cleanup;
+	}
+	redislite_free_reply(reply);
+
+	char *value;
+	int length;
+	size_t found = redislite_page_string_get_by_keyname(db, NULL, "test", 4, &value, &length);
+
+	if (found < 0) {
+		goto cleanup;
+	}
+
+	if (length != 5) {
+		printf("Wrong length (%d) should be %d\n", length, 5);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (memcmp(value, "tesas", 5) != 0) {
+		printf("Content mismatch\n");
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	free(value);
+
+cleanup:
+	if (params) {
+		redislite_free_params(params);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int main() {
 	srand(4);
 	int test;
@@ -1252,6 +1312,14 @@ int main() {
 
 	test = test_set_publicapi();
 	test_name = "testing set on publicapi";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_format_get_set_publicapi();
+	test_name = "testing format get/set on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {
