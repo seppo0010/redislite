@@ -55,8 +55,8 @@ static const char *expected_string = "Value is not a string";
 static const char *expected_integer = "value is not an integer or out of range";
 static const char *expected_double = "Value is not a double";
 static const char *ok = "OK";
-static const char *not_implemented_yet = "This command hasn't been implemented no redislite yet";
-static const char *no_implementation_planed = "This command hasn't been implemented no redislite yet";
+static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
+static const char *implementation_not_planned = "This command hasn't been planned to be implemented on redislite";
 
 static void set_status_message(int status, redislite_reply *reply)
 {
@@ -163,28 +163,28 @@ static void set_error_message(int status, redislite_reply *reply)
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(expected_double)-1);
+			reply->str = redislite_malloc(sizeof(not_implemented_yet)-1);
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, expected_double, sizeof(expected_double)-1);
-			reply->len = sizeof(expected_double)-1;
+			memcpy(reply->str, not_implemented_yet, sizeof(not_implemented_yet)-1);
+			reply->len = sizeof(not_implemented_yet)-1;
 			break;
 		}
-		case REDISLITE_NO_IMPLEMENTATION_PLANED:
+		case REDISLITE_IMPLEMENTATION_NOT_PLANNED:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(expected_double)-1);
+			reply->str = redislite_malloc(sizeof(implementation_not_planned)-1);
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, expected_double, sizeof(expected_double)-1);
-			reply->len = sizeof(expected_double)-1;
+			memcpy(reply->str, implementation_not_planned, sizeof(implementation_not_planned)-1);
+			reply->len = sizeof(implementation_not_planned)-1;
 			break;
 		}
 		default:
@@ -253,10 +253,10 @@ redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_
 	return reply;
 }
 
-redislite_reply *redislite_command_no_implementation_planed(redislite *db, redislite_params *params) 
+redislite_reply *redislite_command_implementation_not_planned(redislite *db, redislite_params *params) 
 {
 	redislite_reply *reply = redislite_create_reply();
-	set_error_message(REDISLITE_NO_IMPLEMENTATION_PLANED, reply);
+	set_error_message(REDISLITE_IMPLEMENTATION_NOT_PLANNED, reply);
 	return reply;
 }
 
@@ -264,7 +264,7 @@ struct redislite_command redislite_command_table[] = {
 	{"get",redislite_get_command,2,0},
 	{"set",redislite_set_command,3,0},
 	{"setnx",redislite_command_not_implemented_yet,3,0},
-	{"setex",redislite_command_no_implementation_planed,4,0},
+	{"setex",redislite_command_implementation_not_planned,4,0},
 	{"append",redislite_command_not_implemented_yet,3,0},
 	{"strlen",redislite_command_not_implemented_yet,2,0},
 	{"del",redislite_command_not_implemented_yet,2,0},
@@ -284,9 +284,9 @@ struct redislite_command redislite_command_table[] = {
 	{"linsert",redislite_command_not_implemented_yet,5,0},
 	{"rpop",redislite_command_not_implemented_yet,2,0},
 	{"lpop",redislite_command_not_implemented_yet,2,0},
-	{"brpop",redislite_command_no_implementation_planed,3,0},
-	{"brpoplpush",redislite_command_no_implementation_planed,4,0},
-	{"blpop",redislite_command_no_implementation_planed,3,0},
+	{"brpop",redislite_command_implementation_not_planned,3,0},
+	{"brpoplpush",redislite_command_implementation_not_planned,4,0},
+	{"blpop",redislite_command_implementation_not_planned,3,0},
 	{"llen",redislite_command_not_implemented_yet,2,0},
 	{"lindex",redislite_command_not_implemented_yet,3,0},
 	{"lset",redislite_command_not_implemented_yet,4,0},
@@ -296,7 +296,7 @@ struct redislite_command redislite_command_table[] = {
 	{"rpoplpush",redislite_command_not_implemented_yet,3,0},
 	{"sadd",redislite_command_not_implemented_yet,3,0},
 	{"srem",redislite_command_not_implemented_yet,3,0},
-	{"smove",redislite_command_no_implementation_planed,4,0},
+	{"smove",redislite_command_implementation_not_planned,4,0},
 	{"sismember",redislite_command_not_implemented_yet,3,0},
 	{"scard",redislite_command_not_implemented_yet,2,0},
 	{"spop",redislite_command_not_implemented_yet,2,0},
@@ -340,42 +340,42 @@ struct redislite_command redislite_command_table[] = {
 	{"mset",redislite_command_not_implemented_yet,3,0},
 	{"msetnx",redislite_command_not_implemented_yet,3,0},
 	{"randomkey",redislite_command_not_implemented_yet,1,0},
-	{"select",redislite_command_no_implementation_planed,2,0},
-	{"move",redislite_command_no_implementation_planed,3,0},
+	{"select",redislite_command_implementation_not_planned,2,0},
+	{"move",redislite_command_implementation_not_planned,3,0},
 	{"rename",redislite_command_not_implemented_yet,3,0},
 	{"renamenx",redislite_command_not_implemented_yet,3,0},
-	{"expire",redislite_command_no_implementation_planed,3,0},
-	{"expireat",redislite_command_no_implementation_planed,3,0},
+	{"expire",redislite_command_implementation_not_planned,3,0},
+	{"expireat",redislite_command_implementation_not_planned,3,0},
 	{"keys",redislite_command_not_implemented_yet,2,0},
 	{"dbsize",redislite_command_not_implemented_yet,1,0},
-	{"auth",redislite_command_no_implementation_planed,2,0},
-	{"ping",redislite_command_no_implementation_planed,1,0},
+	{"auth",redislite_command_implementation_not_planned,2,0},
+	{"ping",redislite_command_implementation_not_planned,1,0},
 	{"echo",redislite_command_not_implemented_yet,2,0},
-	{"save",redislite_command_no_implementation_planed,1,0},
-	{"bgsave",redislite_command_no_implementation_planed,1,0},
-	{"bgrewriteaof",redislite_command_no_implementation_planed,1,0},
-	{"shutdown",redislite_command_no_implementation_planed,1,0},
-	{"lastsave",redislite_command_no_implementation_planed,1,0},
+	{"save",redislite_command_implementation_not_planned,1,0},
+	{"bgsave",redislite_command_implementation_not_planned,1,0},
+	{"bgrewriteaof",redislite_command_implementation_not_planned,1,0},
+	{"shutdown",redislite_command_implementation_not_planned,1,0},
+	{"lastsave",redislite_command_implementation_not_planned,1,0},
 	{"type",redislite_command_not_implemented_yet,2,0},
 	{"multi",redislite_command_not_implemented_yet,1,0},
 	{"exec",redislite_command_not_implemented_yet,1,0},
 	{"discard",redislite_command_not_implemented_yet,1,0},
-	{"sync",redislite_command_no_implementation_planed,1,0},
-	{"flushdb",redislite_command_no_implementation_planed,1,0},
+	{"sync",redislite_command_implementation_not_planned,1,0},
+	{"flushdb",redislite_command_implementation_not_planned,1,0},
 	{"flushall",redislite_command_not_implemented_yet,1,0},
 	{"sort",redislite_command_not_implemented_yet,2,0},
 	{"info",redislite_command_not_implemented_yet,1,0},
-	{"monitor",redislite_command_no_implementation_planed,1,0},
-	{"ttl",redislite_command_no_implementation_planed,2,0},
-	{"persist",redislite_command_no_implementation_planed,2,0},
-	{"slaveof",redislite_command_no_implementation_planed,3,0},
-	{"debug",redislite_command_no_implementation_planed,2,0},
-	{"config",redislite_command_no_implementation_planed,2,0},
-	{"subscribe",redislite_command_no_implementation_planed,2,0},
-	{"unsubscribe",redislite_command_no_implementation_planed,1,0},
-	{"psubscribe",redislite_command_no_implementation_planed,2,0},
-	{"punsubscribe",redislite_command_no_implementation_planed,1,0},
-	{"publish",redislite_command_no_implementation_planed,3,0},
+	{"monitor",redislite_command_implementation_not_planned,1,0},
+	{"ttl",redislite_command_implementation_not_planned,2,0},
+	{"persist",redislite_command_implementation_not_planned,2,0},
+	{"slaveof",redislite_command_implementation_not_planned,3,0},
+	{"debug",redislite_command_implementation_not_planned,2,0},
+	{"config",redislite_command_implementation_not_planned,2,0},
+	{"subscribe",redislite_command_implementation_not_planned,2,0},
+	{"unsubscribe",redislite_command_implementation_not_planned,1,0},
+	{"psubscribe",redislite_command_implementation_not_planned,2,0},
+	{"punsubscribe",redislite_command_implementation_not_planned,1,0},
+	{"publish",redislite_command_implementation_not_planned,3,0},
 	{"watch",redislite_command_not_implemented_yet,2,0},
 	{"unwatch",redislite_command_not_implemented_yet,1,0}
 };
