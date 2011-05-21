@@ -55,6 +55,8 @@ static const char *expected_string = "Value is not a string";
 static const char *expected_integer = "value is not an integer or out of range";
 static const char *expected_double = "Value is not a double";
 static const char *ok = "OK";
+static const char *not_implemented_yet = "This command hasn't been implemented no redislite yet";
+static const char *no_implementation_planed = "This command hasn't been implemented no redislite yet";
 
 static void set_status_message(int status, redislite_reply *reply)
 {
@@ -80,13 +82,14 @@ static void set_error_message(int status, redislite_reply *reply)
 	switch (status) {
 		case REDISLITE_NOT_FOUND:
 		{
+			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_NIL;
 			break;
 		}
 		case REDISLITE_WRONG_TYPE:
 		{
-			reply->type = REDISLITE_REPLY_ERROR;
 			redislite_free_reply_value(reply);
+			reply->type = REDISLITE_REPLY_ERROR;
 			reply->str = redislite_malloc(sizeof(wrong_type)-1);
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
@@ -95,11 +98,12 @@ static void set_error_message(int status, redislite_reply *reply)
 
 			memcpy(reply->str, wrong_type, sizeof(wrong_type)-1);
 			reply->len = sizeof(wrong_type)-1;
+			break;
 		}
 		case REDISLITE_OOM:
 		{
-			reply->type = REDISLITE_REPLY_ERROR;
 			redislite_free_reply_value(reply);
+			reply->type = REDISLITE_REPLY_ERROR;
 			reply->str = redislite_malloc(sizeof(out_of_memory)-1);
 			if (reply->str == NULL) {
 				// todo: what should we do here?!
@@ -111,11 +115,12 @@ static void set_error_message(int status, redislite_reply *reply)
 
 			memcpy(reply->str, out_of_memory, sizeof(out_of_memory)-1);
 			reply->len = sizeof(out_of_memory)-1;
+			break;
 		}
 		case REDISLITE_EXPECT_STRING:
 		{
-			reply->type = REDISLITE_REPLY_ERROR;
 			redislite_free_reply_value(reply);
+			reply->type = REDISLITE_REPLY_ERROR;
 			reply->str = redislite_malloc(sizeof(expected_string)-1);
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
@@ -124,11 +129,12 @@ static void set_error_message(int status, redislite_reply *reply)
 
 			memcpy(reply->str, expected_string, sizeof(expected_string)-1);
 			reply->len = sizeof(expected_string)-1;
+			break;
 		}
 		case REDISLITE_EXPECT_INTEGER:
 		{
-			reply->type = REDISLITE_REPLY_ERROR;
 			redislite_free_reply_value(reply);
+			reply->type = REDISLITE_REPLY_ERROR;
 			reply->str = redislite_malloc(sizeof(expected_integer)-1);
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
@@ -137,11 +143,12 @@ static void set_error_message(int status, redislite_reply *reply)
 
 			memcpy(reply->str, expected_integer, sizeof(expected_integer)-1);
 			reply->len = sizeof(expected_integer)-1;
+			break;
 		}
 		case REDISLITE_EXPECT_DOUBLE:
 		{
-			reply->type = REDISLITE_REPLY_ERROR;
 			redislite_free_reply_value(reply);
+			reply->type = REDISLITE_REPLY_ERROR;
 			reply->str = redislite_malloc(sizeof(expected_double)-1);
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
@@ -150,6 +157,35 @@ static void set_error_message(int status, redislite_reply *reply)
 
 			memcpy(reply->str, expected_double, sizeof(expected_double)-1);
 			reply->len = sizeof(expected_double)-1;
+			break;
+		}
+		case REDISLITE_NOT_IMPLEMENTED_YET:
+		{
+			redislite_free_reply_value(reply);
+			reply->type = REDISLITE_REPLY_ERROR;
+			reply->str = redislite_malloc(sizeof(expected_double)-1);
+			if (reply->str == NULL) {
+				set_error_message(REDISLITE_OOM, reply);
+				return;
+			}
+
+			memcpy(reply->str, expected_double, sizeof(expected_double)-1);
+			reply->len = sizeof(expected_double)-1;
+			break;
+		}
+		case REDISLITE_NO_IMPLEMENTATION_PLANED:
+		{
+			redislite_free_reply_value(reply);
+			reply->type = REDISLITE_REPLY_ERROR;
+			reply->str = redislite_malloc(sizeof(expected_double)-1);
+			if (reply->str == NULL) {
+				set_error_message(REDISLITE_OOM, reply);
+				return;
+			}
+
+			memcpy(reply->str, expected_double, sizeof(expected_double)-1);
+			reply->len = sizeof(expected_double)-1;
+			break;
 		}
 		default:
 		{
@@ -162,6 +198,7 @@ static void set_error_message(int status, redislite_reply *reply)
 			}
 			memcpy(reply->str, unknown_error, sizeof(unknown_error)-1);
 			reply->len = sizeof(unknown_error)-1;
+			break;
 		}
 	}
 }
@@ -171,6 +208,7 @@ redislite_reply *redislite_get_command(redislite *db, redislite_params *params)
 	char *key;
 	int len;
 	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
 	if (params->element[0]->type == REDISLITE_PARAM_STRING) {
 		key = params->element[0]->str;
 		len = params->element[0]->len;
@@ -191,6 +229,7 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	char *key, *value;
 	int len, value_len;
 	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
 	if (params->element[0]->type == REDISLITE_PARAM_STRING && params->element[1]->type == REDISLITE_PARAM_STRING) {
 		key = params->element[0]->str;
 		len = params->element[0]->len;
@@ -207,126 +246,187 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
-struct redislite_command *commandTable;
-struct redislite_command redisliteCommandTable[] = {
+redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_params *params) 
+{
+	redislite_reply *reply = redislite_create_reply();
+	set_error_message(REDISLITE_NOT_IMPLEMENTED_YET, reply);
+	return reply;
+}
+
+redislite_reply *redislite_command_no_implementation_planed(redislite *db, redislite_params *params) 
+{
+	redislite_reply *reply = redislite_create_reply();
+	set_error_message(REDISLITE_NO_IMPLEMENTATION_PLANED, reply);
+	return reply;
+}
+
+struct redislite_command redislite_command_table[] = {
 	{"get",redislite_get_command,2,0},
-	{"set",redislite_set_command,3,0} // remember to add a comma here
-	// NIY {"setnx",setnxCommand,3,0},
-	// NIY {"setex",setexCommand,4,0},
-	// NIY {"append",appendCommand,3,0},
-	// NIY {"strlen",strlenCommand,2,0},
-	// NIY {"del",delCommand,-2,0},
-	// NIY {"exists",existsCommand,2,0},
-	// NIY {"setbit",setbitCommand,4,0},
-	// NIY {"getbit",getbitCommand,3,0},
-	// NIY {"setrange",setrangeCommand,4,0},
-	// NIY {"getrange",getrangeCommand,4,0},
-	// NIY {"substr",getrangeCommand,4,0},
-	// NIY {"incr",incrCommand,2,0},
-	// NIY {"decr",decrCommand,2,0},
-	// NIY {"mget",mgetCommand,-2,0},
-	// NIY {"rpush",rpushCommand,3,0},
-	// NIY {"lpush",lpushCommand,3,0},
-	// NIY {"rpushx",rpushxCommand,3,0},
-	// NIY {"lpushx",lpushxCommand,3,0},
-	// NIY {"linsert",linsertCommand,5,0},
-	// NIY {"rpop",rpopCommand,2,0},
-	// NIY {"lpop",lpopCommand,2,0},
-	// NIY {"brpop",brpopCommand,-3,0},
-	// NIY {"brpoplpush",brpoplpushCommand,4,0},
-	// NIY {"blpop",blpopCommand,-3,0},
-	// NIY {"llen",llenCommand,2,0},
-	// NIY {"lindex",lindexCommand,3,0},
-	// NIY {"lset",lsetCommand,4,0},
-	// NIY {"lrange",lrangeCommand,4,0},
-	// NIY {"ltrim",ltrimCommand,4,0},
-	// NIY {"lrem",lremCommand,4,0},
-	// NIY {"rpoplpush",rpoplpushCommand,3,0},
-	// NIY {"sadd",saddCommand,3,0},
-	// NIY {"srem",sremCommand,3,0},
-	// NIY {"smove",smoveCommand,4,0},
-	// NIY {"sismember",sismemberCommand,3,0},
-	// NIY {"scard",scardCommand,2,0},
-	// NIY {"spop",spopCommand,2,0},
-	// NIY {"srandmember",srandmemberCommand,2,0},
-	// NIY {"sinter",sinterCommand,-2,0},
-	// NIY {"sinterstore",sinterstoreCommand,-3,0},
-	// NIY {"sunion",sunionCommand,-2,0},
-	// NIY {"sunionstore",sunionstoreCommand,-3,0},
-	// NIY {"sdiff",sdiffCommand,-2,0},
-	// NIY {"sdiffstore",sdiffstoreCommand,-3,0},
-	// NIY {"smembers",sinterCommand,2,0},
-	// NIY {"zadd",zaddCommand,4,0},
-	// NIY {"zincrby",zincrbyCommand,4,0},
-	// NIY {"zrem",zremCommand,3,0},
-	// NIY {"zremrangebyscore",zremrangebyscoreCommand,4,0},
-	// NIY {"zremrangebyrank",zremrangebyrankCommand,4,0},
-	// NIY {"zunionstore",zunionstoreCommand,-4,0},
-	// NIY {"zinterstore",zinterstoreCommand,-4,0},
-	// NIY {"zrange",zrangeCommand,-4,0},
-	// NIY {"zrangebyscore",zrangebyscoreCommand,-4,0},
-	// NIY {"zrevrangebyscore",zrevrangebyscoreCommand,-4,0},
-	// NIY {"zcount",zcountCommand,4,0},
-	// NIY {"zrevrange",zrevrangeCommand,-4,0},
-	// NIY {"zcard",zcardCommand,2,0},
-	// NIY {"zscore",zscoreCommand,3,0},
-	// NIY {"zrank",zrankCommand,3,0},
-	// NIY {"zrevrank",zrevrankCommand,3,0},
-	// NIY {"hset",hsetCommand,4,0},
-	// NIY {"hsetnx",hsetnxCommand,4,0},
-	// NIY {"hget",hgetCommand,3,0},
-	// NIY {"hmset",hmsetCommand,-4,0},
-	// NIY {"hmget",hmgetCommand,-3,0},
-	// NIY {"hincrby",hincrbyCommand,4,0},
-	// NIY {"hdel",hdelCommand,3,0},
-	// NIY {"hvals",hvalsCommand,2,0},
-	// NIY {"hgetall",hgetallCommand,2,0},
-	// NIY {"hexists",hexistsCommand,3,0},
-	// NIY {"incrby",incrbyCommand,3,0},
-	// NIY {"decrby",decrbyCommand,3,0},
-	// NIY {"getset",getsetCommand,3,0},
-	// NIY {"mset",msetCommand,-3,0},
-	// NIY {"msetnx",msetnxCommand,-3,0},
-	// NIY {"randomkey",randomkeyCommand,1,0},
-	// NIY {"select",selectCommand,2,0},
-	// NIY {"move",moveCommand,3,0},
-	// NIY {"rename",renameCommand,3,0},
-	// NIY {"renamenx",renamenxCommand,3,0},
-	// NIY {"expire",expireCommand,3,0},
-	// NIY {"expireat",expireatCommand,3,0},
-	// NIY {"keys",keysCommand,2,0},
-	// NIY {"dbsize",dbsizeCommand,1,0},
-	// NIY {"auth",authCommand,2,0},
-	// NIY {"ping",pingCommand,1,0},
-	// NIY {"echo",echoCommand,2,0},
-	// NIY {"save",saveCommand,1,0},
-	// NIY {"bgsave",bgsaveCommand,1,0},
-	// NIY {"bgrewriteaof",bgrewriteaofCommand,1,0},
-	// NIY {"shutdown",shutdownCommand,1,0},
-	// NIY {"lastsave",lastsaveCommand,1,0},
-	// NIY {"type",typeCommand,2,0},
-	// NIY {"multi",multiCommand,1,0},
-	// NIY {"exec",execCommand,1,0},
-	// NIY {"discard",discardCommand,1,0},
-	// NIY {"sync",syncCommand,1,0},
-	// NIY {"flushdb",flushdbCommand,1,0},
-	// NIY {"flushall",flushallCommand,1,0},
-	// NIY {"sort",sortCommand,-2,0},
-	// NIY {"info",infoCommand,-1,0},
-	// NIY {"monitor",monitorCommand,1,0},
-	// NIY {"ttl",ttlCommand,2,0},
-	// NIY {"persist",persistCommand,2,0},
-	// NIY {"slaveof",slaveofCommand,3,0},
-	// NIY {"debug",debugCommand,-2,0},
-	// NIY {"config",configCommand,-2,0},
-	// NIY {"subscribe",subscribeCommand,-2,0},
-	// NIY {"unsubscribe",unsubscribeCommand,-1,0},
-	// NIY {"psubscribe",psubscribeCommand,-2,0},
-	// NIY {"punsubscribe",punsubscribeCommand,-1,0},
-	// NIY {"publish",publishCommand,3,0},
-	// NIY {"watch",watchCommand,-2,0},
-	// NIY {"unwatch",unwatchCommand,1,0}
+	{"set",redislite_set_command,3,0},
+	{"setnx",redislite_command_not_implemented_yet,3,0},
+	{"setex",redislite_command_no_implementation_planed,4,0},
+	{"append",redislite_command_not_implemented_yet,3,0},
+	{"strlen",redislite_command_not_implemented_yet,2,0},
+	{"del",redislite_command_not_implemented_yet,2,0},
+	{"exists",redislite_command_not_implemented_yet,2,0},
+	{"setbit",redislite_command_not_implemented_yet,4,0},
+	{"getbit",redislite_command_not_implemented_yet,3,0},
+	{"setrange",redislite_command_not_implemented_yet,4,0},
+	{"getrange",redislite_command_not_implemented_yet,4,0},
+	{"substr",redislite_command_not_implemented_yet,4,0},
+	{"incr",redislite_command_not_implemented_yet,2,0},
+	{"decr",redislite_command_not_implemented_yet,2,0},
+	{"mget",redislite_command_not_implemented_yet,2,0},
+	{"rpush",redislite_command_not_implemented_yet,3,0},
+	{"lpush",redislite_command_not_implemented_yet,3,0},
+	{"rpushx",redislite_command_not_implemented_yet,3,0},
+	{"lpushx",redislite_command_not_implemented_yet,3,0},
+	{"linsert",redislite_command_not_implemented_yet,5,0},
+	{"rpop",redislite_command_not_implemented_yet,2,0},
+	{"lpop",redislite_command_not_implemented_yet,2,0},
+	{"brpop",redislite_command_no_implementation_planed,3,0},
+	{"brpoplpush",redislite_command_no_implementation_planed,4,0},
+	{"blpop",redislite_command_no_implementation_planed,3,0},
+	{"llen",redislite_command_not_implemented_yet,2,0},
+	{"lindex",redislite_command_not_implemented_yet,3,0},
+	{"lset",redislite_command_not_implemented_yet,4,0},
+	{"lrange",redislite_command_not_implemented_yet,4,0},
+	{"ltrim",redislite_command_not_implemented_yet,4,0},
+	{"lrem",redislite_command_not_implemented_yet,4,0},
+	{"rpoplpush",redislite_command_not_implemented_yet,3,0},
+	{"sadd",redislite_command_not_implemented_yet,3,0},
+	{"srem",redislite_command_not_implemented_yet,3,0},
+	{"smove",redislite_command_no_implementation_planed,4,0},
+	{"sismember",redislite_command_not_implemented_yet,3,0},
+	{"scard",redislite_command_not_implemented_yet,2,0},
+	{"spop",redislite_command_not_implemented_yet,2,0},
+	{"srandmember",redislite_command_not_implemented_yet,2,0},
+	{"sinter",redislite_command_not_implemented_yet,2,0},
+	{"sinterstore",redislite_command_not_implemented_yet,3,0},
+	{"sunion",redislite_command_not_implemented_yet,2,0},
+	{"sunionstore",redislite_command_not_implemented_yet,3,0},
+	{"sdiff",redislite_command_not_implemented_yet,2,0},
+	{"sdiffstore",redislite_command_not_implemented_yet,3,0},
+	{"smembers",redislite_command_not_implemented_yet,2,0},
+	{"zadd",redislite_command_not_implemented_yet,4,0},
+	{"zincrby",redislite_command_not_implemented_yet,4,0},
+	{"zrem",redislite_command_not_implemented_yet,3,0},
+	{"zremrangebyscore",redislite_command_not_implemented_yet,4,0},
+	{"zremrangebyrank",redislite_command_not_implemented_yet,4,0},
+	{"zunionstore",redislite_command_not_implemented_yet,4,0},
+	{"zinterstore",redislite_command_not_implemented_yet,4,0},
+	{"zrange",redislite_command_not_implemented_yet,4,0},
+	{"zrangebyscore",redislite_command_not_implemented_yet,4,0},
+	{"zrevrangebyscore",redislite_command_not_implemented_yet,4,0},
+	{"zcount",redislite_command_not_implemented_yet,4,0},
+	{"zrevrange",redislite_command_not_implemented_yet,4,0},
+	{"zcard",redislite_command_not_implemented_yet,2,0},
+	{"zscore",redislite_command_not_implemented_yet,3,0},
+	{"zrank",redislite_command_not_implemented_yet,3,0},
+	{"zrevrank",redislite_command_not_implemented_yet,3,0},
+	{"hset",redislite_command_not_implemented_yet,4,0},
+	{"hsetnx",redislite_command_not_implemented_yet,4,0},
+	{"hget",redislite_command_not_implemented_yet,3,0},
+	{"hmset",redislite_command_not_implemented_yet,4,0},
+	{"hmget",redislite_command_not_implemented_yet,3,0},
+	{"hincrby",redislite_command_not_implemented_yet,4,0},
+	{"hdel",redislite_command_not_implemented_yet,3,0},
+	{"hvals",redislite_command_not_implemented_yet,2,0},
+	{"hgetall",redislite_command_not_implemented_yet,2,0},
+	{"hexists",redislite_command_not_implemented_yet,3,0},
+	{"incrby",redislite_command_not_implemented_yet,3,0},
+	{"decrby",redislite_command_not_implemented_yet,3,0},
+	{"getset",redislite_command_not_implemented_yet,3,0},
+	{"mset",redislite_command_not_implemented_yet,3,0},
+	{"msetnx",redislite_command_not_implemented_yet,3,0},
+	{"randomkey",redislite_command_not_implemented_yet,1,0},
+	{"select",redislite_command_no_implementation_planed,2,0},
+	{"move",redislite_command_no_implementation_planed,3,0},
+	{"rename",redislite_command_not_implemented_yet,3,0},
+	{"renamenx",redislite_command_not_implemented_yet,3,0},
+	{"expire",redislite_command_no_implementation_planed,3,0},
+	{"expireat",redislite_command_no_implementation_planed,3,0},
+	{"keys",redislite_command_not_implemented_yet,2,0},
+	{"dbsize",redislite_command_not_implemented_yet,1,0},
+	{"auth",redislite_command_no_implementation_planed,2,0},
+	{"ping",redislite_command_no_implementation_planed,1,0},
+	{"echo",redislite_command_not_implemented_yet,2,0},
+	{"save",redislite_command_no_implementation_planed,1,0},
+	{"bgsave",redislite_command_no_implementation_planed,1,0},
+	{"bgrewriteaof",redislite_command_no_implementation_planed,1,0},
+	{"shutdown",redislite_command_no_implementation_planed,1,0},
+	{"lastsave",redislite_command_no_implementation_planed,1,0},
+	{"type",redislite_command_not_implemented_yet,2,0},
+	{"multi",redislite_command_not_implemented_yet,1,0},
+	{"exec",redislite_command_not_implemented_yet,1,0},
+	{"discard",redislite_command_not_implemented_yet,1,0},
+	{"sync",redislite_command_no_implementation_planed,1,0},
+	{"flushdb",redislite_command_no_implementation_planed,1,0},
+	{"flushall",redislite_command_not_implemented_yet,1,0},
+	{"sort",redislite_command_not_implemented_yet,2,0},
+	{"info",redislite_command_not_implemented_yet,1,0},
+	{"monitor",redislite_command_no_implementation_planed,1,0},
+	{"ttl",redislite_command_no_implementation_planed,2,0},
+	{"persist",redislite_command_no_implementation_planed,2,0},
+	{"slaveof",redislite_command_no_implementation_planed,3,0},
+	{"debug",redislite_command_no_implementation_planed,2,0},
+	{"config",redislite_command_no_implementation_planed,2,0},
+	{"subscribe",redislite_command_no_implementation_planed,2,0},
+	{"unsubscribe",redislite_command_no_implementation_planed,1,0},
+	{"psubscribe",redislite_command_no_implementation_planed,2,0},
+	{"punsubscribe",redislite_command_no_implementation_planed,1,0},
+	{"publish",redislite_command_no_implementation_planed,3,0},
+	{"watch",redislite_command_not_implemented_yet,2,0},
+	{"unwatch",redislite_command_not_implemented_yet,1,0}
 };
+
+static int memcaseequal(const char *str1, const char *str2, size_t length)
+{   
+	int i;
+
+	for (i = 0; i < length; i++)
+	{   
+		if (str1[i] == str2[i]) continue;
+		if (str1[i] < str2[i]) {
+			if (str1[i] < 'A' || str1[i] > 'Z') return 0;
+			if (str2[i] < 'a' || str2[i] > 'z') return 0;
+			if (str1[i] + 'a' - 'A' != str2[i]) return 0;
+		}   
+		if (str1[i] > str2[i]) {
+			if (str2[i] < 'A' || str2[i] > 'Z') return 0;
+			if (str1[i] < 'a' || str1[i] > 'z') return 0;
+			if (str1[i] + 'A' - 'a' != str2[i]) return 0;
+		}   
+	}   
+	return 1;
+}
+
+struct redislite_command* redislite_command_lookup(char *command, int length)
+{
+	if (length < 2) return NULL;
+	//redislite_command_table
+	if (command[0] > 122 || command[0] < 65) return NULL;
+	if (command[1] > 122 || command[1] < 65) return NULL;
+	if (command[2] > 122 || command[2] < 65) return NULL;
+	int sum = (int)command[0] + (int)command[1] + (int)command[2];
+	if (command[0] > 90) sum += 'A' - 'a';
+	if (command[1] > 90) sum += 'A' - 'a';
+	if (command[2] > 90) sum += 'A' - 'a';
+	switch (sum) {
+		case 224:
+			if (length == 3 && memcaseequal(command, "get", 3)) {
+				return &redislite_command_table[0];
+			}
+			break;
+
+		case 236:
+			if (length == 3 && memcaseequal(command, "set", 3)) {
+				return &redislite_command_table[1];
+			}
+			break;
+	}
+	return NULL;
+}
 
 /* Helper function for redislitev_format_command(). */
 static int add_argument(redislite_params *target, char *str, int len) {

@@ -1193,6 +1193,66 @@ cleanup:
 	return status;
 }
 
+int test_format()
+{
+	redislite_params* target;
+	int status = redislite_format_command(&target, "GET %d", 123532);
+	if (status != REDISLITE_OK) goto cleanup;
+
+	if (target->type != REDISLITE_PARAM_ARRAY) {
+		printf("target type expected to be %d, but got %d instead\n", REDISLITE_PARAM_ARRAY, target->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (target->elements != 2) {
+		printf("target elements count expected to be %d, but got %d instead\n", 2, target->elements);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (target->element[0]->type != REDISLITE_PARAM_STRING) {
+		printf("target element 0 expected to be %d, but got %d instead\n", REDISLITE_PARAM_STRING, target->element[0]->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (target->element[0]->len != 3) {
+		printf("target element 0 length expected to be %d, but got %d instead\n", 3, target->element[0]->len);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (memcmp(target->element[0]->str, "GET", 3) != 0) {
+		printf("target element 0 content mismatch expected to be %s, but got %s instead\n", "GET", target->element[0]->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (target->element[1]->type != REDISLITE_PARAM_STRING) {
+		printf("target element 1 expected to be %d, but got %d instead\n", REDISLITE_PARAM_STRING, target->element[1]->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (target->element[1]->len != 6) {
+		printf("target element 1 length expected to be %d, but got %d instead\n", 6, target->element[1]->len);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (memcmp(target->element[1]->str, "123532", 6) != 0) {
+		printf("target element 1 content mismatch expected to be %s, but got %s instead\n", "123532", target->element[1]->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+
+cleanup:
+	if (target) redislite_free_params(target);
+	return status;
+}
+
 int main() {
 	srand(4);
 	int test;
@@ -1320,6 +1380,14 @@ int main() {
 
 	test = test_format_get_set_publicapi();
 	test_name = "testing format get/set on publicapi";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_format();
+	test_name = "testing format parsing on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {
