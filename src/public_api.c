@@ -81,27 +81,13 @@ static void set_status_message(int status, redislite_reply *reply)
 
 static void set_error_message(int status, redislite_reply *reply)
 {
-	// FIXME: refactor needed, too much copy paste
+	const char *error = NULL;
 	switch (status) {
 		case REDISLITE_NOT_FOUND:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_NIL;
-			break;
-		}
-		case REDISLITE_WRONG_TYPE:
-		{
-			redislite_free_reply_value(reply);
-			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(strlen(wrong_type));
-			if (reply->str == NULL) {
-				set_error_message(REDISLITE_OOM, reply);
-				return;
-			}
-
-			memcpy(reply->str, wrong_type, strlen(wrong_type));
-			reply->len = strlen(wrong_type);
-			break;
+			return;
 		}
 		case REDISLITE_OOM:
 		{
@@ -109,101 +95,70 @@ static void set_error_message(int status, redislite_reply *reply)
 			reply->type = REDISLITE_REPLY_ERROR;
 			reply->str = redislite_malloc(strlen(out_of_memory));
 			if (reply->str == NULL) {
-				// todo: what should we do here?!
+				// TODO: what should we do here?!
 				// may be we should have a static error message for OOM? or a different status?
 				// don't do this: set_error_message(REDISLITE_OOM, reply);
-				reply->type = REDISLITE_REPLY_NIL;
+				reply->len = 0;
 				return;
 			}
 
 			memcpy(reply->str, out_of_memory, strlen(out_of_memory));
 			reply->len = strlen(out_of_memory);
+			return;
+		}
+		case REDISLITE_WRONG_TYPE:
+		{
+			error = wrong_type;
 			break;
 		}
 		case REDISLITE_EXPECT_STRING:
 		{
-			redislite_free_reply_value(reply);
-			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(strlen(expected_string));
-			if (reply->str == NULL) {
-				set_error_message(REDISLITE_OOM, reply);
-				return;
-			}
-
-			memcpy(reply->str, expected_string, strlen(expected_string));
-			reply->len = strlen(expected_string);
+			error = expected_string;
 			break;
 		}
 		case REDISLITE_EXPECT_INTEGER:
 		{
-			redislite_free_reply_value(reply);
-			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(strlen(expected_integer));
-			if (reply->str == NULL) {
-				set_error_message(REDISLITE_OOM, reply);
-				return;
-			}
-
-			memcpy(reply->str, expected_integer, strlen(expected_integer));
-			reply->len = strlen(expected_integer);
+			error = expected_integer;
 			break;
 		}
 		case REDISLITE_EXPECT_DOUBLE:
 		{
-			redislite_free_reply_value(reply);
-			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(strlen(expected_double));
-			if (reply->str == NULL) {
-				set_error_message(REDISLITE_OOM, reply);
-				return;
-			}
-
-			memcpy(reply->str, expected_double, strlen(expected_double));
-			reply->len = strlen(expected_double);
+			error = expected_double;
 			break;
 		}
 		case REDISLITE_NOT_IMPLEMENTED_YET:
 		{
-			redislite_free_reply_value(reply);
-			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(strlen(not_implemented_yet));
-			if (reply->str == NULL) {
-				set_error_message(REDISLITE_OOM, reply);
-				return;
-			}
-
-			memcpy(reply->str, not_implemented_yet, strlen(not_implemented_yet));
-			reply->len = strlen(not_implemented_yet);
+			error = not_implemented_yet;
 			break;
 		}
 		case REDISLITE_IMPLEMENTATION_NOT_PLANNED:
 		{
-			redislite_free_reply_value(reply);
-			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(strlen(implementation_not_planned));
-			if (reply->str == NULL) {
-				set_error_message(REDISLITE_OOM, reply);
-				return;
-			}
-
-			memcpy(reply->str, implementation_not_planned, strlen(implementation_not_planned));
-			reply->len = strlen(implementation_not_planned);
+			error = implementation_not_planned;
 			break;
 		}
 		default:
 		{
-			reply->type = REDISLITE_REPLY_ERROR;
-			redislite_free_reply_value(reply);
-			reply->str = redislite_malloc(strlen(unknown_error));
-			if (reply->str == NULL) {
-				set_error_message(REDISLITE_OOM, reply);
-				return;
-			}
-			memcpy(reply->str, unknown_error, strlen(unknown_error));
-			reply->len = strlen(unknown_error);
+			error = unknown_error;
 			break;
 		}
 	}
+
+	if (error == NULL) {
+		// an assert may be?
+		redislite_free_reply_value(reply);
+		reply->type = REDISLITE_REPLY_NIL;
+		return;
+	}
+
+	redislite_free_reply_value(reply);
+	reply->type = REDISLITE_REPLY_ERROR;
+	reply->str = redislite_malloc(strlen(error));
+	if (reply->str == NULL) {
+		set_error_message(REDISLITE_OOM, reply);
+		return;
+	}
+	memcpy(reply->str, error, strlen(error));
+	reply->len = strlen(error);
 }
 
 redislite_reply *redislite_get_command(redislite *db, redislite_params *params) 
