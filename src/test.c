@@ -990,7 +990,7 @@ int test_get_publicapi()
 		goto cleanup;
 	}
 	params->type = REDISLITE_PARAM_ARRAY;
-	params->element = redislite_malloc(sizeof(redislite_params*));
+	params->element = redislite_malloc(sizeof(redislite_params*) * 2);
 	if (params->element == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
@@ -1001,14 +1001,27 @@ int test_get_publicapi()
 		goto cleanup;
 	}
 	params->element[0]->type = REDISLITE_PARAM_STRING;
-	params->element[0]->str = redislite_malloc(sizeof(char) * 10);
+	params->element[0]->str = redislite_malloc(sizeof(char) * 3);
 	if (params->element[0]->str == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	memcpy(params->element[0]->str, key, 10);
-	params->element[0]->len = 10;
-	params->elements = 1;
+	memcpy(params->element[0]->str, "GET", 3);
+	params->element[0]->len = 3;
+	params->element[1] = redislite_malloc(sizeof(redislite_params));
+	if (params->element[1] == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->element[1]->type = REDISLITE_PARAM_STRING;
+	params->element[1]->str = redislite_malloc(sizeof(char) * 10);
+	if (params->element[1]->str == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	memcpy(params->element[1]->str, key, 10);
+	params->element[1]->len = 10;
+	params->elements = 2;
 	redislite_reply *reply = redislite_get_command(db, params);
 	if (reply == NULL) {
 		status = REDISLITE_SKIP;
@@ -1049,7 +1062,7 @@ int test_set_publicapi()
 		goto cleanup;
 	}
 	params->type = REDISLITE_PARAM_ARRAY;
-	params->element = redislite_malloc(sizeof(redislite_params*) * 2);
+	params->element = redislite_malloc(sizeof(redislite_params*) * 3);
 	if (params->element == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
@@ -1060,13 +1073,13 @@ int test_set_publicapi()
 		goto cleanup;
 	}
 	params->element[0]->type = REDISLITE_PARAM_STRING;
-	params->element[0]->str = redislite_malloc(sizeof(char) * 10);
+	params->element[0]->str = redislite_malloc(sizeof(char) * 3);
 	if (params->element[0]->str == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	memcpy(params->element[0]->str, key, 10);
-	params->element[0]->len = 10;
+	memcpy(params->element[0]->str, "GET", 3);
+	params->element[0]->len = 3;
 
 	params->element[1] = redislite_malloc(sizeof(redislite_params));
 	if (params->element[1] == NULL) {
@@ -1074,16 +1087,30 @@ int test_set_publicapi()
 		goto cleanup;
 	}
 	params->element[1]->type = REDISLITE_PARAM_STRING;
-	params->element[1]->str = redislite_malloc(sizeof(char) * 11);
+	params->element[1]->str = redislite_malloc(sizeof(char) * 10);
 	if (params->element[1]->str == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
 	memcpy(params->element[1]->str, key, 10);
-	params->element[1]->str[10] = 'x';
-	params->element[1]->len = 11;
+	params->element[1]->len = 10;
 
-	params->elements = 2;
+	params->element[2] = redislite_malloc(sizeof(redislite_params));
+	if (params->element[2] == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	params->element[2]->type = REDISLITE_PARAM_STRING;
+	params->element[2]->str = redislite_malloc(sizeof(char) * 11);
+	if (params->element[2]->str == NULL) {
+		status = REDISLITE_SKIP;
+		goto cleanup;
+	}
+	memcpy(params->element[2]->str, key, 10);
+	params->element[2]->str[10] = 'x';
+	params->element[2]->len = 11;
+
+	params->elements = 3;
 	redislite_reply *reply = redislite_set_command(db, params);
 	if (reply == NULL) {
 		status = REDISLITE_SKIP;
@@ -1143,7 +1170,7 @@ int test_format_get_set_publicapi()
 	int status = REDISLITE_OK;
 
 	redislite_params *params;
-	redislite_format_command(&params, "%s %b", "test", "tesasdasdad", 5);
+	redislite_format_command(&params, "SET %s %b", "test", "tesasdasdad", 5);
 	redislite_reply *reply = redislite_set_command(db, params);
 	if (reply == NULL) {
 		status = REDISLITE_SKIP;
@@ -1250,6 +1277,59 @@ int test_format()
 
 cleanup:
 	if (target) redislite_free_params(target);
+	return status;
+}
+
+int test_command()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	int status = REDISLITE_OK;
+	redislite_reply *reply = redislite_command(db, "SET mykey value");
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_STATUS) {
+		printf("Expecting status type to be %d after setting new key, got %d instead\n", REDISLITE_REPLY_STATUS, reply->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	// TODO: why is the len "3" reported when using the sizeof-1?
+	if (/*reply->len != 2 || */memcmp(reply->str, "OK", 2) != 0) {
+		printf("Expecting status response to be %s after setting new key, got %s instead\n", "OK", reply->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "GET mykey");
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_STRING) {
+		printf("Expecting status type to be %d after getting new key, got %d instead\n", REDISLITE_REPLY_STRING, reply->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (reply->len != 5 || memcmp(reply->str, "value", 5) != 0) {
+		printf("Expecting status response to be %s after getting new key, got %s instead\n", "value", reply->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+cleanup:
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (reply) redislite_free_reply(reply);
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
 	return status;
 }
 
@@ -1388,6 +1468,14 @@ int main() {
 
 	test = test_format();
 	test_name = "testing format parsing on publicapi";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_command();
+	test_name = "testing command execution on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {

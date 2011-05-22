@@ -48,6 +48,9 @@ redislite_params *redislite_create_params() {
 }
 
 
+
+static const char *wrong_arity = "wrong number of arguments for '%s' command";
+static const char *unknown_command = "unknown command '%s'";
 static const char *wrong_type = "Operation against a key holding the wrong kind of value";
 static const char *out_of_memory = "Redislite ran out of memory";
 static const char *unknown_error = "Unknown error";
@@ -209,9 +212,9 @@ redislite_reply *redislite_get_command(redislite *db, redislite_params *params)
 	int len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) return NULL;
-	if (params->element[0]->type == REDISLITE_PARAM_STRING) {
-		key = params->element[0]->str;
-		len = params->element[0]->len;
+	if (params->element[1]->type == REDISLITE_PARAM_STRING) {
+		key = params->element[1]->str;
+		len = params->element[1]->len;
 		int status = redislite_page_string_get_by_keyname(db, NULL, key, len, &reply->str, &reply->len);
 		if (status == REDISLITE_OK) {
 			reply->type = REDISLITE_REPLY_STRING;
@@ -230,11 +233,11 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	int len, value_len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) return NULL;
-	if (params->element[0]->type == REDISLITE_PARAM_STRING && params->element[1]->type == REDISLITE_PARAM_STRING) {
-		key = params->element[0]->str;
-		len = params->element[0]->len;
-		value = params->element[1]->str;
-		value_len = params->element[1]->len;
+	if (params->element[1]->type == REDISLITE_PARAM_STRING && params->element[2]->type == REDISLITE_PARAM_STRING) {
+		key = params->element[1]->str;
+		len = params->element[1]->len;
+		value = params->element[2]->str;
+		value_len = params->element[2]->len;
 		changeset *cs = redislite_create_changeset(db);
 		int status = redislite_page_string_set_key_string(cs, key, len, value, value_len);
 		redislite_save_changeset(cs);
@@ -635,3 +638,45 @@ int redislite_format_command_argv(char **target, int argc, const char **argv, co
     return totlen;
 }
 
+redislite_reply *redislite_command(redislite *db, char *command)
+{
+	redislite_params* params;
+	int status = redislite_format_command(&params, command);
+	if (status != REDISLITE_OK) {
+		redislite_reply* reply = redislite_create_reply();
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	if (params->type != REDISLITE_PARAM_ARRAY || params->elements < 1) {
+		redislite_reply* reply = redislite_create_reply();
+		set_error_message(REDISLITE_ERR, reply); // this is more like an assert than an expected error
+		redislite_free_params(params);
+		return reply;
+	}
+
+	struct redislite_command* cmd = redislite_command_lookup(params->element[0]->str, params->element[0]->len);
+	if (cmd == NULL) {
+		redislite_reply* reply = redislite_create_reply();
+		reply->str = redislite_malloc(sizeof(char) * (sizeof(unknown_command)-1 + params->element[0]->len - 2));
+		sprintf(reply->str, unknown_command, params->element[0]->str); // this is somehow what redis does, but what about binary safeness?
+		reply->len = sizeof(unknown_command)-1 + params->element[0]->len - 2;
+		reply->type = REDISLITE_REPLY_ERROR;
+		redislite_free_params(params);
+		return reply;
+	}
+
+	if ((cmd->arity > 0 && cmd->arity != params->elements) || (params->elements < -cmd->arity)) {
+		redislite_reply *reply = cmd->proc(db, params);
+		redislite_free_params(params);
+		return reply;
+	} else {
+		redislite_reply* reply = redislite_create_reply();
+		reply->str = redislite_malloc(sizeof(char) * (sizeof(wrong_arity)-1 + params->element[0]->len - 2));
+		sprintf(reply->str, wrong_arity, params->element[0]->str); // this is somehow what redis does, but what about binary safeness?
+		reply->len = sizeof(wrong_arity)-1 + params->element[0]->len - 2;
+		reply->type = REDISLITE_REPLY_ERROR;
+		redislite_free_params(params);
+		return reply;
+	}
+}
