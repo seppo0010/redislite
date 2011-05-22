@@ -204,6 +204,28 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_append_command(redislite *db, redislite_params *params) 
+{
+	char *key, *value;
+	int len, value_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	if (params->element[1]->type == REDISLITE_PARAM_STRING && params->element[2]->type == REDISLITE_PARAM_STRING) {
+		key = params->element[1]->str;
+		len = params->element[1]->len;
+		value = params->element[2]->str;
+		value_len = params->element[2]->len;
+		changeset *cs = redislite_create_changeset(db);
+		int status = redislite_page_string_append_key_string(cs, key, len, value, value_len);
+		redislite_save_changeset(cs);
+		redislite_free_changeset(cs);
+		set_status_message(status, reply);
+	} else {
+		set_error_message(REDISLITE_EXPECT_STRING, reply);
+	}
+	return reply;
+}
+
 redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_params *params) 
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -223,7 +245,7 @@ struct redislite_command redislite_command_table[] = {
 	{"set",redislite_set_command,3,0},
 	{"setnx",redislite_command_not_implemented_yet,3,0},
 	{"setex",redislite_command_implementation_not_planned,4,0},
-	{"append",redislite_command_not_implemented_yet,3,0},
+	{"append",redislite_append_command,3,0},
 	{"strlen",redislite_command_not_implemented_yet,2,0},
 	{"del",redislite_command_not_implemented_yet,2,0},
 	{"exists",redislite_command_not_implemented_yet,2,0},
