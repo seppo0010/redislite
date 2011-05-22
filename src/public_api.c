@@ -638,20 +638,11 @@ int redislite_format_command_argv(char **target, int argc, const char **argv, co
     return totlen;
 }
 
-redislite_reply *redislite_command(redislite *db, char *command)
+static redislite_reply *execute_command(redislite *db, redislite_params *params)
 {
-	redislite_params* params;
-	int status = redislite_format_command(&params, command);
-	if (status != REDISLITE_OK) {
-		redislite_reply* reply = redislite_create_reply();
-		set_error_message(status, reply);
-		return reply;
-	}
-
 	if (params->type != REDISLITE_PARAM_ARRAY || params->elements < 1) {
 		redislite_reply* reply = redislite_create_reply();
 		set_error_message(REDISLITE_ERR, reply); // this is more like an assert than an expected error
-		redislite_free_params(params);
 		return reply;
 	}
 
@@ -662,13 +653,11 @@ redislite_reply *redislite_command(redislite *db, char *command)
 		sprintf(reply->str, unknown_command, params->element[0]->str); // this is somehow what redis does, but what about binary safeness?
 		reply->len = sizeof(unknown_command)-1 + params->element[0]->len - 2;
 		reply->type = REDISLITE_REPLY_ERROR;
-		redislite_free_params(params);
 		return reply;
 	}
 
 	if ((cmd->arity > 0 && cmd->arity != params->elements) || (params->elements < -cmd->arity)) {
 		redislite_reply *reply = cmd->proc(db, params);
-		redislite_free_params(params);
 		return reply;
 	} else {
 		redislite_reply* reply = redislite_create_reply();
@@ -676,7 +665,53 @@ redislite_reply *redislite_command(redislite *db, char *command)
 		sprintf(reply->str, wrong_arity, params->element[0]->str); // this is somehow what redis does, but what about binary safeness?
 		reply->len = sizeof(wrong_arity)-1 + params->element[0]->len - 2;
 		reply->type = REDISLITE_REPLY_ERROR;
-		redislite_free_params(params);
 		return reply;
 	}
+}
+
+redislite_reply *redislite_command(redislite *db, char *command)
+{
+	redislite_params* params;
+	int status = redislite_format_command(&params, command);
+	if (status != REDISLITE_OK) {
+		redislite_reply* reply = redislite_create_reply();
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	redislite_reply *reply = execute_command(db, params);
+	redislite_free_params(params);
+	return reply;
+}
+
+redislite_reply *redislite_command_argv(redislite *db, int argc, const char **argv, const size_t *argvlen)
+{
+	int i, j;
+	redislite_params *params = redislite_malloc(sizeof(redislite_params));
+	params->type = REDISLITE_PARAM_ARRAY;
+	params->elements = argc;
+	params->element = redislite_malloc(sizeof(redislite_params*) * argc);
+	for (i=0; i < argc; i++) {
+		params->element[i] = redislite_malloc(sizeof(redislite_params));
+		if (params->element[i] == NULL) {
+			for (j=0;j<i;j++) {
+				redislite_free(params->element[j]);
+			}
+			redislite_free(params);
+			return NULL;
+		}
+		params->element[i]->type = REDISLITE_PARAM_STRING;
+		// FIXME: we know this isn't gonna get modified, but it is not declared as const... should it?
+		params->element[i]->str = (char*)argv[i];
+		params->element[i]->len = argvlen[i];
+	}
+
+	redislite_reply *reply = execute_command(db, params);
+
+	for (i=0; i < argc; i++) {
+		redislite_free(params->element[i]);
+	}
+	redislite_free(params->element);
+	redislite_free(params);
+	return reply;
 }

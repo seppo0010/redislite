@@ -1333,6 +1333,66 @@ cleanup:
 	return status;
 }
 
+int test_command_argv()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	int status = REDISLITE_OK;
+
+	const char *set_argv[] = {"SET", "mykey", "value"};
+	size_t set_argvlen[] = {3,5,5};
+
+	const char *get_argv[] = {"GET", "mykey"};
+	size_t get_argvlen[] = {3,5};
+
+	redislite_reply *reply = redislite_command_argv(db, 3, set_argv, set_argvlen);
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_STATUS) {
+		printf("Expecting status type to be %d after setting new key, got %d instead\n", REDISLITE_REPLY_STATUS, reply->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	// TODO: why is the len "3" reported when using the sizeof-1?
+	if (/*reply->len != 2 || */memcmp(reply->str, "OK", 2) != 0) {
+		printf("Expecting status response to be %s after setting new key, got %s instead\n", "OK", reply->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	redislite_free_reply(reply);
+	reply = redislite_command_argv(db, 2, get_argv, get_argvlen);
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_STRING) {
+		printf("Expecting status type to be %d after getting new key, got %d instead\n", REDISLITE_REPLY_STRING, reply->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	if (reply->len != 5 || memcmp(reply->str, "value", 5) != 0) {
+		printf("Expecting status response to be %s after getting new key, got %s instead\n", "value", reply->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+cleanup:
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (reply) redislite_free_reply(reply);
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int main() {
 	srand(4);
 	int test;
@@ -1476,6 +1536,14 @@ int main() {
 
 	test = test_command();
 	test_name = "testing command execution on publicapi";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_command_argv();
+	test_name = "testing command argv execution on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {
