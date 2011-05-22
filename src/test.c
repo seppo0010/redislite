@@ -1298,8 +1298,7 @@ int test_command()
 		goto cleanup;
 	}
 
-	// TODO: why is the len "3" reported when using the sizeof-1?
-	if (/*reply->len != 2 || */memcmp(reply->str, "OK", 2) != 0) {
+	if (reply->len != 2 || memcmp(reply->str, "OK", 2) != 0) {
 		printf("Expecting status response to be %s after setting new key, got %s instead\n", "OK", reply->str);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -1320,6 +1319,32 @@ int test_command()
 
 	if (reply->len != 5 || memcmp(reply->str, "value", 5) != 0) {
 		printf("Expecting status response to be %s after getting new key, got %s instead\n", "value", reply->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "GET");
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_ERROR) {
+		printf("Expecting status type to be %d after getting with no key parameter, got %d instead\n", REDISLITE_REPLY_ERROR, reply->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "ASDET");
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_ERROR) {
+		printf("Expecting status type to be %d after calling unexisting command, got %d instead\n", REDISLITE_REPLY_ERROR, reply->type);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -1345,6 +1370,12 @@ int test_command_argv()
 
 	const char *get_argv[] = {"GET", "mykey"};
 	size_t get_argvlen[] = {3,5};
+
+	const char *fail_get_argv[] = {"GET"};
+	size_t fail_get_argvlen[] = {3};
+
+	const char *fail_command_argv[] = {"ASDET"};
+	size_t fail_command_argvlen[] = {5};
 
 	redislite_reply *reply = redislite_command_argv(db, 3, set_argv, set_argvlen);
 	if (reply == NULL) {
@@ -1380,6 +1411,32 @@ int test_command_argv()
 
 	if (reply->len != 5 || memcmp(reply->str, "value", 5) != 0) {
 		printf("Expecting status response to be %s after getting new key, got %s instead\n", "value", reply->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	redislite_free_reply(reply);
+	reply = redislite_command_argv(db, 1, fail_get_argv, fail_get_argvlen);
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_ERROR) {
+		printf("Expecting status type to be %d after getting with no key parameter, got %d instead\n", REDISLITE_REPLY_ERROR, reply->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+
+	redislite_free_reply(reply);
+	reply = redislite_command_argv(db, 1, fail_command_argv, fail_command_argvlen);
+	if (reply == NULL) {
+		status = REDISLITE_OOM;
+		goto cleanup;
+	}
+
+	if (reply->type != REDISLITE_REPLY_ERROR) {
+		printf("Expecting status type to be %d after calling unexisting command, got %d instead\n", REDISLITE_REPLY_ERROR, reply->type);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}

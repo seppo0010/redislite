@@ -67,15 +67,15 @@ static void set_status_message(int status, redislite_reply *reply)
 		case REDISLITE_OK:
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_STATUS;
-			reply->str = redislite_malloc(sizeof(ok)-1);
+			reply->str = redislite_malloc(strlen(ok));
 			if (reply->str == NULL) {
 				// todo: what should we do here?!
 				reply->type = REDISLITE_REPLY_NIL;
 				return;
 			}
 
-			memcpy(reply->str, ok, sizeof(ok)-1);
-			reply->len = sizeof(ok)-1;
+			memcpy(reply->str, ok, strlen(ok));
+			reply->len = strlen(ok);
 		}
 }
 
@@ -93,21 +93,21 @@ static void set_error_message(int status, redislite_reply *reply)
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(wrong_type)-1);
+			reply->str = redislite_malloc(strlen(wrong_type));
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, wrong_type, sizeof(wrong_type)-1);
-			reply->len = sizeof(wrong_type)-1;
+			memcpy(reply->str, wrong_type, strlen(wrong_type));
+			reply->len = strlen(wrong_type);
 			break;
 		}
 		case REDISLITE_OOM:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(out_of_memory)-1);
+			reply->str = redislite_malloc(strlen(out_of_memory));
 			if (reply->str == NULL) {
 				// todo: what should we do here?!
 				// may be we should have a static error message for OOM? or a different status?
@@ -116,91 +116,91 @@ static void set_error_message(int status, redislite_reply *reply)
 				return;
 			}
 
-			memcpy(reply->str, out_of_memory, sizeof(out_of_memory)-1);
-			reply->len = sizeof(out_of_memory)-1;
+			memcpy(reply->str, out_of_memory, strlen(out_of_memory));
+			reply->len = strlen(out_of_memory);
 			break;
 		}
 		case REDISLITE_EXPECT_STRING:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(expected_string)-1);
+			reply->str = redislite_malloc(strlen(expected_string));
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, expected_string, sizeof(expected_string)-1);
-			reply->len = sizeof(expected_string)-1;
+			memcpy(reply->str, expected_string, strlen(expected_string));
+			reply->len = strlen(expected_string);
 			break;
 		}
 		case REDISLITE_EXPECT_INTEGER:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(expected_integer)-1);
+			reply->str = redislite_malloc(strlen(expected_integer));
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, expected_integer, sizeof(expected_integer)-1);
-			reply->len = sizeof(expected_integer)-1;
+			memcpy(reply->str, expected_integer, strlen(expected_integer));
+			reply->len = strlen(expected_integer);
 			break;
 		}
 		case REDISLITE_EXPECT_DOUBLE:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(expected_double)-1);
+			reply->str = redislite_malloc(strlen(expected_double));
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, expected_double, sizeof(expected_double)-1);
-			reply->len = sizeof(expected_double)-1;
+			memcpy(reply->str, expected_double, strlen(expected_double));
+			reply->len = strlen(expected_double);
 			break;
 		}
 		case REDISLITE_NOT_IMPLEMENTED_YET:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(not_implemented_yet)-1);
+			reply->str = redislite_malloc(strlen(not_implemented_yet));
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, not_implemented_yet, sizeof(not_implemented_yet)-1);
-			reply->len = sizeof(not_implemented_yet)-1;
+			memcpy(reply->str, not_implemented_yet, strlen(not_implemented_yet));
+			reply->len = strlen(not_implemented_yet);
 			break;
 		}
 		case REDISLITE_IMPLEMENTATION_NOT_PLANNED:
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(sizeof(implementation_not_planned)-1);
+			reply->str = redislite_malloc(strlen(implementation_not_planned));
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
 
-			memcpy(reply->str, implementation_not_planned, sizeof(implementation_not_planned)-1);
-			reply->len = sizeof(implementation_not_planned)-1;
+			memcpy(reply->str, implementation_not_planned, strlen(implementation_not_planned));
+			reply->len = strlen(implementation_not_planned);
 			break;
 		}
 		default:
 		{
 			reply->type = REDISLITE_REPLY_ERROR;
 			redislite_free_reply_value(reply);
-			reply->str = redislite_malloc(sizeof(unknown_error)-1);
+			reply->str = redislite_malloc(strlen(unknown_error));
 			if (reply->str == NULL) {
 				set_error_message(REDISLITE_OOM, reply);
 				return;
 			}
-			memcpy(reply->str, unknown_error, sizeof(unknown_error)-1);
-			reply->len = sizeof(unknown_error)-1;
+			memcpy(reply->str, unknown_error, strlen(unknown_error));
+			reply->len = strlen(unknown_error);
 			break;
 		}
 	}
@@ -649,24 +649,31 @@ static redislite_reply *execute_command(redislite *db, redislite_params *params)
 	struct redislite_command* cmd = redislite_command_lookup(params->element[0]->str, params->element[0]->len);
 	if (cmd == NULL) {
 		redislite_reply* reply = redislite_create_reply();
-		reply->str = redislite_malloc(sizeof(char) * (sizeof(unknown_command)-1 + params->element[0]->len - 2));
-		sprintf(reply->str, unknown_command, params->element[0]->str); // this is somehow what redis does, but what about binary safeness?
-		reply->len = sizeof(unknown_command)-1 + params->element[0]->len - 2;
+		reply->str = redislite_malloc(sizeof(char) * (strlen(unknown_command) + params->element[0]->len - 1));
+		char *str = redislite_malloc(sizeof(char) * (params->element[0]->len+1));
+		memcpy(str, params->element[0]->str, params->element[0]->len);
+		str[params->element[0]->len] = '\0';
+		sprintf(reply->str, unknown_command, str);
+		redislite_free(str);
+		reply->len = strlen(unknown_command) + params->element[0]->len - 2;
 		reply->type = REDISLITE_REPLY_ERROR;
 		return reply;
 	}
 
-	if ((cmd->arity > 0 && cmd->arity != params->elements) || (params->elements < -cmd->arity)) {
-		redislite_reply *reply = cmd->proc(db, params);
-		return reply;
-	} else {
+	if ((cmd->arity > 0 && cmd->arity != params->elements) || ((int)params->elements < -cmd->arity)) {
 		redislite_reply* reply = redislite_create_reply();
-		reply->str = redislite_malloc(sizeof(char) * (sizeof(wrong_arity)-1 + params->element[0]->len - 2));
-		sprintf(reply->str, wrong_arity, params->element[0]->str); // this is somehow what redis does, but what about binary safeness?
-		reply->len = sizeof(wrong_arity)-1 + params->element[0]->len - 2;
+		reply->str = redislite_malloc(sizeof(char) * (strlen(wrong_arity) + params->element[0]->len - 1));
+		char *str = redislite_malloc(sizeof(char) * (params->element[0]->len+1));
+		memcpy(str, params->element[0]->str, params->element[0]->len);
+		str[params->element[0]->len] = '\0';
+		sprintf(reply->str, unknown_command, str);
+		redislite_free(str);
+		reply->len = strlen(wrong_arity) + params->element[0]->len - 2;
 		reply->type = REDISLITE_REPLY_ERROR;
 		return reply;
 	}
+	redislite_reply *reply = cmd->proc(db, params);
+	return reply;
 }
 
 redislite_reply *redislite_command(redislite *db, char *command)
