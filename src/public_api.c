@@ -621,7 +621,7 @@ static redislite_reply *execute_command(redislite *db, redislite_params *params)
 		char *str = redislite_malloc(sizeof(char) * (params->element[0]->len+1));
 		memcpy(str, params->element[0]->str, params->element[0]->len);
 		str[params->element[0]->len] = '\0';
-		sprintf(reply->str, unknown_command, str);
+		sprintf(reply->str, wrong_arity, str);
 		redislite_free(str);
 		reply->len = strlen(wrong_arity) + params->element[0]->len - 2;
 		reply->type = REDISLITE_REPLY_ERROR;
