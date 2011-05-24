@@ -22,7 +22,7 @@ void redislite_write_first(void *_db, unsigned char *data, void *page)
 	redislite_put_4bytes(&data[28], db->number_of_pages);
 	redislite_put_4bytes(&data[32], db->first_freelist_page);
 	redislite_put_4bytes(&data[36], db->number_of_freelist_pages);
-	redislite_write_index(_db, &data[99], db->root); // using 99 to write the id on position 99 and the data from position 100
+	redislite_write_index(_db, &data[100], db->root);
 	memset(&data[40], 0, 100-40); // reserved
 }
 

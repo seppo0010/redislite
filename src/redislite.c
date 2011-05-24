@@ -302,7 +302,8 @@ redislite* redislite_open_database(const char *filename) {
 	if (header[23] > READ_FORMAT_VERSION) goto cleanup; // newer format
 
 	db = redislite_malloc(sizeof(redislite));
-	db->root = NULL;
+	if (db == NULL) goto cleanup;
+	redislite_read_first(db, header);
 	db->types = NULL;
 	db->file = NULL;
 	db->filename = NULL;

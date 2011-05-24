@@ -67,15 +67,15 @@ static void set_status_message(int status, redislite_reply *reply)
 		case REDISLITE_OK:
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_STATUS;
-			reply->str = redislite_malloc(strlen(ok));
+			reply->str = redislite_malloc(strlen(ok)+1);
 			if (reply->str == NULL) {
 				// todo: what should we do here?!
 				reply->type = REDISLITE_REPLY_NIL;
 				return;
 			}
 
-			memcpy(reply->str, ok, strlen(ok));
-			reply->len = strlen(ok);
+			memcpy(reply->str, ok, strlen(ok)+1);
+			reply->len = strlen(ok)+1;
 		}
 }
 
@@ -93,7 +93,7 @@ static void set_error_message(int status, redislite_reply *reply)
 		{
 			redislite_free_reply_value(reply);
 			reply->type = REDISLITE_REPLY_ERROR;
-			reply->str = redislite_malloc(strlen(out_of_memory));
+			reply->str = redislite_malloc(strlen(out_of_memory)+1);
 			if (reply->str == NULL) {
 				// TODO: what should we do here?!
 				// may be we should have a static error message for OOM? or a different status?
@@ -102,8 +102,8 @@ static void set_error_message(int status, redislite_reply *reply)
 				return;
 			}
 
-			memcpy(reply->str, out_of_memory, strlen(out_of_memory));
-			reply->len = strlen(out_of_memory);
+			memcpy(reply->str, out_of_memory, strlen(out_of_memory)+1);
+			reply->len = strlen(out_of_memory)+1;
 			return;
 		}
 		case REDISLITE_WRONG_TYPE:
@@ -152,13 +152,13 @@ static void set_error_message(int status, redislite_reply *reply)
 
 	redislite_free_reply_value(reply);
 	reply->type = REDISLITE_REPLY_ERROR;
-	reply->str = redislite_malloc(strlen(error));
+	reply->str = redislite_malloc(strlen(error)+1);
 	if (reply->str == NULL) {
 		set_error_message(REDISLITE_OOM, reply);
 		return;
 	}
-	memcpy(reply->str, error, strlen(error));
-	reply->len = strlen(error);
+	memcpy(reply->str, error, strlen(error)+1);
+	reply->len = strlen(error)+1;
 }
 
 redislite_reply *redislite_get_command(redislite *db, redislite_params *params) 
