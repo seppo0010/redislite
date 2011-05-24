@@ -6,6 +6,7 @@ redislite_reply *redislite_create_reply() {
 	redislite_reply *reply = redislite_malloc(sizeof(redislite_reply));
 	if (reply == NULL) return NULL;
 	reply->type = REDISLITE_REPLY_NIL;
+	return reply;
 }
 
 static void redislite_free_reply_value(redislite_reply *reply) {
@@ -634,6 +635,7 @@ static redislite_reply *execute_command(redislite *db, redislite_params *params)
 	struct redislite_command* cmd = redislite_command_lookup(params->element[0]->str, params->element[0]->len);
 	if (cmd == NULL) {
 		redislite_reply* reply = redislite_create_reply();
+		if (reply == NULL) return NULL;
 		reply->str = redislite_malloc(sizeof(char) * (strlen(unknown_command) + params->element[0]->len - 1));
 		char *str = redislite_malloc(sizeof(char) * (params->element[0]->len+1));
 		memcpy(str, params->element[0]->str, params->element[0]->len);
