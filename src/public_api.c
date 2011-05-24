@@ -1,6 +1,7 @@
 #include "public_api.h"
 #include "redislite.h"
 #include "sds.h"
+#include "page_string.h"
 
 redislite_reply *redislite_create_reply() {
 	redislite_reply *reply = redislite_malloc(sizeof(redislite_reply));
@@ -219,6 +220,11 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 		changeset *cs = redislite_create_changeset(db);
 		int new_len;
 		int status = redislite_page_string_append_key_string(cs, key, len, value, value_len, &new_len);
+		if (status != REDISLITE_OK) {
+			set_error_message(status, reply);
+			redislite_free_changeset(cs);
+			return reply;
+		}
 		redislite_save_changeset(cs);
 		redislite_free_changeset(cs);
 		reply->type = REDISLITE_REPLY_INTEGER;
@@ -449,7 +455,6 @@ int redislitev_format_command(redislite_params **target, const char *format, va_
     size_t size;
     const char *arg, *c = format;
     redislite_params *cmd = NULL; /* final command */
-    int pos; /* position in final command */
     sds current; /* current argument */
     int interpolated = 0; /* did we do interpolation on an argument? */
     int totlen = 0;
