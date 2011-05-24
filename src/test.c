@@ -1233,7 +1233,7 @@ int test_format()
 	}
 
 	if (target->elements != 2) {
-		printf("target elements count expected to be %d, but got %d instead\n", 2, target->elements);
+		printf("target elements count expected to be %d, but got %d instead\n", 2, (int)target->elements);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
