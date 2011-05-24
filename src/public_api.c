@@ -216,10 +216,12 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 		value = params->element[2]->str;
 		value_len = params->element[2]->len;
 		changeset *cs = redislite_create_changeset(db);
-		int status = redislite_page_string_append_key_string(cs, key, len, value, value_len);
+		int new_len;
+		int status = redislite_page_string_append_key_string(cs, key, len, value, value_len, &new_len);
 		redislite_save_changeset(cs);
 		redislite_free_changeset(cs);
-		set_status_message(status, reply);
+		reply->type = REDISLITE_REPLY_INTEGER;
+		reply->integer = new_len;
 	} else {
 		set_error_message(REDISLITE_EXPECT_STRING, reply);
 	}
@@ -393,9 +395,15 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 	if (command[1] > 90) sum += 'A' - 'a';
 	if (command[2] > 90) sum += 'A' - 'a';
 	switch (sum) {
-		case 224:
+		case 224: // 'G'+'E'+'T'
 			if (length == 3 && memcaseequal(command, "get", 3)) {
 				return &redislite_command_table[0];
+			}
+			break;
+
+		case 225: // 'A'+'P'+'P'
+			if (length == 6 && memcaseequal(command, "append", 6)) {
+				return &redislite_command_table[4];
 			}
 			break;
 
