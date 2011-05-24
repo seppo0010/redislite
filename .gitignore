@@ -1,4 +1,5 @@
 src/callgrind.out*
 src/test
 src/test.db
-
+src/redislite-cli
+src/redislite.db
