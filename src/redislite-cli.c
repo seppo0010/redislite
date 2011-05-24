@@ -455,7 +455,7 @@ static int parseOptions(int argc, char **argv) {
             i++;
         } else if (!strcmp(argv[i],"-v") || !strcmp(argv[i], "--version")) {
             sds version = cliVersion();
-            printf("redis-cli %s\n", version);
+            printf("redislite-cli %s\n", version);
             sdsfree(version);
             exit(0);
         } else {
@@ -485,9 +485,9 @@ static sds readArgFromStdin(void) {
 static void usage() {
     sds version = cliVersion();
     fprintf(stderr,
-"redis-cli %s\n"
+"redislite-cli %s\n"
 "\n"
-"Usage: redis-cli [OPTIONS] [cmd [arg [arg ...]]]\n"
+"Usage: redislite-cli [OPTIONS] [cmd [arg [arg ...]]]\n"
 "  -f <filename>    Db file name\n"
 "  -r <repeat>      Execute specified command N times\n"
 "  -x               Read last argument from STDIN\n"
@@ -497,11 +497,11 @@ static void usage() {
 "  --version        Output version and exit\n"
 "\n"
 "Examples:\n"
-"  cat /etc/passwd | redis-cli -x set mypasswd\n"
-"  redis-cli get mypasswd\n"
-"  redis-cli -r 100 lpush mylist x\n"
+"  cat /etc/passwd | redislite-cli -x set mypasswd\n"
+"  redislite-cli get mypasswd\n"
+"  redislite-cli -r 100 lpush mylist x\n"
 "\n"
-"When no command is given, redis-cli starts in interactive mode.\n"
+"When no command is given, redislite-cli starts in interactive mode.\n"
 "Type \"help\" in interactive mode for information on available commands.\n"
 "\n",
         version);
