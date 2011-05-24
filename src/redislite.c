@@ -43,9 +43,9 @@ void redislite_free_changeset(changeset *cs)
 	int i;
 	for (i=0;i<cs->opened_pages_length;i++) {
 		redislite_page *page = cs->opened_pages[i];
-		//if (!redislite_modified_page(cs, page->number)) { // TODO: doesn't this make sense?
+		if (!redislite_modified_page(cs, page->number)) { // TODO: doesn't this make sense?
 			page->type->free_function(cs->db, page->data);
-		//}
+		}
 		redislite_free(page);
 	}
 	redislite_free(cs->opened_pages);
