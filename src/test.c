@@ -1117,7 +1117,7 @@ int test_set_publicapi()
 		goto cleanup;
 	}
 
-	if (reply->type != REDISLITE_REPLY_STATUS && memcmp(reply->str, "OK", 2) != 0) {
+	if (reply->type != REDISLITE_REPLY_STATUS && memcmp(reply->str, "OK", 3) != 0) {
 		printf("Expecting status OK after getting key using public API, got %d instead\n", reply->type);
 		if (reply->type == REDISLITE_REPLY_STATUS || reply->type == REDISLITE_REPLY_ERROR) {
 			printf("Result str (status or error) was '%s'\n", reply->str);
@@ -1177,7 +1177,7 @@ int test_format_get_set_publicapi()
 		goto cleanup;
 	}
 
-	if (reply->type != REDISLITE_REPLY_STATUS && memcmp(reply->str, "OK", 2) != 0) {
+	if (reply->type != REDISLITE_REPLY_STATUS && memcmp(reply->str, "OK", 3) != 0) {
 		printf("Expecting status OK after setting key using public API's formatter, got %d instead\n", reply->type);
 		if (reply->type == REDISLITE_REPLY_STATUS || reply->type == REDISLITE_REPLY_ERROR) {
 			printf("Result str (status or error) was '%s'\n", reply->str);
@@ -1298,7 +1298,7 @@ int test_command()
 		goto cleanup;
 	}
 
-	if (reply->len != 2 || memcmp(reply->str, "OK", 2) != 0) {
+	if (reply->len != 3 || memcmp(reply->str, "OK", 3) != 0) {
 		printf("Expecting status response to be %s after setting new key, got %s instead\n", "OK", reply->str);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -1389,8 +1389,7 @@ int test_command_argv()
 		goto cleanup;
 	}
 
-	// TODO: why is the len "3" reported when using the sizeof-1?
-	if (/*reply->len != 2 || */memcmp(reply->str, "OK", 2) != 0) {
+	if (reply->len != 3 || memcmp(reply->str, "OK", 3) != 0) {
 		printf("Expecting status response to be %s after setting new key, got %s instead\n", "OK", reply->str);
 		status = REDISLITE_ERR;
 		goto cleanup;
