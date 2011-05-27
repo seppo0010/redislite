@@ -1213,7 +1213,7 @@ int test_format()
 	}
 
 	if (target->argvlen[0] != 3) {
-		printf("target element 0 length expected to be %d, but got %d instead\n", 3, target->argvlen[0]);
+		printf("target element 0 length expected to be %d, but got %d instead\n", 3, (int)target->argvlen[0]);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -1225,7 +1225,7 @@ int test_format()
 	}
 
 	if (target->argvlen[1] != 6) {
-		printf("target element 1 length expected to be %d, but got %d instead\n", 6, target->argvlen[1]);
+		printf("target element 1 length expected to be %d, but got %d instead\n", 6, (int)target->argvlen[1]);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
