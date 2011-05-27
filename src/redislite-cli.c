@@ -140,6 +140,19 @@ static void cliInitHelp() {
     }
 }
 
+static void cliCleanHelp() {
+    int i, j;
+
+    helpEntry tmp;
+    for (i = 0; i < helpEntriesLen; i++) {
+	tmp = helpEntries[i];
+	if (tmp.full != tmp.argv[0]) sdsfree(tmp.full);
+        for (j=0; j < tmp.argc; j++) sdsfree(tmp.argv[j]);
+        free(tmp.argv);
+    }
+    free(helpEntries);
+}
+
 /* Output command help to stdout. */
 static void cliOutputCommandHelp(struct commandHelp *help, int group) {
     printf("\r\n  \x1b[1m%s\x1b[0m \x1b[90m%s\x1b[0m\r\n", help->name, help->params);
@@ -616,7 +629,14 @@ int main(int argc, char **argv) {
     /* Start interactive mode when no command is provided */
     if (argc == 0) repl();
     /* Otherwise, we have some arguments to execute */
-    int ret = noninteractive(argc,convertToSds(argc,argv));
+    char **converted = convertToSds(argc,argv);
+    int ret = noninteractive(argc,converted);
+    int i;
+    cliCleanHelp();
+    for (i=0;i<argc;i++) {
+        sdsfree(converted[i]);
+    }
+    free(converted);
     sdsfree(config.filename);
     sdsfree(config.mb_delim);
     return ret;

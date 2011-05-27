@@ -43,8 +43,8 @@ void redislite_free_params(redislite_params *param) {
 			for (i=0; i<param->argc; i++) {
 				if (param->argv[i] != NULL) redislite_free(param->argv[i]);
 			}
+			redislite_free(param->argv);
 		}
-		redislite_free(param->argv);
 	}
 	redislite_free(param);
 }
