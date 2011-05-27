@@ -418,9 +418,12 @@ static int cliSendCommand(int argc, char **argv, int repeat) {
 			exit(1);
 		}
 
-        if (cliReadReply(reply, output_raw) != REDISLITE_OK)
+        if (cliReadReply(reply, output_raw) != REDISLITE_OK) {
+		free(argvlen);
             return REDISLITE_ERR;
+	}
     }
+	free(argvlen);
     return REDISLITE_OK;
 }
 
@@ -613,5 +616,8 @@ int main(int argc, char **argv) {
     /* Start interactive mode when no command is provided */
     if (argc == 0) repl();
     /* Otherwise, we have some arguments to execute */
-    return noninteractive(argc,convertToSds(argc,argv));
+    int ret = noninteractive(argc,convertToSds(argc,argv));
+    sdsfree(config.filename);
+    sdsfree(config.mb_delim);
+    return ret;
 }

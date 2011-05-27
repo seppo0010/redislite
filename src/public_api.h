@@ -10,13 +10,6 @@
 #define REDISLITE_REPLY_STATUS 5
 #define REDISLITE_REPLY_ERROR 6
 
-#define REDISLITE_PARAM_STRING 1
-#define REDISLITE_PARAM_ARRAY 2
-#define REDISLITE_PARAM_INTEGER 3
-#define REDISLITE_PARAM_NIL 4
-#define REDISLITE_PARAM_STATUS 5
-#define REDISLITE_PARAM_ERROR 6
-
 typedef struct redislite_reply {
 	int type; /* REDISLITE_REPLY_* */
 	long long integer; /* The integer when type is REDISLITE_REPLY_INTEGER */
@@ -26,7 +19,12 @@ typedef struct redislite_reply {
 	struct redislite_reply **element; /* elements vector for REDISLITE_REPLY_ARRAY */
 } redislite_reply;
 
-typedef struct redislite_reply redislite_params;
+typedef struct {
+	int must_free_argv;
+	int argc;
+	char **argv;
+	size_t *argvlen;
+} redislite_params;
 
 redislite_reply *redislite_create_reply();
 void redislite_free_reply(redislite_reply *reply);
@@ -39,7 +37,7 @@ int redislite_format_command(redislite_params **target, const char *format, ...)
 redislite_reply *redislite_command(redislite *db, char *command);
 redislite_reply *redislite_command_argv(redislite *db, int argc, const char **argv, const size_t *argvlen);
 
-typedef redislite_reply *redislite_command_proc(redislite *c, redislite_reply *params);
+typedef redislite_reply *redislite_command_proc(redislite *c, redislite_params *params);
 struct redislite_command {
 	char *name;
 	redislite_command_proc *proc;
