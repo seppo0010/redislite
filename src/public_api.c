@@ -37,13 +37,16 @@ void redislite_free_reply(redislite_reply *reply) {
 }
 
 void redislite_free_params(redislite_params *param) {
-	if (param->argv != NULL) {
-		if (param->must_free_argv) {
+	if (param->must_free_argv) {
+		if (param->argv != NULL) {
 			int i;
 			for (i=0; i<param->argc; i++) {
 				if (param->argv[i] != NULL) redislite_free(param->argv[i]);
 			}
 			redislite_free(param->argv);
+		}
+		if (param->argvlen != NULL) {
+			redislite_free(param->argvlen);
 		}
 	}
 	redislite_free(param);
@@ -424,6 +427,11 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 static int add_argument(redislite_params *target, char *str, int len) {
 	if (target->argc == 0)
 	{
+		target->argvlen = redislite_malloc(sizeof(char*) * 1);
+		if (target->argvlen == NULL) {
+			redislite_free_params(target);
+			return REDISLITE_OOM;
+		}
 		target->argv = redislite_malloc(sizeof(char*) * 1);
 		if (target->argv == NULL) {
 			redislite_free_params(target);
@@ -436,6 +444,12 @@ static int add_argument(redislite_params *target, char *str, int len) {
 			return REDISLITE_OOM;
 		}
 		target->argv = argv;
+		size_t* argvlen = redislite_realloc(target->argvlen, sizeof(size_t) * (target->argc+1));
+		if (argvlen == NULL) {
+			redislite_free_params(target);
+			return REDISLITE_OOM;
+		}
+		target->argvlen = argvlen;
 	}
 	target->argv[target->argc] = redislite_malloc(sizeof(char) * len);
 	if (target->argv[target->argc] == NULL) {

@@ -989,39 +989,32 @@ int test_get_publicapi()
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->type = REDISLITE_PARAM_ARRAY;
-	params->element = redislite_malloc(sizeof(redislite_params*) * 2);
-	if (params->element == NULL) {
+	params->must_free_argv = 1;
+	params->argc = 2;
+	params->argvlen = redislite_malloc(sizeof(size_t) * 2);
+	if (params->argvlen == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->element[0] = redislite_malloc(sizeof(redislite_params));
-	if (params->element[0] == NULL) {
+	params->argv = redislite_malloc(sizeof(char*) * 2);
+	if (params->argv == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->element[0]->type = REDISLITE_PARAM_STRING;
-	params->element[0]->str = redislite_malloc(sizeof(char) * 3);
-	if (params->element[0]->str == NULL) {
+	params->argv[0] = redislite_malloc(sizeof(char) * 3);
+	if (params->argv[0] == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	memcpy(params->element[0]->str, "GET", 3);
-	params->element[0]->len = 3;
-	params->element[1] = redislite_malloc(sizeof(redislite_params));
-	if (params->element[1] == NULL) {
+	memcpy(params->argv[0], "GET", 3);
+	params->argvlen[0] = 3;
+	params->argv[1] = redislite_malloc(sizeof(char) * 10);
+	if (params->argv[1] == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->element[1]->type = REDISLITE_PARAM_STRING;
-	params->element[1]->str = redislite_malloc(sizeof(char) * 10);
-	if (params->element[1]->str == NULL) {
-		status = REDISLITE_SKIP;
-		goto cleanup;
-	}
-	memcpy(params->element[1]->str, key, 10);
-	params->element[1]->len = 10;
-	params->elements = 2;
+	memcpy(params->argv[1], key, 10);
+	params->argvlen[1] = 10;
 	redislite_reply *reply = redislite_get_command(db, params);
 	if (reply == NULL) {
 		status = REDISLITE_SKIP;
@@ -1061,56 +1054,43 @@ int test_set_publicapi()
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->type = REDISLITE_PARAM_ARRAY;
-	params->element = redislite_malloc(sizeof(redislite_params*) * 3);
-	if (params->element == NULL) {
+	params->must_free_argv = 1;
+	params->argvlen = redislite_malloc(sizeof(size_t) * 3);
+	if (params->argvlen == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->element[0] = redislite_malloc(sizeof(redislite_params));
-	if (params->element[0] == NULL) {
+	params->argv = redislite_malloc(sizeof(char*) * 3);
+	if (params->argv == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->element[0]->type = REDISLITE_PARAM_STRING;
-	params->element[0]->str = redislite_malloc(sizeof(char) * 3);
-	if (params->element[0]->str == NULL) {
+	params->argv[0] = redislite_malloc(sizeof(char) * 3);
+	if (params->argv[0] == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	memcpy(params->element[0]->str, "GET", 3);
-	params->element[0]->len = 3;
+	memcpy(params->argv[0], "GET", 3);
+	params->argvlen[0] = 3;
 
-	params->element[1] = redislite_malloc(sizeof(redislite_params));
-	if (params->element[1] == NULL) {
+	params->argv[1] = redislite_malloc(sizeof(char) * 10);
+	if (params->argv[1] == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->element[1]->type = REDISLITE_PARAM_STRING;
-	params->element[1]->str = redislite_malloc(sizeof(char) * 10);
-	if (params->element[1]->str == NULL) {
-		status = REDISLITE_SKIP;
-		goto cleanup;
-	}
-	memcpy(params->element[1]->str, key, 10);
-	params->element[1]->len = 10;
+	memcpy(params->argv[1], key, 10);
+	params->argvlen[1] = 10;
 
-	params->element[2] = redislite_malloc(sizeof(redislite_params));
-	if (params->element[2] == NULL) {
+	params->argv[2] = redislite_malloc(sizeof(char) * 11);
+	if (params->argv[2] == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->element[2]->type = REDISLITE_PARAM_STRING;
-	params->element[2]->str = redislite_malloc(sizeof(char) * 11);
-	if (params->element[2]->str == NULL) {
-		status = REDISLITE_SKIP;
-		goto cleanup;
-	}
-	memcpy(params->element[2]->str, key, 10);
-	params->element[2]->str[10] = 'x';
-	params->element[2]->len = 11;
+	memcpy(params->argv[2], key, 10);
+	params->argv[2][10] = 'x';
+	params->argvlen[2] = 11;
 
-	params->elements = 3;
+	params->argc = 3;
 	redislite_reply *reply = redislite_set_command(db, params);
 	if (reply == NULL) {
 		status = REDISLITE_SKIP;
@@ -1226,50 +1206,32 @@ int test_format()
 	int status = redislite_format_command(&target, "GET %d", 123532);
 	if (status != REDISLITE_OK) goto cleanup;
 
-	if (target->type != REDISLITE_PARAM_ARRAY) {
-		printf("target type expected to be %d, but got %d instead\n", REDISLITE_PARAM_ARRAY, target->type);
+	if (target->argc != 2) {
+		printf("target elements count expected to be %d, but got %d instead\n", 2, (int)target->argc);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
 
-	if (target->elements != 2) {
-		printf("target elements count expected to be %d, but got %d instead\n", 2, (int)target->elements);
+	if (target->argvlen[0] != 3) {
+		printf("target element 0 length expected to be %d, but got %d instead\n", 3, target->argvlen[0]);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
 
-	if (target->element[0]->type != REDISLITE_PARAM_STRING) {
-		printf("target element 0 expected to be %d, but got %d instead\n", REDISLITE_PARAM_STRING, target->element[0]->type);
+	if (memcmp(target->argv[0], "GET", 3) != 0) {
+		printf("target element 0 content mismatch expected to be %s, but got %s instead\n", "GET", target->argv[0]);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
 
-	if (target->element[0]->len != 3) {
-		printf("target element 0 length expected to be %d, but got %d instead\n", 3, target->element[0]->len);
+	if (target->argvlen[1] != 6) {
+		printf("target element 1 length expected to be %d, but got %d instead\n", 6, target->argvlen[1]);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
 
-	if (memcmp(target->element[0]->str, "GET", 3) != 0) {
-		printf("target element 0 content mismatch expected to be %s, but got %s instead\n", "GET", target->element[0]->str);
-		status = REDISLITE_ERR;
-		goto cleanup;
-	}
-
-	if (target->element[1]->type != REDISLITE_PARAM_STRING) {
-		printf("target element 1 expected to be %d, but got %d instead\n", REDISLITE_PARAM_STRING, target->element[1]->type);
-		status = REDISLITE_ERR;
-		goto cleanup;
-	}
-
-	if (target->element[1]->len != 6) {
-		printf("target element 1 length expected to be %d, but got %d instead\n", 6, target->element[1]->len);
-		status = REDISLITE_ERR;
-		goto cleanup;
-	}
-
-	if (memcmp(target->element[1]->str, "123532", 6) != 0) {
-		printf("target element 1 content mismatch expected to be %s, but got %s instead\n", "123532", target->element[1]->str);
+	if (memcmp(target->argv[1], "123532", 6) != 0) {
+		printf("target element 1 content mismatch expected to be %s, but got %s instead\n", "123532", target->argv[1]);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
