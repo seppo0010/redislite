@@ -210,6 +210,29 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params) 
+{
+	char *key, *value;
+	int len, value_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	value = params->argv[2];
+	value_len = params->argvlen[2];
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_page_string_setnx_key_string(cs, key, len, value, value_len);
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	if (status < 0) {
+		set_error_message(status, reply);
+	} else {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		reply->integer = status;
+	}
+	return reply;
+}
+
 redislite_reply *redislite_append_command(redislite *db, redislite_params *params) 
 {
 	char *key, *value;
@@ -252,7 +275,7 @@ redislite_reply *redislite_command_implementation_not_planned(redislite *db, red
 struct redislite_command redislite_command_table[] = {
 	{"get",redislite_get_command,2,0},
 	{"set",redislite_set_command,3,0},
-	{"setnx",redislite_command_not_implemented_yet,3,0},
+	{"setnx",redislite_setnx_command,3,0},
 	{"setex",redislite_command_implementation_not_planned,4,0},
 	{"append",redislite_append_command,3,0},
 	{"strlen",redislite_command_not_implemented_yet,2,0},
@@ -417,6 +440,8 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 		case 236:
 			if (length == 3 && memcaseequal(command, "set", 3)) {
 				return &redislite_command_table[1];
+			} else if (length == 5 && memcaseequal(command, "setnx", 5)) {
+				return &redislite_command_table[2];
 			}
 			break;
 	}
