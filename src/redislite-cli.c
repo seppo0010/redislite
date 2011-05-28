@@ -545,7 +545,7 @@ static void repl() {
     config.interactive = 1;
     linenoiseSetCompletionCallback(completionCallback);
 
-    while((line = linenoise(db ? "redis> " : "not connected> ")) != NULL) {
+    while((line = linenoise(db ? "redislite> " : "not connected> ")) != NULL) {
         if (line[0] != '\0') {
             argv = sdssplitargs(line,&argc);
             linenoiseHistoryAdd(line);
