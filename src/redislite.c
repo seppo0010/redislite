@@ -88,6 +88,10 @@ int redislite_save_changeset(changeset *cs)
 	}
 	redislite_free(data);
 	fclose(file);
+	if (cs->db->file) {
+		fclose(cs->db->file);
+		cs->db->file = NULL;
+	}
 	return REDISLITE_OK;
 }
 
@@ -370,10 +374,9 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		}
 	}
 
-	if (db->file) {
-		fclose(db->file);
+	if (!db->file) {
+		db->file = fopen(db->filename, "rb+");
 	}
-	db->file = fopen(db->filename, "rb+");
 #ifdef DEBUG
 	fseek(db->file, 0L, SEEK_END);
 	long size = ftell(db->file);
