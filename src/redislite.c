@@ -370,9 +370,10 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		}
 	}
 
-	if (!db->file) {
-		db->file = fopen(db->filename, "rb+");
+	if (db->file) {
+		fclose(db->file);
 	}
+	db->file = fopen(db->filename, "rb+");
 #ifdef DEBUG
 	fseek(db->file, 0L, SEEK_END);
 	long size = ftell(db->file);
@@ -381,7 +382,10 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		return NULL;
 	}
 #endif
-	fseek(db->file, (long)db->page_size * num, SEEK_SET);
+	i = fseek(db->file, (long)db->page_size * num, SEEK_SET);
+	if (i != 0) {
+		fprintf(stdout, "fseek returned %d", i);
+	}
 	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
 	if (read < db->page_size && ferror(db->file)) printf("Error reading\n");
 #ifdef DEBUG
