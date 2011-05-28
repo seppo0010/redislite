@@ -1412,6 +1412,46 @@ cleanup:
 	return status;
 }
 
+int test_issue_2()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	redislite_reply *reply;
+	reply = redislite_command(db, "SET a 1");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "DEL a");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "SET a 1");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "SET a 1");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "GET a");
+	int status = REDISLITE_OK;
+	if (reply->type != REDISLITE_REPLY_STRING) {
+		printf("Expecting string after getting key; got %d\n", reply->type);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	if (reply->len != 1) {
+		printf("Expecting len %d after getting key; got %d\n", 1, reply->len);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	if (reply->str[0] != '1') {
+		printf("Expecting string '%s' getting key; got '%s'\n", "1", reply->str);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+cleanup:
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (reply) redislite_free_reply(reply);
+	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	return status;
+}
+
 int main() {
 	srand(4);
 	int test;
@@ -1563,6 +1603,14 @@ int main() {
 
 	test = test_command_argv();
 	test_name = "testing command argv execution on publicapi";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_issue_2();
+	test_name = "testing issue #2";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {
