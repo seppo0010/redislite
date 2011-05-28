@@ -161,7 +161,7 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
 	if (_page == NULL) {
 		*length = 0;
-		return REDISLITE_NOT_FOUND; // TODO: more descriptive states?
+		return REDISLITE_NOT_FOUND;
 	}
 	if (type != REDISLITE_PAGE_TYPE_STRING) {
 		if (_cs == NULL) {
