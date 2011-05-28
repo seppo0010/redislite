@@ -128,7 +128,9 @@ static int redislite_remove_key(void *_cs, void *_key, int page_num)
 			page->number_of_keys--;
 			if (key != page->keys[i])
 				redislite_free_key(key);
-			return redislite_add_modified_page(_cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+			int status = redislite_add_modified_page(_cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+			if (status < 0) return status;
+			return REDISLITE_OK;
 		}
 	}
 	return REDISLITE_ERR;
@@ -221,6 +223,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 			return NULL;
 		}
 	}
+	*status = REDISLITE_ERR;
 	return NULL;
 }
 
