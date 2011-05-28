@@ -11,7 +11,7 @@ void redislite_delete_string(void *_cs, void *_page)
 	redislite_page_string* page = (redislite_page_string*)_page;
 	if (page == NULL) return;
 	if (page->right_page != 0) {
-		redislite_page_delete(_cs, page->right_page, REDISLITE_PAGE_TYPE_STRING);
+		redislite_page_delete(_cs, page->right_page, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
 	}
 }
 
@@ -52,12 +52,12 @@ void *redislite_read_string(void *_db, unsigned char *data)
 }
 
 
-void redislite_delete_string_overflow(void *_db, void *_page)
+void redislite_delete_string_overflow(void *_cs, void *_page)
 {
 	redislite_page_string_overflow* page = (redislite_page_string_overflow*)_page;
 	if (page == NULL) return;
 	if (page->right_page != 0) {
-		redislite_page_delete(_db, page->right_page, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
+		redislite_page_delete(_cs, page->right_page, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
 	}
 }
 

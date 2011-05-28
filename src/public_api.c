@@ -1,6 +1,7 @@
 #include "public_api.h"
 #include "redislite.h"
 #include "sds.h"
+#include "page_index.h"
 #include "page_string.h"
 
 redislite_reply *redislite_create_reply() {
@@ -210,6 +211,23 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_del_command(redislite *db, redislite_params *params) 
+{
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_delete_keys(cs, params->argc-1, &params->argv[1], &params->argvlen[1]);
+	if (status < 0) {
+		set_error_message(status, reply);
+	} else {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		reply->integer = status;
+		redislite_save_changeset(cs);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
 redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params) 
 {
 	char *key, *value;
@@ -371,7 +389,7 @@ struct redislite_command redislite_command_table[] = {
 	{"setex",redislite_command_implementation_not_planned,4,0},
 	{"append",redislite_append_command,3,0},
 	{"strlen",redislite_command_not_implemented_yet,2,0},
-	{"del",redislite_command_not_implemented_yet,2,0},
+	{"del",redislite_del_command,-2,0},
 	{"exists",redislite_command_not_implemented_yet,2,0},
 	{"setbit",redislite_command_not_implemented_yet,4,0},
 	{"getbit",redislite_command_not_implemented_yet,3,0},
@@ -517,12 +535,19 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 	if (command[1] > 90) sum += 'A' - 'a';
 	if (command[2] > 90) sum += 'A' - 'a';
 	switch (sum) {
+
 		case 204: // 'D'+'E'+'C'
 			if (length == 4 && memcaseequal(command, "decr", 4)) {
 				return &redislite_command_table[14];
 			}
 			if (length == 6 && memcaseequal(command, "decrby", 6)) {
 				return &redislite_command_table[74];
+			}
+			break;
+
+		case 213: // 'D'+'E'+'L'
+			if (length == 3 && memcaseequal(command, "del", 3)) {
+				return &redislite_command_table[6];
 			}
 			break;
 
