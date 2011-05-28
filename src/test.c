@@ -206,7 +206,7 @@ int test_delete_and_find() {
 		int length = 0;
 		char *value = NULL;
 		int size = (int)strlen(key[i]);
-		size_t found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
+		int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
 		if (found == REDISLITE_OOM) {
 			continue;
 		}
@@ -230,13 +230,13 @@ int test_delete_and_find() {
 		int length = 0;
 		char *value = NULL;
 		int size = (int)strlen(key[i]);
-		size_t found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
+		int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
 		if (found == REDISLITE_OOM) {
 			continue;
 		}
 
 		if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
-			printf("Key '%s' found after deleted\n", key[i]);
+			printf("Key '%s' found after deleted %d\n", key[i], found);
 			status = REDISLITE_ERR;
 		} else if (i % 2 == 1 && found == REDISLITE_ERR) {
 			printf("Key '%s' not found\n", key[i]);
@@ -527,18 +527,19 @@ int test_exists() {
 	if (status == 0)
 	{
 		printf("Failed to find existing key\n");
+		status = REDISLITE_ERR;
 		goto cleanup;
 	} else if (status != 1) {
 		goto cleanup;
 	}
 
 	status = redislite_exists_key(db, cs, key, 6);
-	if (status == 1)
+	if (status != REDISLITE_NOT_FOUND)
 	{
 		printf("Failed to not-find non existing key\n");
 		goto cleanup;
-	} else if (status != 1) {
-		goto cleanup;
+	} else {
+		status = REDISLITE_OK;
 	}
 
 cleanup:
