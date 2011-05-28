@@ -19,5 +19,6 @@ int redislite_get_2bytes(const unsigned char *p);
 #define MAX(A,B) ((A) < (B) ? (B) : (A))
 
 int intlen(int integer);
+int str_to_long_long(char *str, int len, long long *value);
 
 #endif

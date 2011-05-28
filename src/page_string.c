@@ -5,8 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <limits.h>
-#include <errno.h>
 
 void redislite_delete_string(void *_cs, void *_page)
 {
@@ -326,13 +324,8 @@ int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, int key_
 	}
 
 	long long value;
-	char *eptr;
-	page->value[page->size] = '\0';
-	value = strtoll(page->value, &eptr, 10);
-	if (eptr[0] != '\0') return REDISLITE_ERR;
-	if (errno == ERANGE && (value == LLONG_MIN || value == LLONG_MAX))
-		return REDISLITE_ERR; // TODO: not integer or out of range
-
+	int status = str_to_long_long(page->value, page->size, &value);
+	if (status != REDISLITE_OK) return status;
 	value += incr;
 
 	if (new_value) *new_value = value;

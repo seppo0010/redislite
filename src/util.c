@@ -1,4 +1,7 @@
+#include "redislite.h"
 #include <math.h>
+#include <limits.h>
+#include <errno.h>
 
 #define SLOT_2_0     0x001fc07f
 #define SLOT_4_2_0   0xf01fc07f
@@ -374,4 +377,14 @@ int redislite_get_4bytes(const unsigned char *p){
 int intlen(int integer)
 {
 	return (int)floor(log10(integer)) + 1;
+}
+
+int str_to_long_long(char *str, int len, long long *value) {
+	char *eptr;
+	str[len] = '\0';
+	*value = strtoll(str, &eptr, 10);
+	if (eptr[0] != '\0') return REDISLITE_ERR;
+	if (errno == ERANGE && (*value == LLONG_MIN || *value == LLONG_MAX))
+		return REDISLITE_ERR; // TODO: not integer or out of range
+	return REDISLITE_OK;
 }

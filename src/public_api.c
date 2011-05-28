@@ -258,6 +258,98 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_incr_command(redislite *db, redislite_params *params) 
+{
+	char *key;
+	int len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_page_string_incr_key_string(cs, key, len, &reply->integer);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		redislite_save_changeset(cs);
+	} else {
+		set_error_message(status, reply);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
+redislite_reply *redislite_decr_command(redislite *db, redislite_params *params) 
+{
+	char *key;
+	int len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_page_string_decr_key_string(cs, key, len, &reply->integer);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		redislite_save_changeset(cs);
+	} else {
+		set_error_message(status, reply);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
+redislite_reply *redislite_incrby_command(redislite *db, redislite_params *params) 
+{
+	char *key;
+	int len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	changeset *cs = redislite_create_changeset(db);
+	long long incr;
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &incr);
+	if (status != REDISLITE_OK) {
+		set_error_message(status, reply);
+		return;
+	}
+	status = redislite_page_string_incr_by_key_string(cs, key, len, incr, &reply->integer);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		redislite_save_changeset(cs);
+	} else {
+		set_error_message(status, reply);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
+redislite_reply *redislite_decrby_command(redislite *db, redislite_params *params) 
+{
+	char *key;
+	int len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	changeset *cs = redislite_create_changeset(db);
+	long long decr;
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &decr);
+	if (status != REDISLITE_OK) {
+		set_error_message(status, reply);
+		return;
+	}
+	status = redislite_page_string_decr_by_key_string(cs, key, len, decr, &reply->integer);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		redislite_save_changeset(cs);
+	} else {
+		set_error_message(status, reply);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
 redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_params *params) 
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -286,8 +378,8 @@ struct redislite_command redislite_command_table[] = {
 	{"setrange",redislite_command_not_implemented_yet,4,0},
 	{"getrange",redislite_command_not_implemented_yet,4,0},
 	{"substr",redislite_command_not_implemented_yet,4,0},
-	{"incr",redislite_command_not_implemented_yet,2,0},
-	{"decr",redislite_command_not_implemented_yet,2,0},
+	{"incr",redislite_incr_command,2,0},
+	{"decr",redislite_decr_command,2,0},
 	{"mget",redislite_command_not_implemented_yet,2,0},
 	{"rpush",redislite_command_not_implemented_yet,3,0},
 	{"lpush",redislite_command_not_implemented_yet,3,0},
@@ -346,8 +438,8 @@ struct redislite_command redislite_command_table[] = {
 	{"hvals",redislite_command_not_implemented_yet,2,0},
 	{"hgetall",redislite_command_not_implemented_yet,2,0},
 	{"hexists",redislite_command_not_implemented_yet,3,0},
-	{"incrby",redislite_command_not_implemented_yet,3,0},
-	{"decrby",redislite_command_not_implemented_yet,3,0},
+	{"incrby",redislite_incrby_command,3,0},
+	{"decrby",redislite_decrby_command,3,0},
 	{"getset",redislite_command_not_implemented_yet,3,0},
 	{"mset",redislite_command_not_implemented_yet,3,0},
 	{"msetnx",redislite_command_not_implemented_yet,3,0},
@@ -425,6 +517,24 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 	if (command[1] > 90) sum += 'A' - 'a';
 	if (command[2] > 90) sum += 'A' - 'a';
 	switch (sum) {
+		case 204: // 'D'+'E'+'C'
+			if (length == 4 && memcaseequal(command, "decr", 4)) {
+				return &redislite_command_table[14];
+			}
+			if (length == 6 && memcaseequal(command, "decrby", 6)) {
+				return &redislite_command_table[74];
+			}
+			break;
+
+		case 218: // 'I'+'N'+'C'
+			if (length == 4 && memcaseequal(command, "incr", 4)) {
+				return &redislite_command_table[13];
+			}
+			if (length == 6 && memcaseequal(command, "incrby", 6)) {
+				return &redislite_command_table[73];
+			}
+			break;
+
 		case 224: // 'G'+'E'+'T'
 			if (length == 3 && memcaseequal(command, "get", 3)) {
 				return &redislite_command_table[0];
@@ -437,7 +547,7 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 			}
 			break;
 
-		case 236:
+		case 236: // 'S'+'E'+'T'
 			if (length == 3 && memcaseequal(command, "set", 3)) {
 				return &redislite_command_table[1];
 			} else if (length == 5 && memcaseequal(command, "setnx", 5)) {
