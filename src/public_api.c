@@ -72,6 +72,8 @@ static const char *unknown_error = "Unknown error";
 static const char *expected_string = "Value is not a string";
 static const char *expected_integer = "value is not an integer or out of range";
 static const char *expected_double = "Value is not a double";
+static const char *invalid_bit_offset = "bit offset is not an integer or out of range";
+static const char *invalid_bit = "ERR bit is not an integer or out of range";
 static const char *ok = "OK";
 static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
 static const char *implementation_not_planned = "This command hasn't been planned to be implemented on redislite";
@@ -149,6 +151,16 @@ static void set_error_message(int status, redislite_reply *reply)
 		case REDISLITE_IMPLEMENTATION_NOT_PLANNED:
 		{
 			error = implementation_not_planned;
+			break;
+		}
+		case REDISLITE_BIT_OFFSET_INVALID:
+		{
+			error = invalid_bit_offset;
+			break;
+		}
+		case REDISLITE_BIT_INVALID:
+		{
+			error = invalid_bit;
 			break;
 		}
 		default:
@@ -276,6 +288,32 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_getbit_command(redislite *db, redislite_params *params) 
+{
+	char *key;
+	int len;
+	long long bit_offset;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &bit_offset);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) status = REDISLITE_BIT_OFFSET_INVALID;
+		set_error_message(status, reply);
+		return;
+	}
+
+	status = redislite_page_string_getbit_key_string(db, NULL, key, len, bit_offset);
+	if (status < REDISLITE_OK) {
+		set_error_message(status, reply);
+		return reply;
+	}
+	reply->type = REDISLITE_REPLY_INTEGER;
+	reply->integer = status;
+	return reply;
+}
+
 redislite_reply *redislite_incr_command(redislite *db, redislite_params *params) 
 {
 	char *key;
@@ -328,6 +366,7 @@ redislite_reply *redislite_incrby_command(redislite *db, redislite_params *param
 	long long incr;
 	int status = str_to_long_long(params->argv[2], params->argvlen[2], &incr);
 	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) status = REDISLITE_EXPECT_INTEGER;
 		set_error_message(status, reply);
 		return;
 	}
@@ -354,6 +393,7 @@ redislite_reply *redislite_decrby_command(redislite *db, redislite_params *param
 	long long decr;
 	int status = str_to_long_long(params->argv[2], params->argvlen[2], &decr);
 	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) status = REDISLITE_EXPECT_INTEGER;
 		set_error_message(status, reply);
 		return;
 	}
@@ -392,7 +432,7 @@ struct redislite_command redislite_command_table[] = {
 	{"del",redislite_del_command,-2,0},
 	{"exists",redislite_command_not_implemented_yet,2,0},
 	{"setbit",redislite_command_not_implemented_yet,4,0},
-	{"getbit",redislite_command_not_implemented_yet,3,0},
+	{"getbit",redislite_getbit_command,3,0},
 	{"setrange",redislite_command_not_implemented_yet,4,0},
 	{"getrange",redislite_command_not_implemented_yet,4,0},
 	{"substr",redislite_command_not_implemented_yet,4,0},
@@ -563,6 +603,8 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 		case 224: // 'G'+'E'+'T'
 			if (length == 3 && memcaseequal(command, "get", 3)) {
 				return &redislite_command_table[0];
+			} else if (length == 6 && memcaseequal(command, "getbit", 6)) {
+				return &redislite_command_table[9];
 			}
 			break;
 

@@ -61,5 +61,7 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 #define REDISLITE_EXPECT_DOUBLE -9
 #define REDISLITE_NOT_IMPLEMENTED_YET -10
 #define REDISLITE_IMPLEMENTATION_NOT_PLANNED -11
+#define REDISLITE_BIT_OFFSET_INVALID -12
+#define REDISLITE_BIT_INVALID -13
 
 #endif
