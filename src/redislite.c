@@ -41,14 +41,16 @@ static redislite_page* redislite_modified_page(changeset *cs, int page_number) {
 void redislite_free_changeset(changeset *cs)
 {
 	int i;
+	redislite_page *page;
 	for (i=0;i<cs->opened_pages_length;i++) {
-		redislite_page *page = cs->opened_pages[i];
-		page->type->free_function(cs->db, page->data);
+		page = cs->opened_pages[i];
+		if ((redislite_modified_page(cs, page->number))->data != page->data)
+			page->type->free_function(cs->db, page->data);
 		redislite_free(page);
 	}
 	redislite_free(cs->opened_pages);
 	for (i=0;i<cs->modified_pages_length;i++) {
-		redislite_page *page = cs->modified_pages[i];
+		page = cs->modified_pages[i];
 		if (page->data != cs->db->root)
 			page->type->free_function(cs->db, page->data);
 		redislite_free(page);
