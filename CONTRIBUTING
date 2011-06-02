@@ -1,0 +1,5 @@
+For bug reports, please use github "issues".
+
+If you have a patch to fix an issue or create a decent Makefile, please fork and pull request.
+
+To implement new features or refactoring, please contact me by github messages, email or "seppo0010" at irc.freenode.org in #redis
