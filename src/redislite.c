@@ -7,6 +7,7 @@
 #include "page_first.h"
 #include "page_string.h"
 #include "page_freelist.h"
+#include "page_list.h"
 #include "util.h"
 
 
@@ -293,6 +294,28 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_freelist;
 		type->read_function = &redislite_read_freelist;
 		type->free_function = &redislite_free_freelist;
+		type->delete_function = NULL;
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) { free(type); return status; }
+	}
+	{
+		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) { redislite_close_database(db); return REDISLITE_OOM; }
+		type->identifier = REDISLITE_PAGE_TYPE_LIST;
+		type->write_function = &redislite_write_list;
+		type->read_function = &redislite_read_list;
+		type->free_function = &redislite_free_list;
+		type->delete_function = NULL;
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) { free(type); return status; }
+	}
+	{
+		redislite_page_type* type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) { redislite_close_database(db); return REDISLITE_OOM; }
+		type->identifier = REDISLITE_PAGE_TYPE_LIST_FIRST;
+		type->write_function = &redislite_write_list_first;
+		type->read_function = &redislite_read_list_first;
+		type->free_function = &redislite_free_list_first;
 		type->delete_function = NULL;
 		int status = redislite_page_register_type(db, type);
 		if (status != REDISLITE_OK) { free(type); return status; }

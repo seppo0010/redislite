@@ -7,11 +7,11 @@ redislite-cli.o:
 
 cli: dependencies
 	$(CC) -I../deps/linenoise -lm -g -o redislite-cli redislite-cli.c memory.c redislite.c util.c page_index.c page.c\
-	 page_string.c page_first.c page_freelist.c public_api.c sds.c ../deps/linenoise/linenoise.o
+	 page_string.c page_first.c page_freelist.c page_list.c public_api.c sds.c ../deps/linenoise/linenoise.o
 
 test:
 	$(CC) -lm -g -o test test.c memory.c redislite.c util.c page_index.c page.c page_string.c page_first.c page_freelist.c\
-	 public_api.c sds.c
+	 page_list.c public_api.c sds.c
 
 clean:
 	rm -rf test test.dSYM redislite-cli
