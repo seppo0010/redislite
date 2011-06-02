@@ -193,11 +193,11 @@ int test_delete_and_find() {
 		key[i] = test_add_key(cs, &value[i]);
 
 	char **keys = malloc(sizeof(char*) * (SIZE/2));
-	int *lengths = malloc(sizeof(int) * (SIZE/2));
+	size_t *lengths = malloc(sizeof(size_t) * (SIZE/2));
 	for (i=0; i < SIZE/2; i++) {
 		int size = (int)strlen(key[i*2]);
 		keys[i] = key[i*2];
-		lengths[i] = size;
+		lengths[i] = (size_t)size;
 	}
 	redislite_delete_keys(cs, SIZE/2, keys, lengths);
 
@@ -1321,6 +1321,27 @@ cleanup:
 	return status;
 }
 
+int test_free_and_set()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	redislite_reply *reply;
+	reply = redislite_command(db, "set a 1");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "get a");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "del a");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "set a 1");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "set b 1");
+	redislite_free_reply(reply);
+	reply = redislite_command(db, "del a b");
+	redislite_free_reply(reply);
+	return REDISLITE_OK;
+}
+
 int test_command_argv()
 {
 	remove("test.db");
@@ -1611,6 +1632,14 @@ int main() {
 
 	test = test_issue_2();
 	test_name = "testing issue #2";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	} else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_free_and_set();
+	test_name = "testing freelist and set";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	} else if (test != REDISLITE_OK) {

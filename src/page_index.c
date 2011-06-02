@@ -294,7 +294,7 @@ static int redislite_delete_key(void *_cs, char *key, int length)
 	return status;
 }
 
-int redislite_delete_keys(void *_cs, int q, char **keys, int* lengths)
+int redislite_delete_keys(void *_cs, int q, char **keys, size_t* lengths)
 {
 	int status = REDISLITE_OK;
 	int i;
