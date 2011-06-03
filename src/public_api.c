@@ -4,6 +4,7 @@
 #include "sds.h"
 #include "page_index.h"
 #include "page_string.h"
+#include "page_list.h"
 #include "util.h"
 
 redislite_reply *redislite_create_reply() {

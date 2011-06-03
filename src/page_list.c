@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "redislite.h"
+#include "page_index.h"
 #include "page_list.h"
 #include "util.h"
 
@@ -47,16 +48,16 @@ void redislite_write_list(void *_db, unsigned char *data, void *_page){
 }
 
 void *redislite_read_list(void *_db, unsigned char *data){
-        redislite_page_list *page = redislite_malloc(sizeof(redislite_page_list));
-        if (page == NULL) return NULL;
+	redislite_page_list *page = redislite_malloc(sizeof(redislite_page_list));
+	if (page == NULL) return NULL;
 	redislite *db = (redislite*)_db;
-        page->element_alloced =
-        page->size = redislite_get_4bytes(&data[4]);
-        page->right_page = redislite_get_4bytes(&data[8]);
-        page->left_page = redislite_get_4bytes(&data[12]);
+	page->element_alloced =
+	page->size = redislite_get_4bytes(&data[4]);
+	page->right_page = redislite_get_4bytes(&data[8]);
+	page->left_page = redislite_get_4bytes(&data[12]);
 	page->element_len = NULL; // in case the next alloc fails, we don't want to free this
 	page->element = redislite_malloc(sizeof(char*) * page->size);
-        if (page->element == NULL) goto cleanup;
+	if (page->element == NULL) goto cleanup;
 	page->element_len = redislite_malloc(sizeof(char*) * page->size);
         if (page->element_len == NULL) goto cleanup;
         int i, pos = 16;
@@ -67,7 +68,6 @@ void *redislite_read_list(void *_db, unsigned char *data){
                 memcpy(page->element[i], &data[pos], page->element_len[i]);
                 pos += page->element_len[i];
         }
-        page->free_bytes = db->page_size - pos;
         return page;
 cleanup:
         if (page->element) {
@@ -108,9 +108,10 @@ void redislite_write_list_first(void *_db, unsigned char *data, void *_page){
 void *redislite_read_list_first(void *_db, unsigned char *data){
 	void *list = redislite_read_list(_db, &data[8]);
 	if (list == NULL) return NULL;
-        redislite_page_list_first *page = redislite_malloc(sizeof(redislite_page_list_first));
+	redislite_page_list_first *page = redislite_malloc(sizeof(redislite_page_list_first));
 	page->list = list;
 	page->total_size = redislite_get_4bytes(&data[4]);
+	return page;
 }
 
 static int lpush(void *_cs, redislite_page_list* list, char *value, int value_len)
@@ -150,14 +151,26 @@ static int lpush(void *_cs, redislite_page_list* list, char *value, int value_le
 	return REDISLITE_OK;
 }
 
+size_t redislite_free_bytes(void *_db, redislite_page_list* page, char type) {
+		redislite *db = (redislite*)_db;
+        int i, pos = type == 16;
+		unsigned char placeholder[9];
+        for (i=0; i<page->size; i++) {
+                pos += getVarint32(placeholder, page->element_len[i]) + page->element_len[i];
+        }
+        return db->page_size - pos;
+}
+
 int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *value, int value_len)
 {
 	changeset* cs = (changeset*)_cs;
 	char type;
-        void *_page = redislite_page_get_by_keyname(cs->db, _cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
 	int status = REDISLITE_OK;
-        if (_page == NULL) {
-		redislite_page_list_first *page = redislite_malloc(sizeof(redislite_page_list_first));
+
+	redislite_page_list_first *page = NULL;
+	if (page_num == -1) {
+		page = redislite_malloc(sizeof(redislite_page_list_first));
 		if (page == NULL) return REDISLITE_OOM;
 		page->list = redislite_malloc(sizeof(redislite_page_list));
 		if (page->list == NULL) {
@@ -169,8 +182,6 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 		page->list->right_page = 0;
 		page->list->size = 0;
 		page->list->element_alloced = page->list->size = 0;
-		page->list->free_bytes = cs->db->page_size - 24; // 8+16
-		_page = page;
 		type = REDISLITE_PAGE_TYPE_LIST_FIRST;
 		int left = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
 		if (left < 0) {
@@ -184,20 +195,23 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 			redislite_free(page);
 			return status;
 		}
-        }
+	} else {
+		page = redislite_page_get(cs->db, _cs, page_num, type);
+	}
 
-	redislite_page_list_first *page = (redislite_page_list_first*)_page;
-        if (type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
-                return REDISLITE_WRONG_TYPE;
+	if (page == NULL) return REDISLITE_ERR;
+
+	if (type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_WRONG_TYPE;
 	}
 
 	int size = value_len;
 	{
-		char length_str[9];
+		unsigned char length_str[9];
 		size += putVarint32(length_str, value_len);
 	}
 
-	if (page->list->free_bytes >= size) {
+	if (redislite_free_bytes(cs->db, page->list, type) >= size) {
 		status = lpush(cs, page->list, value, value_len);
 		if (status != REDISLITE_OK) return status;
 		page->total_size++;
