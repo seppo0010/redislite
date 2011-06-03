@@ -190,6 +190,24 @@ static void set_error_message(int status, redislite_reply *reply)
 	reply->len = strlen(error)+1;
 }
 
+redislite_reply *redislite_strlen_command(redislite *db, redislite_params *params) 
+{
+	char *key;
+	int len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int strlen = redislite_page_string_strlen_by_keyname(db, NULL, key, len);
+	if (strlen >= 0) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		reply->integer = strlen;
+	} else {
+		set_error_message(strlen, reply);
+	}
+	return reply;
+}
+
 redislite_reply *redislite_get_command(redislite *db, redislite_params *params) 
 {
 	char *key;
@@ -430,7 +448,7 @@ struct redislite_command redislite_command_table[] = {
 	{"setnx",redislite_setnx_command,3,0},
 	{"setex",redislite_command_implementation_not_planned,4,0},
 	{"append",redislite_append_command,3,0},
-	{"strlen",redislite_command_not_implemented_yet,2,0},
+	{"strlen",redislite_strlen_command,2,0},
 	{"del",redislite_del_command,-2,0},
 	{"exists",redislite_command_not_implemented_yet,2,0},
 	{"setbit",redislite_command_not_implemented_yet,4,0},
@@ -621,6 +639,12 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 				return &redislite_command_table[1];
 			} else if (length == 5 && memcaseequal(command, "setnx", 5)) {
 				return &redislite_command_table[2];
+			}
+			break;
+
+		case 249: // 'S'+'T'+'R'
+			if (length == 6 && memcaseequal(command, "strlen", 6)) {
+				return &redislite_command_table[5];
 			}
 			break;
 	}

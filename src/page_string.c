@@ -242,6 +242,18 @@ int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_le
 	}
 }
 
+int redislite_page_string_strlen_by_keyname(void *_db, void *_cs, char *key_name, int key_length) {
+	char type;
+	int page_num = redislite_value_page_for_key(_db, _cs, key_name, key_length, &type);
+	if (page_num == REDISLITE_ERR) return 0;
+	if (page_num < 0) return page_num;
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		return REDISLITE_ERR; // TODO: error for wrong type
+	}
+	redislite_page_string* page = redislite_page_get(_db, _cs, page_num, type);
+	return page->size;
+}
+
 int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_length, char *str, int length, int *new_length) {
 	changeset *cs = (changeset*)_cs;
 	redislite* db = cs->db;
