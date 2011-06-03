@@ -1339,6 +1339,7 @@ int test_free_and_set()
 	redislite_free_reply(reply);
 	reply = redislite_command(db, "del a b");
 	redislite_free_reply(reply);
+	redislite_close_database(db);
 	return REDISLITE_OK;
 }
 
