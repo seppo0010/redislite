@@ -260,6 +260,20 @@ redislite_reply *redislite_del_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_exists_command(redislite *db, redislite_params *params) 
+{
+	char *key;
+	int len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) return NULL;
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = redislite_value_page_for_key(db, NULL, key, len, NULL);
+	reply->type = REDISLITE_REPLY_INTEGER;
+	reply->integer = status >= 0;
+	return reply;
+}
+
 redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params) 
 {
 	char *key, *value;
@@ -450,7 +464,7 @@ struct redislite_command redislite_command_table[] = {
 	{"append",redislite_append_command,3,0},
 	{"strlen",redislite_strlen_command,2,0},
 	{"del",redislite_del_command,-2,0},
-	{"exists",redislite_command_not_implemented_yet,2,0},
+	{"exists",redislite_exists_command,2,0},
 	{"setbit",redislite_command_not_implemented_yet,4,0},
 	{"getbit",redislite_getbit_command,3,0},
 	{"setrange",redislite_command_not_implemented_yet,4,0},
@@ -631,6 +645,12 @@ struct redislite_command* redislite_command_lookup(char *command, int length)
 		case 225: // 'A'+'P'+'P'
 			if (length == 6 && memcaseequal(command, "append", 6)) {
 				return &redislite_command_table[4];
+			}
+			break;
+
+		case 230: // 'E'+'X'+'I'
+			if (length == 6 && memcaseequal(command, "exists", 6)) {
+				return &redislite_command_table[7];
 			}
 			break;
 

@@ -250,7 +250,7 @@ int redislite_value_page_for_key(void *_db, void *_cs, char *key, int length, ch
 	int ret = REDISLITE_ERR;
 	if (index_key != NULL) {
 		ret = index_key->left_page;
-		*type = index_key->type;
+		if (type) *type = index_key->type;
 	}
 	redislite_free_key(index_key);
 	return ret;
