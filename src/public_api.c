@@ -1,8 +1,10 @@
+#include <ctype.h>
 #include "public_api.h"
 #include "redislite.h"
 #include "sds.h"
 #include "page_index.h"
 #include "page_string.h"
+#include "util.h"
 
 redislite_reply *redislite_create_reply() {
 	redislite_reply *reply = redislite_malloc(sizeof(redislite_reply));
@@ -301,7 +303,7 @@ redislite_reply *redislite_getbit_command(redislite *db, redislite_params *param
 	if (status != REDISLITE_OK) {
 		if (status == REDISLITE_ERR) status = REDISLITE_BIT_OFFSET_INVALID;
 		set_error_message(status, reply);
-		return;
+		return reply;
 	}
 
 	status = redislite_page_string_getbit_key_string(db, NULL, key, len, bit_offset);
@@ -368,7 +370,7 @@ redislite_reply *redislite_incrby_command(redislite *db, redislite_params *param
 	if (status != REDISLITE_OK) {
 		if (status == REDISLITE_ERR) status = REDISLITE_EXPECT_INTEGER;
 		set_error_message(status, reply);
-		return;
+		return reply;
 	}
 	status = redislite_page_string_incr_by_key_string(cs, key, len, incr, &reply->integer);
 	if (status == REDISLITE_OK) {
@@ -395,7 +397,7 @@ redislite_reply *redislite_decrby_command(redislite *db, redislite_params *param
 	if (status != REDISLITE_OK) {
 		if (status == REDISLITE_ERR) status = REDISLITE_EXPECT_INTEGER;
 		set_error_message(status, reply);
-		return;
+		return reply;
 	}
 	status = redislite_page_string_decr_by_key_string(cs, key, len, decr, &reply->integer);
 	if (status == REDISLITE_OK) {

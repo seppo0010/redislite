@@ -116,6 +116,7 @@ static int add_extra_string(void *_cs, char *str, int length)
 			return next_page;
 		}
 	}
+	return next_page;
 }
 
 int redislite_insert_string(void *_cs, char *str, int length, int* num)

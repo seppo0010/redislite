@@ -2,6 +2,7 @@
 #define _REDISLITE_PUBLIC_API_H
 #include "redislite.h"
 #include <string.h>
+#include <stdarg.h>
 
 #define REDISLITE_REPLY_STRING 1
 #define REDISLITE_REPLY_ARRAY 2
