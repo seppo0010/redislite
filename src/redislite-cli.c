@@ -49,33 +49,40 @@
 
 static redislite *db;
 static struct config {
-    sds filename;
-    long repeat;
-    int interactive;
-    int stdinarg; /* get last arg from stdin. (-x option) */
-    char *historyfile;
-    int raw_output; /* output mode per command */
-    sds mb_delim;
+	sds filename;
+	long repeat;
+	int interactive;
+	int stdinarg; /* get last arg from stdin. (-x option) */
+	char *historyfile;
+	int raw_output; /* output mode per command */
+	sds mb_delim;
 } config;
 
 static void usage();
 
 // FIXME: may be later
-char *redislite_git_SHA1(void){return "";}
-char *redislite_git_dirty(void){return "";}
+char *redislite_git_SHA1(void)
+{
+	return "";
+}
+char *redislite_git_dirty(void)
+{
+	return "";
+}
 
 /*------------------------------------------------------------------------------
  * Utility functions
  *--------------------------------------------------------------------------- */
 
-static long long mstime(void) {
-    struct timeval tv;
-    long long mst;
+static long long mstime(void)
+{
+	struct timeval tv;
+	long long mst;
 
-    gettimeofday(&tv, NULL);
-    mst = ((long)tv.tv_sec)*1000;
-    mst += tv.tv_usec/1000;
-    return mst;
+	gettimeofday(&tv, NULL);
+	mst = ((long)tv.tv_sec) * 1000;
+	mst += tv.tv_usec / 1000;
+	return mst;
 }
 
 /*------------------------------------------------------------------------------
@@ -86,168 +93,191 @@ static long long mstime(void) {
 #define CLI_HELP_GROUP 2
 
 typedef struct {
-    int type;
-    int argc;
-    sds *argv;
-    sds full;
+	int type;
+	int argc;
+	sds *argv;
+	sds full;
 
-    /* Only used for help on commands */
-    struct commandHelp *org;
+	/* Only used for help on commands */
+	struct commandHelp *org;
 } helpEntry;
 
 static helpEntry *helpEntries;
 static int helpEntriesLen;
 
-static sds cliVersion() {
-    sds version;
-    version = sdscatprintf(sdsempty(), "%s", REDISLITE_VERSION);
+static sds cliVersion()
+{
+	sds version;
+	version = sdscatprintf(sdsempty(), "%s", REDISLITE_VERSION);
 
-    /* Add git commit and working tree status when available */
-    if (strtoll(redislite_git_SHA1(),NULL,16)) {
-        version = sdscatprintf(version, " (git:%s", redislite_git_SHA1());
-        if (strtoll(redislite_git_dirty(),NULL,10))
-            version = sdscatprintf(version, "-dirty");
-        version = sdscat(version, ")");
-    }
-    return version;
+	/* Add git commit and working tree status when available */
+	if (strtoll(redislite_git_SHA1(), NULL, 16)) {
+		version = sdscatprintf(version, " (git:%s", redislite_git_SHA1());
+		if (strtoll(redislite_git_dirty(), NULL, 10)) {
+			version = sdscatprintf(version, "-dirty");
+		}
+		version = sdscat(version, ")");
+	}
+	return version;
 }
 
-static void cliInitHelp() {
-    int commandslen = sizeof(commandHelp)/sizeof(struct commandHelp);
-    int groupslen = sizeof(commandGroups)/sizeof(char*);
-    int i, len, pos = 0;
-    helpEntry tmp;
+static void cliInitHelp()
+{
+	int commandslen = sizeof(commandHelp) / sizeof(struct commandHelp);
+	int groupslen = sizeof(commandGroups) / sizeof(char *);
+	int i, len, pos = 0;
+	helpEntry tmp;
 
-    helpEntriesLen = len = commandslen+groupslen;
-    helpEntries = malloc(sizeof(helpEntry)*len);
+	helpEntriesLen = len = commandslen + groupslen;
+	helpEntries = malloc(sizeof(helpEntry) * len);
 
-    for (i = 0; i < groupslen; i++) {
-        tmp.argc = 1;
-        tmp.argv = malloc(sizeof(sds));
-        tmp.argv[0] = sdscatprintf(sdsempty(),"@%s",commandGroups[i]);
-        tmp.full = tmp.argv[0];
-        tmp.type = CLI_HELP_GROUP;
-        tmp.org = NULL;
-        helpEntries[pos++] = tmp;
-    }
+	for (i = 0; i < groupslen; i++) {
+		tmp.argc = 1;
+		tmp.argv = malloc(sizeof(sds));
+		tmp.argv[0] = sdscatprintf(sdsempty(), "@%s", commandGroups[i]);
+		tmp.full = tmp.argv[0];
+		tmp.type = CLI_HELP_GROUP;
+		tmp.org = NULL;
+		helpEntries[pos++] = tmp;
+	}
 
-    for (i = 0; i < commandslen; i++) {
-        tmp.argv = sdssplitargs(commandHelp[i].name,&tmp.argc);
-        tmp.full = sdsnew(commandHelp[i].name);
-        tmp.type = CLI_HELP_COMMAND;
-        tmp.org = &commandHelp[i];
-        helpEntries[pos++] = tmp;
-    }
+	for (i = 0; i < commandslen; i++) {
+		tmp.argv = sdssplitargs(commandHelp[i].name, &tmp.argc);
+		tmp.full = sdsnew(commandHelp[i].name);
+		tmp.type = CLI_HELP_COMMAND;
+		tmp.org = &commandHelp[i];
+		helpEntries[pos++] = tmp;
+	}
 }
 
-static void cliCleanHelp() {
-    int i, j;
+static void cliCleanHelp()
+{
+	int i, j;
 
-    helpEntry tmp;
-    for (i = 0; i < helpEntriesLen; i++) {
-	tmp = helpEntries[i];
-	if (tmp.full != tmp.argv[0]) sdsfree(tmp.full);
-        for (j=0; j < tmp.argc; j++) sdsfree(tmp.argv[j]);
-        free(tmp.argv);
-    }
-    free(helpEntries);
+	helpEntry tmp;
+	for (i = 0; i < helpEntriesLen; i++) {
+		tmp = helpEntries[i];
+		if (tmp.full != tmp.argv[0]) {
+			sdsfree(tmp.full);
+		}
+		for (j = 0; j < tmp.argc; j++) {
+			sdsfree(tmp.argv[j]);
+		}
+		free(tmp.argv);
+	}
+	free(helpEntries);
 }
 
 /* Output command help to stdout. */
-static void cliOutputCommandHelp(struct commandHelp *help, int group) {
-    printf("\r\n  \x1b[1m%s\x1b[0m \x1b[90m%s\x1b[0m\r\n", help->name, help->params);
-    printf("  \x1b[33msummary:\x1b[0m %s\r\n", help->summary);
-    printf("  \x1b[33msince:\x1b[0m %s\r\n", help->since);
-    if (group) {
-        printf("  \x1b[33mgroup:\x1b[0m %s\r\n", commandGroups[help->group]);
-    }
+static void cliOutputCommandHelp(struct commandHelp *help, int group)
+{
+	printf("\r\n  \x1b[1m%s\x1b[0m \x1b[90m%s\x1b[0m\r\n", help->name, help->params);
+	printf("  \x1b[33msummary:\x1b[0m %s\r\n", help->summary);
+	printf("  \x1b[33msince:\x1b[0m %s\r\n", help->since);
+	if (group) {
+		printf("  \x1b[33mgroup:\x1b[0m %s\r\n", commandGroups[help->group]);
+	}
 }
 
 /* Print generic help. */
-static void cliOutputGenericHelp() {
-    sds version = cliVersion();
-    printf(
-        "redislite-cli %s\r\n"
-        "Type: \"help @<group>\" to get a list of commands in <group>\r\n"
-        "      \"help <command>\" for help on <command>\r\n"
-        "      \"help <tab>\" to get a list of possible help topics\r\n"
-        "      \"quit\" to exit\r\n",
-        version
-    );
-    sdsfree(version);
+static void cliOutputGenericHelp()
+{
+	sds version = cliVersion();
+	printf(
+	    "redislite-cli %s\r\n"
+	    "Type: \"help @<group>\" to get a list of commands in <group>\r\n"
+	    "      \"help <command>\" for help on <command>\r\n"
+	    "      \"help <tab>\" to get a list of possible help topics\r\n"
+	    "      \"quit\" to exit\r\n",
+	    version
+	);
+	sdsfree(version);
 }
 
 /* Output all command help, filtering by group or command name. */
-static void cliOutputHelp(int argc, char **argv) {
-    int i, j, len;
-    int group = -1;
-    helpEntry *entry;
-    struct commandHelp *help;
+static void cliOutputHelp(int argc, char **argv)
+{
+	int i, j, len;
+	int group = -1;
+	helpEntry *entry;
+	struct commandHelp *help;
 
-    if (argc == 0) {
-        cliOutputGenericHelp();
-        return;
-    } else if (argc > 0 && argv[0][0] == '@') {
-        len = sizeof(commandGroups)/sizeof(char*);
-        for (i = 0; i < len; i++) {
-            if (strcasecmp(argv[0]+1,commandGroups[i]) == 0) {
-                group = i;
-                break;
-            }
-        }
-    }
+	if (argc == 0) {
+		cliOutputGenericHelp();
+		return;
+	}
+	else if (argc > 0 && argv[0][0] == '@') {
+		len = sizeof(commandGroups) / sizeof(char *);
+		for (i = 0; i < len; i++) {
+			if (strcasecmp(argv[0] + 1, commandGroups[i]) == 0) {
+				group = i;
+				break;
+			}
+		}
+	}
 
-    assert(argc > 0);
-    for (i = 0; i < helpEntriesLen; i++) {
-        entry = &helpEntries[i];
-        if (entry->type != CLI_HELP_COMMAND) continue;
+	assert(argc > 0);
+	for (i = 0; i < helpEntriesLen; i++) {
+		entry = &helpEntries[i];
+		if (entry->type != CLI_HELP_COMMAND) {
+			continue;
+		}
 
-        help = entry->org;
-        if (group == -1) {
-            /* Compare all arguments */
-            if (argc == entry->argc) {
-                for (j = 0; j < argc; j++) {
-                    if (strcasecmp(argv[j],entry->argv[j]) != 0) break;
-                }
-                if (j == argc) {
-                    cliOutputCommandHelp(help,1);
-                }
-            }
-        } else {
-            if (group == help->group) {
-                cliOutputCommandHelp(help,0);
-            }
-        }
-    }
-    printf("\r\n");
+		help = entry->org;
+		if (group == -1) {
+			/* Compare all arguments */
+			if (argc == entry->argc) {
+				for (j = 0; j < argc; j++) {
+					if (strcasecmp(argv[j], entry->argv[j]) != 0) {
+						break;
+					}
+				}
+				if (j == argc) {
+					cliOutputCommandHelp(help, 1);
+				}
+			}
+		}
+		else {
+			if (group == help->group) {
+				cliOutputCommandHelp(help, 0);
+			}
+		}
+	}
+	printf("\r\n");
 }
 
-static void completionCallback(const char *buf, linenoiseCompletions *lc) {
-    size_t startpos = 0;
-    int mask;
-    int i;
-    size_t matchlen;
-    sds tmp;
+static void completionCallback(const char *buf, linenoiseCompletions *lc)
+{
+	size_t startpos = 0;
+	int mask;
+	int i;
+	size_t matchlen;
+	sds tmp;
 
-    if (strncasecmp(buf,"help ",5) == 0) {
-        startpos = 5;
-        while (isspace(buf[startpos])) startpos++;
-        mask = CLI_HELP_COMMAND | CLI_HELP_GROUP;
-    } else {
-        mask = CLI_HELP_COMMAND;
-    }
+	if (strncasecmp(buf, "help ", 5) == 0) {
+		startpos = 5;
+		while (isspace(buf[startpos])) {
+			startpos++;
+		}
+		mask = CLI_HELP_COMMAND | CLI_HELP_GROUP;
+	}
+	else {
+		mask = CLI_HELP_COMMAND;
+	}
 
-    for (i = 0; i < helpEntriesLen; i++) {
-        if (!(helpEntries[i].type & mask)) continue;
+	for (i = 0; i < helpEntriesLen; i++) {
+		if (!(helpEntries[i].type & mask)) {
+			continue;
+		}
 
-        matchlen = strlen(buf+startpos);
-        if (strncasecmp(buf+startpos,helpEntries[i].full,matchlen) == 0) {
-            tmp = sdsnewlen(buf,startpos);
-            tmp = sdscat(tmp,helpEntries[i].full);
-            linenoiseAddCompletion(lc,tmp);
-            sdsfree(tmp);
-        }
-    }
+		matchlen = strlen(buf + startpos);
+		if (strncasecmp(buf + startpos, helpEntries[i].full, matchlen) == 0) {
+			tmp = sdsnewlen(buf, startpos);
+			tmp = sdscat(tmp, helpEntries[i].full);
+			linenoiseAddCompletion(lc, tmp);
+			sdsfree(tmp);
+		}
+	}
 }
 
 /*------------------------------------------------------------------------------
@@ -256,388 +286,433 @@ static void completionCallback(const char *buf, linenoiseCompletions *lc) {
 
 /* Connect to the client. If force is not zero the connection is performed
  * even if there is already a connected socket. */
-static int cliConnect(int force) {
-    if (db == NULL || force) {
-        if (db != NULL)
-            redislite_close_database(db);
+static int cliConnect(int force)
+{
+	if (db == NULL || force) {
+		if (db != NULL) {
+			redislite_close_database(db);
+		}
 
 		db = redislite_open_database(config.filename);
 
-        if (db == NULL) {
-            fprintf(stderr,"Could not open Redislite at %s\n", config.filename);
-            db = NULL;
-            return REDISLITE_ERR;
-        }
-    }
-    return REDISLITE_OK;
+		if (db == NULL) {
+			fprintf(stderr, "Could not open Redislite at %s\n", config.filename);
+			db = NULL;
+			return REDISLITE_ERR;
+		}
+	}
+	return REDISLITE_OK;
 }
 
-static void cliPrintContextErrorAndExit() {
-    if (db == NULL) return;
+static void cliPrintContextErrorAndExit()
+{
+	if (db == NULL) {
+		return;
+	}
 	//TODO: may be this will get implemented
-    //fprintf(stderr,"Error: %s\n",db->errstr);
-    fprintf(stderr,"Error: \n");
-    exit(1);
+	//fprintf(stderr,"Error: %s\n",db->errstr);
+	fprintf(stderr, "Error: \n");
+	exit(1);
 }
 
-static sds cliFormatReplyTTY(redislite_reply *r, char *prefix) {
-    sds out = sdsempty();
-    switch (r->type) {
-    case REDISLITE_REPLY_ERROR:
-        out = sdscatprintf(out,"(error) %s\n", r->str);
-    break;
-    case REDISLITE_REPLY_STATUS:
-        out = sdscat(out,r->str);
-        out = sdscat(out,"\n");
-    break;
-    case REDISLITE_REPLY_INTEGER:
-        out = sdscatprintf(out,"(integer) %lld\n",r->integer);
-    break;
-    case REDISLITE_REPLY_STRING:
-        /* If you are producing output for the standard output we want
-        * a more interesting output with quoted characters and so forth */
-        out = sdscatrepr(out,r->str,r->len);
-        out = sdscat(out,"\n");
-    break;
-    case REDISLITE_REPLY_NIL:
-        out = sdscat(out,"(nil)\n");
-    break;
-    case REDISLITE_REPLY_ARRAY:
-        if (r->elements == 0) {
-            out = sdscat(out,"(empty list or set)\n");
-        } else {
-            unsigned int i, idxlen = 0;
-            char _prefixlen[16];
-            char _prefixfmt[16];
-            sds _prefix;
-            sds tmp;
+static sds cliFormatReplyTTY(redislite_reply *r, char *prefix)
+{
+	sds out = sdsempty();
+	switch (r->type) {
+		case REDISLITE_REPLY_ERROR:
+			out = sdscatprintf(out, "(error) %s\n", r->str);
+			break;
+		case REDISLITE_REPLY_STATUS:
+			out = sdscat(out, r->str);
+			out = sdscat(out, "\n");
+			break;
+		case REDISLITE_REPLY_INTEGER:
+			out = sdscatprintf(out, "(integer) %lld\n", r->integer);
+			break;
+		case REDISLITE_REPLY_STRING:
+			/* If you are producing output for the standard output we want
+			* a more interesting output with quoted characters and so forth */
+			out = sdscatrepr(out, r->str, r->len);
+			out = sdscat(out, "\n");
+			break;
+		case REDISLITE_REPLY_NIL:
+			out = sdscat(out, "(nil)\n");
+			break;
+		case REDISLITE_REPLY_ARRAY:
+			if (r->elements == 0) {
+				out = sdscat(out, "(empty list or set)\n");
+			}
+			else {
+				unsigned int i, idxlen = 0;
+				char _prefixlen[16];
+				char _prefixfmt[16];
+				sds _prefix;
+				sds tmp;
 
-            /* Calculate chars needed to represent the largest index */
-            i = r->elements;
-            do {
-                idxlen++;
-                i /= 10;
-            } while(i);
+				/* Calculate chars needed to represent the largest index */
+				i = r->elements;
+				do {
+					idxlen++;
+					i /= 10;
+				}
+				while(i);
 
-            /* Prefix for nested multi bulks should grow with idxlen+2 spaces */
-            memset(_prefixlen,' ',idxlen+2);
-            _prefixlen[idxlen+2] = '\0';
-            _prefix = sdscat(sdsnew(prefix),_prefixlen);
+				/* Prefix for nested multi bulks should grow with idxlen+2 spaces */
+				memset(_prefixlen, ' ', idxlen + 2);
+				_prefixlen[idxlen+2] = '\0';
+				_prefix = sdscat(sdsnew(prefix), _prefixlen);
 
-            /* Setup prefix format for every entry */
-            snprintf(_prefixfmt,sizeof(_prefixfmt),"%%s%%%dd) ",idxlen);
+				/* Setup prefix format for every entry */
+				snprintf(_prefixfmt, sizeof(_prefixfmt), "%%s%%%dd) ", idxlen);
 
-            for (i = 0; i < r->elements; i++) {
-                /* Don't use the prefix for the first element, as the parent
-                 * caller already prepended the index number. */
-                out = sdscatprintf(out,_prefixfmt,i == 0 ? "" : prefix,i+1);
+				for (i = 0; i < r->elements; i++) {
+					/* Don't use the prefix for the first element, as the parent
+					 * caller already prepended the index number. */
+					out = sdscatprintf(out, _prefixfmt, i == 0 ? "" : prefix, i + 1);
 
-                /* Format the multi bulk entry */
-                tmp = cliFormatReplyTTY(r->element[i],_prefix);
-                out = sdscatlen(out,tmp,sdslen(tmp));
-                sdsfree(tmp);
-            }
-            sdsfree(_prefix);
-        }
-    break;
-    default:
-        fprintf(stderr,"Unknown reply type: %d\n", r->type);
-        exit(1);
-    }
-    return out;
+					/* Format the multi bulk entry */
+					tmp = cliFormatReplyTTY(r->element[i], _prefix);
+					out = sdscatlen(out, tmp, sdslen(tmp));
+					sdsfree(tmp);
+				}
+				sdsfree(_prefix);
+			}
+			break;
+		default:
+			fprintf(stderr, "Unknown reply type: %d\n", r->type);
+			exit(1);
+	}
+	return out;
 }
 
-static sds cliFormatReplyRaw(redislite_reply *r) {
-    sds out = sdsempty(), tmp;
-    size_t i;
+static sds cliFormatReplyRaw(redislite_reply *r)
+{
+	sds out = sdsempty(), tmp;
+	size_t i;
 
-    switch (r->type) {
-    case REDISLITE_REPLY_NIL:
-        /* Nothing... */
-    break;
-    case REDISLITE_REPLY_ERROR:
-    case REDISLITE_REPLY_STATUS:
-    case REDISLITE_REPLY_STRING:
-        out = sdscatlen(out,r->str,r->len);
-    break;
-    case REDISLITE_REPLY_INTEGER:
-        out = sdscatprintf(out,"%lld",r->integer);
-    break;
-    case REDISLITE_REPLY_ARRAY:
-        for (i = 0; i < r->elements; i++) {
-            if (i > 0) out = sdscat(out,config.mb_delim);
-            tmp = cliFormatReplyRaw(r->element[i]);
-            out = sdscatlen(out,tmp,sdslen(tmp));
-            sdsfree(tmp);
-        }
-    break;
-    default:
-        fprintf(stderr,"Unknown reply type: %d\n", r->type);
-        exit(1);
-    }
-    return out;
+	switch (r->type) {
+		case REDISLITE_REPLY_NIL:
+			/* Nothing... */
+			break;
+		case REDISLITE_REPLY_ERROR:
+		case REDISLITE_REPLY_STATUS:
+		case REDISLITE_REPLY_STRING:
+			out = sdscatlen(out, r->str, r->len);
+			break;
+		case REDISLITE_REPLY_INTEGER:
+			out = sdscatprintf(out, "%lld", r->integer);
+			break;
+		case REDISLITE_REPLY_ARRAY:
+			for (i = 0; i < r->elements; i++) {
+				if (i > 0) {
+					out = sdscat(out, config.mb_delim);
+				}
+				tmp = cliFormatReplyRaw(r->element[i]);
+				out = sdscatlen(out, tmp, sdslen(tmp));
+				sdsfree(tmp);
+			}
+			break;
+		default:
+			fprintf(stderr, "Unknown reply type: %d\n", r->type);
+			exit(1);
+	}
+	return out;
 }
 
-static int cliReadReply(redislite_reply *reply, int output_raw_strings) {
-    sds out;
+static int cliReadReply(redislite_reply *reply, int output_raw_strings)
+{
+	sds out;
 
-    if (reply == NULL) {
-        cliPrintContextErrorAndExit();
-        return REDISLITE_ERR; /* avoid compiler warning */
-    }
+	if (reply == NULL) {
+		cliPrintContextErrorAndExit();
+		return REDISLITE_ERR; /* avoid compiler warning */
+	}
 
-    if (output_raw_strings) {
-        out = cliFormatReplyRaw(reply);
-    } else {
-        if (config.raw_output) {
-            out = cliFormatReplyRaw(reply);
-            out = sdscat(out,"\n");
-        } else {
-            out = cliFormatReplyTTY(reply,"");
-        }
-    }
-    fwrite(out,sdslen(out),1,stdout);
-    sdsfree(out);
-    redislite_free_reply(reply);
-    return REDISLITE_OK;
+	if (output_raw_strings) {
+		out = cliFormatReplyRaw(reply);
+	}
+	else {
+		if (config.raw_output) {
+			out = cliFormatReplyRaw(reply);
+			out = sdscat(out, "\n");
+		}
+		else {
+			out = cliFormatReplyTTY(reply, "");
+		}
+	}
+	fwrite(out, sdslen(out), 1, stdout);
+	sdsfree(out);
+	redislite_free_reply(reply);
+	return REDISLITE_OK;
 }
 
-static int cliSendCommand(int argc, char **argv, int repeat) {
-    char *command = argv[0];
-    size_t *argvlen;
-    int j, output_raw;
+static int cliSendCommand(int argc, char **argv, int repeat)
+{
+	char *command = argv[0];
+	size_t *argvlen;
+	int j, output_raw;
 
-    if (db == NULL) {
-        printf("Not connected, please use: connect <host> <port>\n");
-        return REDISLITE_OK;
-    }
+	if (db == NULL) {
+		printf("Not connected, please use: connect <host> <port>\n");
+		return REDISLITE_OK;
+	}
 
-    output_raw = !strcasecmp(command,"info");
-    if (!strcasecmp(command,"help") || !strcasecmp(command,"?")) {
-        cliOutputHelp(--argc, ++argv);
-        return REDISLITE_OK;
-    }
+	output_raw = !strcasecmp(command, "info");
+	if (!strcasecmp(command, "help") || !strcasecmp(command, "?")) {
+		cliOutputHelp(--argc, ++argv);
+		return REDISLITE_OK;
+	}
 
-    /* Setup argument length */
-    argvlen = malloc(argc*sizeof(size_t));
-    for (j = 0; j < argc; j++)
-        argvlen[j] = sdslen(argv[j]);
+	/* Setup argument length */
+	argvlen = malloc(argc * sizeof(size_t));
+	for (j = 0; j < argc; j++) {
+		argvlen[j] = sdslen(argv[j]);
+	}
 
 	redislite_reply *reply = NULL;
-    while(repeat--) {
-		reply = redislite_command_argv(db,argc,(const char**)argv,argvlen);
+	while(repeat--) {
+		reply = redislite_command_argv(db, argc, (const char **)argv, argvlen);
 		if (reply == NULL) {
 			fprintf(stdout, "There was an error on line %d (may be ran out of memory?)", __LINE__);
 			exit(1);
 		}
 
-        if (cliReadReply(reply, output_raw) != REDISLITE_OK) {
-		free(argvlen);
-            return REDISLITE_ERR;
+		if (cliReadReply(reply, output_raw) != REDISLITE_OK) {
+			free(argvlen);
+			return REDISLITE_ERR;
+		}
 	}
-    }
 	free(argvlen);
-    return REDISLITE_OK;
+	return REDISLITE_OK;
 }
 
 /*------------------------------------------------------------------------------
  * User interface
  *--------------------------------------------------------------------------- */
 
-static int parseOptions(int argc, char **argv) {
-    int i;
+static int parseOptions(int argc, char **argv)
+{
+	int i;
 
-    for (i = 1; i < argc; i++) {
-        int lastarg = i==argc-1;
+	for (i = 1; i < argc; i++) {
+		int lastarg = i == argc - 1;
 
-        if (!strcmp(argv[i],"-f")) {
-            sdsfree(config.filename);
-            config.filename = sdsnew(argv[i+1]);
-            i++;
-        } else if (!strcmp(argv[i],"-h")) {
-            usage();
-        } else if (!strcmp(argv[i],"--help")) {
-            usage();
-        } else if (!strcmp(argv[i],"-x")) {
-            config.stdinarg = 1;
-        } else if (!strcmp(argv[i],"-r") && !lastarg) {
-            config.repeat = strtoll(argv[i+1],NULL,10);
-            i++;
-        } else if (!strcmp(argv[i],"--raw")) {
-            config.raw_output = 1;
-        } else if (!strcmp(argv[i],"-d") && !lastarg) {
-            sdsfree(config.mb_delim);
-            config.mb_delim = sdsnew(argv[i+1]);
-            i++;
-        } else if (!strcmp(argv[i],"-v") || !strcmp(argv[i], "--version")) {
-            sds version = cliVersion();
-            printf("redislite-cli %s\n", version);
-            sdsfree(version);
-            exit(0);
-        } else {
-            break;
-        }
-    }
-    return i;
+		if (!strcmp(argv[i], "-f")) {
+			sdsfree(config.filename);
+			config.filename = sdsnew(argv[i+1]);
+			i++;
+		}
+		else if (!strcmp(argv[i], "-h")) {
+			usage();
+		}
+		else if (!strcmp(argv[i], "--help")) {
+			usage();
+		}
+		else if (!strcmp(argv[i], "-x")) {
+			config.stdinarg = 1;
+		}
+		else if (!strcmp(argv[i], "-r") && !lastarg) {
+			config.repeat = strtoll(argv[i+1], NULL, 10);
+			i++;
+		}
+		else if (!strcmp(argv[i], "--raw")) {
+			config.raw_output = 1;
+		}
+		else if (!strcmp(argv[i], "-d") && !lastarg) {
+			sdsfree(config.mb_delim);
+			config.mb_delim = sdsnew(argv[i+1]);
+			i++;
+		}
+		else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version")) {
+			sds version = cliVersion();
+			printf("redislite-cli %s\n", version);
+			sdsfree(version);
+			exit(0);
+		}
+		else {
+			break;
+		}
+	}
+	return i;
 }
 
-static sds readArgFromStdin(void) {
-    char buf[1024];
-    sds arg = sdsempty();
+static sds readArgFromStdin(void)
+{
+	char buf[1024];
+	sds arg = sdsempty();
 
-    while(1) {
-        int nread = read(fileno(stdin),buf,1024);
+	while(1) {
+		int nread = read(fileno(stdin), buf, 1024);
 
-        if (nread == 0) break;
-        else if (nread == -1) {
-            perror("Reading from standard input");
-            exit(1);
-        }
-        arg = sdscatlen(arg,buf,nread);
-    }
-    return arg;
+		if (nread == 0) {
+			break;
+		}
+		else if (nread == -1) {
+			perror("Reading from standard input");
+			exit(1);
+		}
+		arg = sdscatlen(arg, buf, nread);
+	}
+	return arg;
 }
 
-static void usage() {
-    sds version = cliVersion();
-    fprintf(stderr,
-"redislite-cli %s\n"
-"\n"
-"Usage: redislite-cli [OPTIONS] [cmd [arg [arg ...]]]\n"
-"  -f <filename>    Db file name\n"
-"  -r <repeat>      Execute specified command N times\n"
-"  -x               Read last argument from STDIN\n"
-"  -d <delimiter>   Multi-bulk delimiter in for raw formatting (default: \\n)\n"
-"  --raw            Use raw formatting for replies (default when STDOUT is not a tty)\n"
-"  --help           Output this help and exit\n"
-"  --version        Output version and exit\n"
-"\n"
-"Examples:\n"
-"  cat /etc/passwd | redislite-cli -x set mypasswd\n"
-"  redislite-cli get mypasswd\n"
-"  redislite-cli -r 100 lpush mylist x\n"
-"\n"
-"When no command is given, redislite-cli starts in interactive mode.\n"
-"Type \"help\" in interactive mode for information on available commands.\n"
-"\n",
-        version);
-    sdsfree(version);
-    exit(1);
+static void usage()
+{
+	sds version = cliVersion();
+	fprintf(stderr,
+	        "redislite-cli %s\n"
+	        "\n"
+	        "Usage: redislite-cli [OPTIONS] [cmd [arg [arg ...]]]\n"
+	        "  -f <filename>    Db file name\n"
+	        "  -r <repeat>      Execute specified command N times\n"
+	        "  -x               Read last argument from STDIN\n"
+	        "  -d <delimiter>   Multi-bulk delimiter in for raw formatting (default: \\n)\n"
+	        "  --raw            Use raw formatting for replies (default when STDOUT is not a tty)\n"
+	        "  --help           Output this help and exit\n"
+	        "  --version        Output version and exit\n"
+	        "\n"
+	        "Examples:\n"
+	        "  cat /etc/passwd | redislite-cli -x set mypasswd\n"
+	        "  redislite-cli get mypasswd\n"
+	        "  redislite-cli -r 100 lpush mylist x\n"
+	        "\n"
+	        "When no command is given, redislite-cli starts in interactive mode.\n"
+	        "Type \"help\" in interactive mode for information on available commands.\n"
+	        "\n",
+	        version);
+	sdsfree(version);
+	exit(1);
 }
 
 /* Turn the plain C strings into Sds strings */
-static char **convertToSds(int count, char** args) {
-  int j;
-  char **sds = redislite_malloc(sizeof(char*)*count);
+static char **convertToSds(int count, char **args)
+{
+	int j;
+	char **sds = redislite_malloc(sizeof(char *) * count);
 
-  for(j = 0; j < count; j++)
-    sds[j] = sdsnew(args[j]);
+	for(j = 0; j < count; j++) {
+		sds[j] = sdsnew(args[j]);
+	}
 
-  return sds;
+	return sds;
 }
 
 #define LINE_BUFLEN 4096
-static void repl() {
-    int argc, j;
-    char *line;
-    sds *argv;
+static void repl()
+{
+	int argc, j;
+	char *line;
+	sds *argv;
 
-    config.interactive = 1;
-    linenoiseSetCompletionCallback(completionCallback);
+	config.interactive = 1;
+	linenoiseSetCompletionCallback(completionCallback);
 
-    while((line = linenoise(db ? "redislite> " : "not connected> ")) != NULL) {
-        if (line[0] != '\0') {
-            argv = sdssplitargs(line,&argc);
-            linenoiseHistoryAdd(line);
-            if (config.historyfile) linenoiseHistorySave(config.historyfile);
-            if (argv == NULL) {
-                printf("Invalid argument(s)\n");
-                continue;
-            } else if (argc > 0) {
-                if (strcasecmp(argv[0],"quit") == 0 ||
-                    strcasecmp(argv[0],"exit") == 0)
-                {
-                    exit(0);
-                } else if (argc == 1 && !strcasecmp(argv[0],"clear")) {
-                    linenoiseClearScreen();
-                } else {
-                    long long start_time = mstime(), elapsed;
+	while((line = linenoise(db ? "redislite> " : "not connected> ")) != NULL) {
+		if (line[0] != '\0') {
+			argv = sdssplitargs(line, &argc);
+			linenoiseHistoryAdd(line);
+			if (config.historyfile) {
+				linenoiseHistorySave(config.historyfile);
+			}
+			if (argv == NULL) {
+				printf("Invalid argument(s)\n");
+				continue;
+			}
+			else if (argc > 0) {
+				if (strcasecmp(argv[0], "quit") == 0 ||
+				        strcasecmp(argv[0], "exit") == 0) {
+					exit(0);
+				}
+				else if (argc == 1 && !strcasecmp(argv[0], "clear")) {
+					linenoiseClearScreen();
+				}
+				else {
+					long long start_time = mstime(), elapsed;
 
-                    if (cliSendCommand(argc,argv,1) != REDISLITE_OK) {
-                        cliConnect(1);
+					if (cliSendCommand(argc, argv, 1) != REDISLITE_OK) {
+						cliConnect(1);
 
-                        /* If we still cannot send the command,
-                         * print error and abort. */
-                        if (cliSendCommand(argc,argv,1) != REDISLITE_OK)
-                            cliPrintContextErrorAndExit();
-                    }
-                    elapsed = mstime()-start_time;
-                    if (elapsed >= 500) {
-                        printf("(%.2fs)\n",(double)elapsed/1000);
-                    }
-                }
-            }
-            /* Free the argument vector */
-            for (j = 0; j < argc; j++)
-                sdsfree(argv[j]);
+						/* If we still cannot send the command,
+						 * print error and abort. */
+						if (cliSendCommand(argc, argv, 1) != REDISLITE_OK) {
+							cliPrintContextErrorAndExit();
+						}
+					}
+					elapsed = mstime() - start_time;
+					if (elapsed >= 500) {
+						printf("(%.2fs)\n", (double)elapsed / 1000);
+					}
+				}
+			}
+			/* Free the argument vector */
+			for (j = 0; j < argc; j++) {
+				sdsfree(argv[j]);
+			}
 			redislite_free(argv);
-        }
-        /* linenoise() returns malloc-ed lines like readline() */
-        free(line);
-    }
-    exit(0);
+		}
+		/* linenoise() returns malloc-ed lines like readline() */
+		free(line);
+	}
+	exit(0);
 }
 
-static int noninteractive(int argc, char **argv) {
-    int retval = 0;
-    if (config.stdinarg) {
-        argv = redislite_realloc(argv, (argc+1)*sizeof(char*));
-        argv[argc] = readArgFromStdin();
-        retval = cliSendCommand(argc+1, argv, config.repeat);
-    } else {
-        /* stdin is probably a tty, can be tested with S_ISCHR(s.st_mode) */
-        retval = cliSendCommand(argc, argv, config.repeat);
-    }
-    return retval;
+static int noninteractive(int argc, char **argv)
+{
+	int retval = 0;
+	if (config.stdinarg) {
+		argv = redislite_realloc(argv, (argc + 1) * sizeof(char *));
+		argv[argc] = readArgFromStdin();
+		retval = cliSendCommand(argc + 1, argv, config.repeat);
+	}
+	else {
+		/* stdin is probably a tty, can be tested with S_ISCHR(s.st_mode) */
+		retval = cliSendCommand(argc, argv, config.repeat);
+	}
+	return retval;
 }
 
-int main(int argc, char **argv) {
-    int firstarg;
+int main(int argc, char **argv)
+{
+	int firstarg;
 
-    config.filename = sdsnew("redislite.db");
-    config.repeat = 1;
-    config.interactive = 0;
-    config.stdinarg = 0;
-    config.historyfile = NULL;
-    config.raw_output = !isatty(fileno(stdout)) && (getenv("FAKETTY") == NULL);
-    config.mb_delim = sdsnew("\n");
-    cliInitHelp();
+	config.filename = sdsnew("redislite.db");
+	config.repeat = 1;
+	config.interactive = 0;
+	config.stdinarg = 0;
+	config.historyfile = NULL;
+	config.raw_output = !isatty(fileno(stdout)) && (getenv("FAKETTY") == NULL);
+	config.mb_delim = sdsnew("\n");
+	cliInitHelp();
 
-    if (getenv("HOME") != NULL) {
-        config.historyfile = malloc(256);
-        snprintf(config.historyfile,256,"%s/.redislitecli_history",getenv("HOME"));
-        linenoiseHistoryLoad(config.historyfile);
-    }
+	if (getenv("HOME") != NULL) {
+		config.historyfile = malloc(256);
+		snprintf(config.historyfile, 256, "%s/.redislitecli_history", getenv("HOME"));
+		linenoiseHistoryLoad(config.historyfile);
+	}
 
-    firstarg = parseOptions(argc,argv);
-    argc -= firstarg;
-    argv += firstarg;
+	firstarg = parseOptions(argc, argv);
+	argc -= firstarg;
+	argv += firstarg;
 
-    /* Try to connect */
-    if (cliConnect(0) != REDISLITE_OK) exit(1);
+	/* Try to connect */
+	if (cliConnect(0) != REDISLITE_OK) {
+		exit(1);
+	}
 
-    /* Start interactive mode when no command is provided */
-    if (argc == 0) repl();
-    /* Otherwise, we have some arguments to execute */
-    char **converted = convertToSds(argc,argv);
-    int ret = noninteractive(argc,converted);
-    int i;
-    cliCleanHelp();
-    for (i=0;i<argc;i++) {
-        sdsfree(converted[i]);
-    }
-    free(converted);
-    sdsfree(config.filename);
-    sdsfree(config.mb_delim);
-    return ret;
+	/* Start interactive mode when no command is provided */
+	if (argc == 0) {
+		repl();
+	}
+	/* Otherwise, we have some arguments to execute */
+	char **converted = convertToSds(argc, argv);
+	int ret = noninteractive(argc, converted);
+	int i;
+	cliCleanHelp();
+	for (i = 0; i < argc; i++) {
+		sdsfree(converted[i]);
+	}
+	free(converted);
+	sdsfree(config.filename);
+	sdsfree(config.mb_delim);
+	return ret;
 }

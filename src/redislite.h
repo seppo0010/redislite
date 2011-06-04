@@ -42,8 +42,8 @@ typedef struct {
 changeset *redislite_create_changeset(redislite *db);
 void redislite_free_changeset(changeset *cs);
 int redislite_save_changeset(changeset *cs);
-redislite* redislite_create_database(const char *filename);
-redislite* redislite_open_database(const char *filename);
+redislite *redislite_create_database(const char *filename);
+redislite *redislite_open_database(const char *filename);
 void redislite_close_database(redislite *db);
 unsigned char *redislite_read_page(redislite *db, changeset *cs, int num);
 int redislite_add_modified_page(changeset *cs, int page_number, char type, void *page_data);
