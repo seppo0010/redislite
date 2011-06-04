@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ $(astyle --indent=tab -l -S -K -y -j -p -k3 src/*.{c,h} |grep formatted |wc -l) -eq 0 ]; then
+	exit 0
+else
+	echo "Commit failed due to inconsistent styling; autostyled"
+	exit 1
+fi
