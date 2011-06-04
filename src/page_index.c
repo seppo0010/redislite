@@ -102,6 +102,7 @@ static int redislite_keys_are_equal(redislite_page_index_key* key1, redislite_pa
 	return 0 ==  memcmp(key1->keyname, key2->keyname, MIN(key1->keyname_size, key2->keyname_size));
 }
 
+/*
 static int redislite_keys_cmp(redislite_page_index_key* key1, redislite_page_index_key* key2) {
 	int cmp_result = memcmp(key1->keyname, key2->keyname, MIN(key1->keyname_size, key2->keyname_size));
 	if (cmp_result == 0) {
@@ -112,6 +113,7 @@ static int redislite_keys_cmp(redislite_page_index_key* key1, redislite_page_ind
 	}
 	return cmp_result;
 }
+*/
 
 static int redislite_remove_key(void *_cs, void *_key, int page_num)
 {

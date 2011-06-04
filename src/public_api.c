@@ -942,7 +942,6 @@ redislite_reply *redislite_command(redislite *db, char *command)
 
 redislite_reply *redislite_command_argv(redislite *db, int argc, const char **argv, const size_t *argvlen)
 {
-	int i, j;
 	redislite_params *params = redislite_malloc(sizeof(redislite_params));
 	params->argc = argc;
 	params->argv = (char**)argv;

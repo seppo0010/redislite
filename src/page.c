@@ -73,7 +73,7 @@ int redislite_page_register_type(void *_db, redislite_page_type* type) {
 			db->types[i] = NULL;
 		}
 	}
-	db->types[type->identifier] = type;
+	db->types[(int)type->identifier] = type;
 	return REDISLITE_OK;
 }
 
@@ -82,8 +82,8 @@ redislite_page_type *redislite_page_get_type(void *_db, char identifier) {
 	if (db->types == NULL) {
 		return NULL;
 	}
-	if (db->types[identifier] == NULL) {
+	if (db->types[(int)identifier] == NULL) {
 		printf("Unknown identifier: '%c'\n", identifier);
 	}
-	return db->types[identifier];
+	return db->types[(int)identifier];
 }
