@@ -590,7 +590,7 @@ struct redislite_command redislite_command_table[] = {
 	{"getbit", redislite_getbit_command, 3, 0},
 	{"setrange", redislite_command_not_implemented_yet, 4, 0},
 	{"getrange", redislite_getrange_command, 4, 0},
-	{"substr", redislite_command_not_implemented_yet, 4, 0},
+	{"substr", redislite_getrange_command, 4, 0},
 	{"incr", redislite_incr_command, 2, 0},
 	{"decr", redislite_decr_command, 2, 0},
 	{"mget", redislite_command_not_implemented_yet, 2, 0},
@@ -802,6 +802,12 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 		case 230: // 'E'+'X'+'I'
 			if (length == 6 && memcaseequal(command, "exists", 6)) {
 				return &redislite_command_table[7];
+			}
+			break;
+
+		case 234: // 'S'+'U'+'B'
+			if (length == 6 && memcaseequal(command, "substr", 6)) {
+				return &redislite_command_table[11];
 			}
 			break;
 
