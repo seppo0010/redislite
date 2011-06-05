@@ -414,6 +414,45 @@ redislite_reply *redislite_getbit_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_getrange_command(redislite *db, redislite_params *params)
+{
+
+	char *key;
+	int len;
+	long long start;
+	long long end;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &start);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+	status = str_to_long_long(params->argv[3], params->argvlen[3], &end);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	status = redislite_page_string_getrange_key_string(db, NULL, key, len, start, end, &reply->str, &reply->len);
+	if (status < REDISLITE_OK) {
+		set_error_message(status, reply);
+		return reply;
+	}
+	reply->type = REDISLITE_REPLY_STRING;
+	return reply;
+}
+
 redislite_reply *redislite_incr_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -550,7 +589,7 @@ struct redislite_command redislite_command_table[] = {
 	{"setbit", redislite_command_not_implemented_yet, 4, 0},
 	{"getbit", redislite_getbit_command, 3, 0},
 	{"setrange", redislite_command_not_implemented_yet, 4, 0},
-	{"getrange", redislite_command_not_implemented_yet, 4, 0},
+	{"getrange", redislite_getrange_command, 4, 0},
 	{"substr", redislite_command_not_implemented_yet, 4, 0},
 	{"incr", redislite_incr_command, 2, 0},
 	{"decr", redislite_decr_command, 2, 0},
@@ -748,6 +787,9 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 			}
 			else if (length == 6 && memcaseequal(command, "getbit", 6)) {
 				return &redislite_command_table[9];
+			}
+			else if (length == 8 && memcaseequal(command, "getrange", 8)) {
+				return &redislite_command_table[11];
 			}
 			break;
 
