@@ -287,6 +287,50 @@ redislite_reply *redislite_exists_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
+{
+	char type;
+	char *key;
+	int len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = redislite_page_index_type(db, NULL, key, len, &type);
+	if (status == REDISLITE_NOT_FOUND) {
+		reply->str = redislite_malloc(sizeof(char) * 4);
+		if (reply->str == NULL) {
+			redislite_free(reply);
+			return NULL;
+		}
+		memcpy(reply->str, "none", 4);
+		reply->type = REDISLITE_REPLY_STRING;
+		reply->len = 4;
+	}
+	else if (status < 0) {
+		set_error_message(status, reply);
+	}
+	else {
+		switch (type) {
+			case REDISLITE_PAGE_TYPE_STRING: {
+					reply->str = redislite_malloc(sizeof(char) * 6);
+					if (reply->str == NULL) {
+						redislite_free(reply);
+						return NULL;
+					}
+					memcpy(reply->str, "string", 6);
+					reply->type = REDISLITE_REPLY_STRING;
+					reply->len = 6;
+					break;
+				}
+		}
+
+	}
+	return reply;
+}
+
 redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
@@ -590,7 +634,7 @@ struct redislite_command redislite_command_table[] = {
 	{"bgrewriteaof", redislite_command_implementation_not_planned, 1, 0},
 	{"shutdown", redislite_command_implementation_not_planned, 1, 0},
 	{"lastsave", redislite_command_implementation_not_planned, 1, 0},
-	{"type", redislite_command_not_implemented_yet, 2, 0},
+	{"type", redislite_type_command, 2, 0},
 	{"multi", redislite_command_not_implemented_yet, 1, 0},
 	{"exec", redislite_command_not_implemented_yet, 1, 0},
 	{"discard", redislite_command_not_implemented_yet, 1, 0},
@@ -731,6 +775,11 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 		case 249: // 'S'+'T'+'R'
 			if (length == 6 && memcaseequal(command, "strlen", 6)) {
 				return &redislite_command_table[5];
+			}
+			break;
+		case 253: // 'T'+'Y'+'P'
+			if (length == 4 && memcaseequal(command, "type", 4)) {
+				return &redislite_command_table[95];
 			}
 			break;
 	}

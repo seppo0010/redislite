@@ -709,7 +709,7 @@ int test_type()
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	else if (status != REDISLITE_ERR) {
+	else if (status != REDISLITE_NOT_FOUND) {
 		status = REDISLITE_ERR;
 		printf("Getting type of non-existing key\n");
 		goto cleanup;
