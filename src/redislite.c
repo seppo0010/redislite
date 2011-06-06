@@ -164,7 +164,7 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 
 	int i;
 	for (i = cs->opened_pages_length - 1; i >= pos; i--) {
-		cs->opened_pages[i+1] = cs->opened_pages[i];
+		cs->opened_pages[i + 1] = cs->opened_pages[i];
 	}
 
 	cs->opened_pages[pos] = page;
@@ -241,7 +241,7 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	}
 
 	for (i = cs->modified_pages_length - 1; i >= pos; i--) {
-		cs->modified_pages[i+1] = cs->modified_pages[i];
+		cs->modified_pages[i + 1] = cs->modified_pages[i];
 	}
 
 	cs->modified_pages[pos] = page;

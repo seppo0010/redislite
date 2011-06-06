@@ -178,7 +178,7 @@ sds sdscatlen(sds s, const void *t, size_t len)
 	memcpy(s + curlen, t, len);
 	sh->len = curlen + len;
 	sh->free = sh->free - len;
-	s[curlen+len] = '\0';
+	s[curlen + len] = '\0';
 	return s;
 }
 
@@ -229,10 +229,10 @@ sds sdscatvprintf(sds s, const char *fmt, va_list ap)
 			return NULL;
 		}
 #endif
-		buf[buflen-2] = '\0';
+		buf[buflen - 2] = '\0';
 		va_copy(cpy, ap);
 		vsnprintf(buf, buflen, fmt, cpy);
-		if (buf[buflen-2] != '\0') {
+		if (buf[buflen - 2] != '\0') {
 			free(buf);
 			buflen *= 2;
 			continue;

@@ -77,7 +77,7 @@ int test_insert_and_find()
 			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size + 1);
 		}
 
-		if (value[0] != key[i][0] || value[length-1] != key[i][1]) {
+		if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
 			printf("Content mismatch\n");
 			break;
 		}
@@ -112,7 +112,7 @@ int test_insert_and_find()
 			if (length != db->page_size + 1) {
 				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
 			}
-			if (value[0] != key[i][0] || value[length-1] != key[i][1]) {
+			if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
 				printf("Content mismatch\n");
 			}
 
@@ -253,8 +253,8 @@ int test_delete_and_find()
 	char **keys = malloc(sizeof(char *) * (SIZE / 2));
 	size_t *lengths = malloc(sizeof(size_t) * (SIZE / 2));
 	for (i = 0; i < SIZE / 2; i++) {
-		int size = (int)strlen(key[i*2]);
-		keys[i] = key[i*2];
+		int size = (int)strlen(key[i * 2]);
+		keys[i] = key[i * 2];
 		lengths[i] = (size_t)size;
 	}
 	redislite_delete_keys(cs, SIZE / 2, keys, lengths);
@@ -370,7 +370,7 @@ int test_append()
 			status = REDISLITE_SKIP;
 		}
 		else if (found == REDISLITE_OK) {
-			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[9]) {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length - 1] != value[9]) {
 				printf("Content mismatch on line %d\n", __LINE__);
 				status = REDISLITE_ERR;
 				redislite_free(lookup_value);
@@ -395,7 +395,7 @@ int test_append()
 			status = REDISLITE_SKIP;
 		}
 		else {
-			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[499]) {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length - 1] != value[499]) {
 				printf("Content mismatch on line %d\n", __LINE__);
 				status = REDISLITE_ERR;
 				redislite_free(lookup_value);
@@ -443,7 +443,7 @@ int test_append()
 			status = REDISLITE_SKIP;
 		}
 		else {
-			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[0]) {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length - 1] != value[0]) {
 				printf("Content mismatch on line %d\n", __LINE__);
 				status = REDISLITE_ERR;
 				redislite_free(lookup_value);

@@ -359,7 +359,7 @@ static sds cliFormatReplyTTY(redislite_reply *r, char *prefix)
 
 				/* Prefix for nested multi bulks should grow with idxlen+2 spaces */
 				memset(_prefixlen, ' ', idxlen + 2);
-				_prefixlen[idxlen+2] = '\0';
+				_prefixlen[idxlen + 2] = '\0';
 				_prefix = sdscat(sdsnew(prefix), _prefixlen);
 
 				/* Setup prefix format for every entry */
@@ -499,7 +499,7 @@ static int parseOptions(int argc, char **argv)
 
 		if (!strcmp(argv[i], "-f")) {
 			sdsfree(config.filename);
-			config.filename = sdsnew(argv[i+1]);
+			config.filename = sdsnew(argv[i + 1]);
 			i++;
 		}
 		else if (!strcmp(argv[i], "-h")) {
@@ -512,7 +512,7 @@ static int parseOptions(int argc, char **argv)
 			config.stdinarg = 1;
 		}
 		else if (!strcmp(argv[i], "-r") && !lastarg) {
-			config.repeat = strtoll(argv[i+1], NULL, 10);
+			config.repeat = strtoll(argv[i + 1], NULL, 10);
 			i++;
 		}
 		else if (!strcmp(argv[i], "--raw")) {
@@ -520,7 +520,7 @@ static int parseOptions(int argc, char **argv)
 		}
 		else if (!strcmp(argv[i], "-d") && !lastarg) {
 			sdsfree(config.mb_delim);
-			config.mb_delim = sdsnew(argv[i+1]);
+			config.mb_delim = sdsnew(argv[i + 1]);
 			i++;
 		}
 		else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version")) {

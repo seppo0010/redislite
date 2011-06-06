@@ -124,7 +124,7 @@ static int add_extra_string(void *_cs, char *str, int length)
 		else {
 			size = db->page_size - 8;
 		}
-		memcpy(data, &str[(db->page_size - 8) * (i-1)], size);
+		memcpy(data, &str[(db->page_size - 8) * (i - 1)], size);
 		overflow_page->db = db;
 		overflow_page->right_page = next_page;
 		overflow_page->value = data;
@@ -351,7 +351,7 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 			else {
 				int first_page_size = db->page_size - 12;
 
-				page->right_page = add_extra_string(_cs, &str[first_page_size-page->size], length + page->size - first_page_size);
+				page->right_page = add_extra_string(_cs, &str[first_page_size - page->size], length + page->size - first_page_size);
 				if (page->right_page < 0) {
 					redislite_free(page);
 					return page->right_page;

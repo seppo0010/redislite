@@ -149,7 +149,7 @@ static int redislite_remove_key(void *_cs, void *_key, int page_num)
 		if (redislite_keys_are_equal(page->keys[i], key)) {
 			redislite_free_key(page->keys[i]);
 			for (j = 1 + i; j < page->number_of_keys; j++) {
-				page->keys[j-1] = page->keys[j];
+				page->keys[j - 1] = page->keys[j];
 			}
 			page->number_of_keys--;
 			if (key != page->keys[i]) {
@@ -568,7 +568,7 @@ int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, 
 	}
 	int i;
 	for (i = page->number_of_keys - 1; i >= pos; --i) {
-		page->keys[i+1] = page->keys[i];
+		page->keys[i + 1] = page->keys[i];
 	}
 	page->keys[pos] = index_key;
 	page->number_of_keys++;
