@@ -26,4 +26,4 @@ FEATURES NOT GOING TO BE IMPLEMENTED (at the moment, at least)
 
 Pub/Sub
 Expiration (like EXPIRE, PERSIST)
-Bloacking commands (like BLPOP, BRPOPLPUSH)
+Blocking commands (like BLPOP, BRPOPLPUSH)

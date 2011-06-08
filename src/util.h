@@ -3,7 +3,7 @@
 
 // we are only going to support 32 bits right now
 
-int redislitePutVarint32(unsigned char*, int);
+int redislitePutVarint32(unsigned char *, int);
 int redisliteGetVarint32(const unsigned char *, int *);
 
 #define getVarint32(A,B)  (int)((*(A)<(int)0x80) ? ((B) = (int)*(A)),1 : redisliteGetVarint32((A), (int *)&(B)))
@@ -11,11 +11,14 @@ int redisliteGetVarint32(const unsigned char *, int *);
 
 
 void redislite_put_4bytes(unsigned char *p, int v);
-int redislite_get_4bytes(const char *p);
+int redislite_get_4bytes(const unsigned char *p);
 void redislite_put_2bytes(unsigned char *p, int v);
-int redislite_get_2bytes(const char *p);
+int redislite_get_2bytes(const unsigned char *p);
 
 #define MIN(A,B) ((A) > (B) ? (B) : (A))
 #define MAX(A,B) ((A) < (B) ? (B) : (A))
+
+int intlen(int integer);
+int str_to_long_long(char *str, int len, long long *value);
 
 #endif
