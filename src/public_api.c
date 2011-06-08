@@ -563,7 +563,8 @@ redislite_reply *redislite_decrby_command(redislite *db, redislite_params *param
 	return reply;
 }
 
-static redislite_reply *init_multibulk(size_t size) {
+static redislite_reply *init_multibulk(size_t size)
+{
 	int i, j;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
@@ -571,12 +572,12 @@ static redislite_reply *init_multibulk(size_t size) {
 	}
 	reply->type = REDISLITE_REPLY_ARRAY;
 	reply->elements = size;
-	reply->element = redislite_malloc(sizeof(redislite_reply*) * (size));
+	reply->element = redislite_malloc(sizeof(redislite_reply *) * (size));
 	if (reply->element == NULL) {
 		redislite_free(reply);
 		return NULL;
 	}
-	for (i=0; i < size; i++) {
+	for (i = 0; i < size; i++) {
 		reply->element[i] = redislite_malloc(sizeof(redislite_reply));
 		if (reply->element[i] == NULL) {
 			for (j = i - 1; j >= 0; j--) {
@@ -596,9 +597,11 @@ redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
 	int len;
 	int i, status;
 	redislite_reply *reply = init_multibulk(params->argc - 1);
-	if (reply == NULL) return NULL;
+	if (reply == NULL) {
+		return NULL;
+	}
 
-	for (i=1; i < params->argc; i++) {
+	for (i = 1; i < params->argc; i++) {
 		key = params->argv[i];
 		len = params->argvlen[i];
 		status = redislite_page_string_get_by_keyname(db, NULL, key, len, &reply->element[i - 1]->str, &reply->element[i - 1]->len);
