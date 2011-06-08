@@ -381,10 +381,7 @@ int redislite_delete_keys(void *_cs, int q, char **keys, size_t *lengths)
 		}
 	}
 
-	if (status == REDISLITE_OK) {
-		status = counter;
-	}
-	return status;
+	return counter;
 }
 
 int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
