@@ -563,6 +563,55 @@ redislite_reply *redislite_decrby_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+static redislite_reply *init_multibulk(size_t size) {
+	int i, j;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	reply->type = REDISLITE_REPLY_ARRAY;
+	reply->elements = size;
+	reply->element = redislite_malloc(sizeof(redislite_reply*) * (size));
+	if (reply->element == NULL) {
+		redislite_free(reply);
+		return NULL;
+	}
+	for (i=0; i < size; i++) {
+		reply->element[i] = redislite_malloc(sizeof(redislite_reply));
+		if (reply->element[i] == NULL) {
+			for (j = i - 1; j >= 0; j--) {
+				redislite_free(reply->element[j]);
+			}
+			redislite_free(reply->element);
+			redislite_free(reply);
+			return NULL;
+		}
+	}
+	return reply;
+}
+
+redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	int len;
+	int i, status;
+	redislite_reply *reply = init_multibulk(params->argc - 1);
+	if (reply == NULL) return NULL;
+
+	for (i=1; i < params->argc; i++) {
+		key = params->argv[i];
+		len = params->argvlen[i];
+		status = redislite_page_string_get_by_keyname(db, NULL, key, len, &reply->element[i - 1]->str, &reply->element[i - 1]->len);
+		if (status == REDISLITE_OK) {
+			reply->element[i - 1]->type = REDISLITE_REPLY_STRING;
+		}
+		else {
+			set_error_message(status, reply->element[i - 1]);
+		}
+	}
+	return reply;
+}
+
 redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_params *params)
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -593,7 +642,7 @@ struct redislite_command redislite_command_table[] = {
 	{"substr", redislite_getrange_command, 4, 0},
 	{"incr", redislite_incr_command, 2, 0},
 	{"decr", redislite_decr_command, 2, 0},
-	{"mget", redislite_command_not_implemented_yet, 2, 0},
+	{"mget", redislite_mget_command, -2, 0},
 	{"rpush", redislite_command_not_implemented_yet, 3, 0},
 	{"lpush", redislite_command_not_implemented_yet, 3, 0},
 	{"rpushx", redislite_command_not_implemented_yet, 3, 0},
@@ -769,6 +818,12 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 		case 213: // 'D'+'E'+'L'
 			if (length == 3 && memcaseequal(command, "del", 3)) {
 				return &redislite_command_table[6];
+			}
+			break;
+
+		case 217: // 'M'+'G'+'E'
+			if (length == 4 && memcaseequal(command, "mget", 4)) {
+				return &redislite_command_table[15];
 			}
 			break;
 
