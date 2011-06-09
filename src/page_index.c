@@ -177,6 +177,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 	int _page_num = 0;
 
 	*status = REDISLITE_OK;
+
 	while (page != NULL) {
 		found = pos = 0;
 		for (i = 0; i < page->number_of_keys; i++) {
@@ -474,13 +475,13 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 			if (new_page == NULL) {
 				return REDISLITE_OOM;
 			}
-			/*
-			int r = redislite_page_index_add_key(new_page, 0, left, key, length, next_type);
+
+			int r = redislite_page_index_add_key(new_page, 0, left, key, length, type);
 			if (r != REDISLITE_OK) {
 				redislite_free(new_page);
 				return r;
 			}
-			*/
+
 			page_num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_INDEX, new_page);
 			if (pos < page->number_of_keys) {
 				int r = redislite_page_index_add_key(new_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size, type);
