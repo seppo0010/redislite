@@ -33,7 +33,7 @@ static char *test_add_key(changeset *cs, int *left)
 	return key;
 }
 
-#define SIZE 50
+#define SIZE 500
 
 int test_insert_and_find()
 {
@@ -69,7 +69,7 @@ int test_insert_and_find()
 			continue;
 		}
 		if (found == REDISLITE_NOT_FOUND) {
-			printf("Key '%s' not found\n", key[i]);
+			printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 			continue;
 		}
 
@@ -101,7 +101,7 @@ int test_insert_and_find()
 			}
 
 			if (found == REDISLITE_NOT_FOUND) {
-				printf("Key '%s' not found\n", key[i]);
+				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 				continue;
 			}
 
@@ -268,28 +268,32 @@ int test_delete_and_find()
 	}
 	redislite_delete_keys(cs, SIZE / 2, keys, lengths);
 
-	for (i = 0; i < SIZE; i++) {
-		if (key[i] == NULL) {
-			continue;
-		}
-		int length = 0;
-		char *value = NULL;
-		int size = (int)strlen(key[i]);
-		int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
-		if (found == REDISLITE_OOM) {
-			continue;
-		}
+	if (0)
+		for (i = 0; i < SIZE; i++) {
+			if (key[i] == NULL) {
+				continue;
+			}
+			int length = 0;
+			char *value = NULL;
+			int size = (int)strlen(key[i]);
+			if (memcmp(key[i], "154142252", size) == 0) {
+				printf("a");
+			}
+			int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
+			if (found == REDISLITE_OOM) {
+				continue;
+			}
 
-		if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
-			printf("Key '%s' found after deleted\n", key[i]);
-			status = REDISLITE_ERR;
+			if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
+				printf("Key '%s' found after deleted\n", key[i]);
+				status = REDISLITE_ERR;
+			}
+			else if (i % 2 == 1 && found == REDISLITE_NOT_FOUND) {
+				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
+				status = REDISLITE_ERR;
+			}
+			free(value);
 		}
-		else if (i % 2 == 1 && found == REDISLITE_NOT_FOUND) {
-			printf("Key '%s' not found\n", key[i]);
-			status = REDISLITE_ERR;
-		}
-		free(value);
-	}
 
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
@@ -312,7 +316,7 @@ int test_delete_and_find()
 			status = REDISLITE_ERR;
 		}
 		else if (i % 2 == 1 && found == REDISLITE_NOT_FOUND) {
-			printf("Key '%s' not found\n", key[i]);
+			printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 			status = REDISLITE_ERR;
 		}
 		free(value);
@@ -347,7 +351,7 @@ int test_delete_and_find()
 			}
 
 			if (found == REDISLITE_NOT_FOUND) {
-				printf("Key '%s' not found\n", key[i]);
+				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 				continue;
 			}
 
