@@ -4,8 +4,8 @@ typedef struct {
 	int right_page;
 	int size;
 	int element_alloced;
-	char** element;
-	int* element_len;
+	char **element;
+	int *element_len;
 } redislite_page_list;
 
 typedef struct {
@@ -23,6 +23,6 @@ void *redislite_read_list_first(void *_db, unsigned char *data);
 void redislite_free_list_first(void *_db, void *page);
 void redislite_delete_list_first(void *_cs, void *page);
 
-size_t redislite_free_bytes(void *_db, redislite_page_list* list, char type);
+size_t redislite_free_bytes(void *_db, redislite_page_list *list, char type);
 
 int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *value, int value_len);

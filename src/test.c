@@ -10,22 +10,22 @@ static char *dummy = NULL;
 static char *test_add_key(changeset *cs, int *left)
 {
 	int rnd = rand();
-	char *key = (char*)malloc(sizeof(char) * 14);
+	char *key = (char *)malloc(sizeof(char) * 14);
 	sprintf(key, "%d", rnd);
 	int size = (int)strlen(key);
 
 	if (dummy == NULL) {
-		dummy = malloc(sizeof(char) * cs->db->page_size+1);
-		memset(dummy, 'a', cs->db->page_size+1);
+		dummy = malloc(sizeof(char) * cs->db->page_size + 1);
+		memset(dummy, 'a', cs->db->page_size + 1);
 		int i;
-		for (i=0;i<cs->db->page_size+1;i++) {
+		for (i = 0; i < cs->db->page_size + 1; i++) {
 			dummy[i] = (char)(('a' + i) % 128);
 		}
 	}
 	dummy[0] = key[0];
 	dummy[cs->db->page_size] = key[1];
 
-	int insert = redislite_page_string_set_key_string(cs, key, size, dummy, cs->db->page_size+1);
+	int insert = redislite_page_string_set_key_string(cs, key, size, dummy, cs->db->page_size + 1);
 	if (insert != REDISLITE_OK) {
 		free(key);
 		key = NULL;
@@ -33,23 +33,34 @@ static char *test_add_key(changeset *cs, int *left)
 	return key;
 }
 
-#define SIZE 50
+#define SIZE 500
 
-int test_insert_and_find() {
+int test_insert_and_find()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	int i;
 
 	char *key[SIZE];
 	int value[SIZE];
-	for (i=0; i < SIZE; i++)
+	for (i = 0; i < SIZE; i++) {
 		key[i] = test_add_key(cs, &value[i]);
+	}
 
-	for (i=0; i < SIZE; i++) {
-		if (key[i] == NULL) continue;
+	for (i = 0; i < SIZE; i++) {
+		if (key[i] == NULL) {
+			continue;
+		}
 		int length = 0;
 		char *value = NULL;
 		int size = (int)strlen(key[i]);
@@ -57,17 +68,17 @@ int test_insert_and_find() {
 		if (found == REDISLITE_OOM) {
 			continue;
 		}
-		if (found == REDISLITE_ERR) {
-			printf("Key '%s' not found\n", key[i]);
+		if (found == REDISLITE_NOT_FOUND) {
+			printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 			continue;
 		}
 
-		if (length != cs->db->page_size+1) {
-			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size+1);
+		if (length != cs->db->page_size + 1) {
+			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size + 1);
 		}
 
-		if (value[0] != key[i][0] || value[length-1] != key[i][1]) {
-			printf("Content mismatch\n");
+		if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
+			printf("Content mismatch on line %d\n", __LINE__);
 			break;
 		}
 		free(value);
@@ -77,8 +88,10 @@ int test_insert_and_find() {
 	cs = NULL; // using stored values
 
 	if (1) {
-		for (i=0; i < SIZE; i++) {
-			if (key[i] == NULL) continue;
+		for (i = 0; i < SIZE; i++) {
+			if (key[i] == NULL) {
+				continue;
+			}
 			int length = 0;
 			char *value = NULL;
 			int size = (int)strlen(key[i]);
@@ -87,8 +100,8 @@ int test_insert_and_find() {
 				continue;
 			}
 
-			if (found == REDISLITE_ERR) {
-				printf("Key '%s' not found\n", key[i]);
+			if (found == REDISLITE_NOT_FOUND) {
+				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 				continue;
 			}
 
@@ -96,43 +109,69 @@ int test_insert_and_find() {
 				printf("Unable to find key: '%s'\n", key[i]);
 				continue;
 			}
-			if (length != db->page_size+1) {
-				printf("Wrong length (%d) should be %d\n", length, db->page_size+1);
+			if (length != db->page_size + 1) {
+				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
 			}
-			if (value[0] != key[i][0] || value[length-1] != key[i][1]) {
-				printf("Content mismatch\n");
+			if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
+				printf("Content mismatch on line %d\n", __LINE__);
+			}
+
+			if (!value) {
+				printf("Unable to find key: '%s'\n", key[i]);
+				continue;
+			}
+			if (length != db->page_size + 1) {
+				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
 			}
 
 			free(value);
 		}
 	}
 
-	for (i=0; i < SIZE; i++)
-		if (key[i] != NULL)
+	for (i = 0; i < SIZE; i++) {
+		if (key[i] != NULL) {
 			free(key[i]);
+		}
+	}
 	redislite_close_database(db);
 	return REDISLITE_OK;
 }
 
-int test_insert_middle_and_find() {
+int test_insert_middle_and_find()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	char key[412];
 	memset(key, 'a', 412);
 	key[0] = 'a';
 	int r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
-	if (r < 0) return REDISLITE_SKIP;
+	if (r < 0) {
+		return REDISLITE_SKIP;
+	}
 	key[0] = 'c';
 	r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
-	if (r < 0) return REDISLITE_SKIP;
+	if (r < 0) {
+		return REDISLITE_SKIP;
+	}
 	key[0] = 'b';
 	r = redislite_page_string_set_key_string(cs, key, 200, "1", 1);
-	if (r < 0) return REDISLITE_SKIP;
+	if (r < 0) {
+		return REDISLITE_SKIP;
+	}
 	r = redislite_page_string_set_key_string(cs, key, 2, "1", 1);
-	if (r < 0) return REDISLITE_SKIP;
+	if (r < 0) {
+		return REDISLITE_SKIP;
+	}
 
 	char *value;
 	int length;
@@ -141,7 +180,8 @@ int test_insert_middle_and_find() {
 	if (found == REDISLITE_OK) {
 		free(value);
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		status = REDISLITE_ERR;
 	}
 
@@ -152,24 +192,42 @@ int test_insert_middle_and_find() {
 	return status;
 }
 
-int test_setnx() {
+int test_setnx()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	char key[10];
 	memset(key, 'a', 10);
 	int r = redislite_page_string_set_key_string(cs, key, 10, "1", 1);
 	int status = REDISLITE_OK;
-	if (r < 0) status = REDISLITE_SKIP;
+	if (r < 0) {
+		status = REDISLITE_SKIP;
+	}
 	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
-	if (r < 0) status = REDISLITE_SKIP;
-	else if (r > 0) status = REDISLITE_ERR;
+	if (r < 0) {
+		status = REDISLITE_SKIP;
+	}
+	else if (r > 0) {
+		status = REDISLITE_ERR;
+	}
 	key[0] = 'b';
 	r = redislite_page_string_setnx_key_string(cs, key, 10, "1", 1);
-	if (r < 0) status = REDISLITE_SKIP;
-	else if (r == 0) status = REDISLITE_ERR;
+	if (r < 0) {
+		status = REDISLITE_SKIP;
+	}
+	else if (r == 0) {
+		status = REDISLITE_ERR;
+	}
 
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
@@ -178,55 +236,73 @@ int test_setnx() {
 	return status;
 }
 
-int test_delete_and_find() {
+int test_delete_and_find()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	int status = REDISLITE_OK;
 	int i;
 
 	char *key[SIZE];
 	int value[SIZE];
-	for (i=0; i < SIZE; i++)
+	for (i = 0; i < SIZE; i++) {
 		key[i] = test_add_key(cs, &value[i]);
+	}
 
-	char **keys = malloc(sizeof(char*) * (SIZE/2));
-	size_t *lengths = malloc(sizeof(size_t) * (SIZE/2));
-	for (i=0; i < SIZE/2; i++) {
-		int size = (int)strlen(key[i*2]);
-		keys[i] = key[i*2];
+	char **keys = malloc(sizeof(char *) * (SIZE / 2));
+	size_t *lengths = malloc(sizeof(size_t) * (SIZE / 2));
+	for (i = 0; i < SIZE / 2; i++) {
+		int size = (int)strlen(key[i * 2]);
+		keys[i] = key[i * 2];
 		lengths[i] = (size_t)size;
 	}
-	redislite_delete_keys(cs, SIZE/2, keys, lengths);
+	redislite_delete_keys(cs, SIZE / 2, keys, lengths);
 
-	for (i=0; i < SIZE; i++) {
-		if (key[i] == NULL) continue;
-		int length = 0;
-		char *value = NULL;
-		int size = (int)strlen(key[i]);
-		int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
-		if (found == REDISLITE_OOM) {
-			continue;
-		}
+	if (1)
+		for (i = 0; i < SIZE; i++) {
+			if (key[i] == NULL) {
+				continue;
+			}
+			int length = 0;
+			char *value = NULL;
+			int size = (int)strlen(key[i]);
+			if (memcmp(key[i], "154142252", size) == 0) {
+				printf("a");
+			}
+			int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
+			if (found == REDISLITE_OOM) {
+				continue;
+			}
 
-		if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
-			printf("Key '%s' found after deleted\n", key[i]);
-			status = REDISLITE_ERR;
-		} else if (i % 2 == 1 && found == REDISLITE_ERR) {
-			printf("Key '%s' not found\n", key[i]);
-			status = REDISLITE_ERR;
+			if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
+				printf("Key '%s' found after deleted\n", key[i]);
+				status = REDISLITE_ERR;
+			}
+			else if (i % 2 == 1 && found == REDISLITE_NOT_FOUND) {
+				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
+				status = REDISLITE_ERR;
+			}
+			free(value);
 		}
-		free(value);
-	}
 
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	cs = NULL; // using stored values
 
-	for (i=0; i < SIZE; i++) {
-		if (key[i] == NULL) continue;
+	for (i = 0; i < SIZE; i++) {
+		if (key[i] == NULL) {
+			continue;
+		}
 		int length = 0;
 		char *value = NULL;
 		int size = (int)strlen(key[i]);
@@ -238,16 +314,34 @@ int test_delete_and_find() {
 		if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
 			printf("Key '%s' found after deleted %d\n", key[i], found);
 			status = REDISLITE_ERR;
-		} else if (i % 2 == 1 && found == REDISLITE_ERR) {
-			printf("Key '%s' not found\n", key[i]);
+		}
+		else if (i % 2 == 1 && found == REDISLITE_NOT_FOUND) {
+			printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 			status = REDISLITE_ERR;
 		}
 		free(value);
 	}
 
-	for (i=0; i < SIZE; i++)
-		if (key[i] != NULL)
+	cs = redislite_create_changeset(db);
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return 0;
+	}
+	for (i = 1; i < SIZE; i += 2) {
+		if (key[i] != NULL) {
 			free(key[i]);
+		}
+		key[i] = test_add_key(cs, &value[i]);
+	}
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	cs = NULL; // using stored values
+
+	for (i = 0; i < SIZE; i++)
+		if (key[i] != NULL) {
+			free(key[i]);
+		}
 
 	free(keys);
 	free(lengths);
@@ -256,7 +350,8 @@ int test_delete_and_find() {
 	return status;
 }
 
-int test_append() {
+int test_append()
+{
 	char key[10];
 	char value[1026];
 	memset(key, 'a', 10);
@@ -274,12 +369,21 @@ int test_append() {
 		remove("test.db");
 
 		db = redislite_open_database("test.db");
-		if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+		if (db == NULL) {
+			printf("OOM on test.c, on line %d\n", __LINE__);
+			return REDISLITE_SKIP;
+		}
 		cs = redislite_create_changeset(db);
-		if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+		if (cs == NULL) {
+			redislite_close_database(db);
+			printf("OOM on test.c, on line %d\n", __LINE__);
+			return REDISLITE_SKIP;
+		}
 
 		int r = redislite_page_string_set_key_string(cs, key, 10, value, 9);
-		if (r < 0) status = REDISLITE_SKIP;
+		if (r < 0) {
+			status = REDISLITE_SKIP;
+		}
 
 		redislite_page_string_append_key_string(cs, key, 10, value, 10, NULL);
 		if (i == 0) {
@@ -291,9 +395,11 @@ int test_append() {
 		char *lookup_value;
 		int lookup_length;
 		size_t found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
-		if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
+		if (found == REDISLITE_OOM) {
+			status = REDISLITE_SKIP;
+		}
 		else if (found == REDISLITE_OK) {
-			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[9]) {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length - 1] != value[9]) {
 				printf("Content mismatch on line %d\n", __LINE__);
 				status = REDISLITE_ERR;
 				redislite_free(lookup_value);
@@ -314,9 +420,11 @@ int test_append() {
 			cs = NULL;
 		}
 		found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
-		if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
+		if (found == REDISLITE_OOM) {
+			status = REDISLITE_SKIP;
+		}
 		else {
-			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[499]) {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length - 1] != value[499]) {
 				printf("Content mismatch on line %d\n", __LINE__);
 				status = REDISLITE_ERR;
 				redislite_free(lookup_value);
@@ -360,9 +468,11 @@ int test_append() {
 			cs = NULL;
 		}
 		found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
-		if (found == REDISLITE_OOM) status = REDISLITE_SKIP;
+		if (found == REDISLITE_OOM) {
+			status = REDISLITE_SKIP;
+		}
 		else {
-			if (value[0] != lookup_value[0] || lookup_value[lookup_length-1] != value[0]) {
+			if (value[0] != lookup_value[0] || lookup_value[lookup_length - 1] != value[0]) {
 				printf("Content mismatch on line %d\n", __LINE__);
 				status = REDISLITE_ERR;
 				redislite_free(lookup_value);
@@ -390,13 +500,21 @@ cleanup:
 	return status;
 }
 
-int test_incr() {
+int test_incr()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	int status = redislite_page_string_set_key_string(cs, key, 7, "1123", 4);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a numeric random key\n");
@@ -434,7 +552,8 @@ int test_incr() {
 	status = redislite_page_string_incr_key_string(cs, key, 6, &new_value);
 	if (status == REDISLITE_ERR) {
 		status = REDISLITE_OK;
-	} else if (status == REDISLITE_OK) {
+	}
+	else if (status == REDISLITE_OK) {
 		printf("Able to incr a non-numeric key\n");
 		status = REDISLITE_ERR;
 	}
@@ -446,17 +565,27 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int test_decr() {
+int test_decr()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a numeric random key\n");
@@ -494,7 +623,8 @@ int test_decr() {
 	status = redislite_page_string_decr_key_string(cs, key, 6, &new_value);
 	if (status == REDISLITE_ERR) {
 		status = REDISLITE_OK;
-	} else if (status == REDISLITE_OK) {
+	}
+	else if (status == REDISLITE_OK) {
 		printf("Able to decr a non-numeric key\n");
 		status = REDISLITE_ERR;
 	}
@@ -506,17 +636,27 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int test_exists() {
+int test_exists()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
@@ -524,21 +664,21 @@ int test_exists() {
 	}
 
 	status = redislite_exists_key(db, cs, key, 7);
-	if (status == 0)
-	{
+	if (status == 0) {
 		printf("Failed to find existing key\n");
 		status = REDISLITE_ERR;
 		goto cleanup;
-	} else if (status != 1) {
+	}
+	else if (status != 1) {
 		goto cleanup;
 	}
 
 	status = redislite_exists_key(db, cs, key, 6);
-	if (status != REDISLITE_NOT_FOUND)
-	{
+	if (status != REDISLITE_NOT_FOUND) {
 		printf("Failed to not-find non existing key\n");
 		goto cleanup;
-	} else {
+	}
+	else {
 		status = REDISLITE_OK;
 	}
 
@@ -549,17 +689,27 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int test_type() {
+int test_type()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
@@ -568,34 +718,32 @@ int test_type() {
 
 	char type;
 	status = redislite_page_index_type(db, cs, key, 7, &type);
-	if (status == REDISLITE_OOM)
-	{
+	if (status == REDISLITE_OOM) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
-	} else if (status != REDISLITE_OK)
-	{
+	}
+	else if (status != REDISLITE_OK) {
 		printf("Failed to get type of existing key\n");
 		goto cleanup;
 	}
 
-	if (type != REDISLITE_PAGE_TYPE_STRING)
-	{
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
 		status = REDISLITE_ERR;
 		printf("Wrong type: expecting '%c', got '%c' instead", REDISLITE_PAGE_TYPE_STRING, type);
 		goto cleanup;
 	}
 
 	status = redislite_page_index_type(db, cs, key, 6, &type);
-	if (status == REDISLITE_OOM)
-	{
+	if (status == REDISLITE_OOM) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
-	} else if (status != REDISLITE_ERR)
-	{
+	}
+	else if (status != REDISLITE_NOT_FOUND) {
 		status = REDISLITE_ERR;
 		printf("Getting type of non-existing key\n");
 		goto cleanup;
-	} else {
+	}
+	else {
 		status = REDISLITE_OK;
 	}
 
@@ -606,17 +754,27 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int test_getrange() {
+int test_getrange()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	char value[1024];
 	memset(value, 'a', 1024);
 	value[0] = 'b';
@@ -634,11 +792,13 @@ int test_getrange() {
 	if (status != REDISLITE_OK) {
 		printf("Failed to getrange\n");
 		goto cleanup;
-	} else if (str_length != 1) {
+	}
+	else if (str_length != 1) {
 		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1, str_length);
 		status = REDISLITE_ERR;
 		goto cleanup;
-	} else if (str[0] != value[0]) {
+	}
+	else if (str[0] != value[0]) {
 		printf("getrange mismatch; character expected to be '%c' but got '%c' instead\n", value[0], str[0]);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -649,11 +809,13 @@ int test_getrange() {
 	if (status != REDISLITE_OK) {
 		printf("Failed to getrange\n");
 		goto cleanup;
-	} else if (str_length != 1024) {
+	}
+	else if (str_length != 1024) {
 		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1024, str_length);
 		status = REDISLITE_ERR;
 		goto cleanup;
-	} else if (memcmp(value, str, 1024)) {
+	}
+	else if (memcmp(value, str, 1024)) {
 		printf("getrange mismatch; full range select does not match strings\n");
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -664,11 +826,13 @@ int test_getrange() {
 	if (status != REDISLITE_OK) {
 		printf("Failed to getrange\n");
 		goto cleanup;
-	} else if (str_length != 1) {
+	}
+	else if (str_length != 1) {
 		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1, str_length);
 		status = REDISLITE_ERR;
 		goto cleanup;
-	} else if (str[0] != value[1023]) {
+	}
+	else if (str[0] != value[1023]) {
 		printf("getrange mismatch; expecting last char to be '%c' but got '%c' instead\n", value[1023], str[0]);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -682,11 +846,14 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int test_echo() {
+int test_echo()
+{
 	char *test_str = malloc(sizeof(char) * 100);
 	memset(test_str, 'a', 100);
 	char *dst;
@@ -698,18 +865,28 @@ int test_echo() {
 	if (status == REDISLITE_OK) {
 		status = memcmp(dst, test_str, 100) == 0 ? REDISLITE_OK : REDISLITE_ERR;
 	}
-	if (dst) redislite_free(dst);
+	if (dst) {
+		redislite_free(dst);
+	}
 	free(test_str);
 	return status;
 }
 
-int test_strlen() {
+int test_strlen()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
@@ -719,18 +896,24 @@ int test_strlen() {
 	status = redislite_page_string_strlen_key_string(db, cs, key, 7);
 	if (status == 1) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("Unable to get string length (expected %d, got %d)", 1, status);
-		if (status > 1) status = REDISLITE_ERR;
+		if (status > 1) {
+			status = REDISLITE_ERR;
+		}
 		goto cleanup;
 	}
 
 	status = redislite_page_string_strlen_key_string(db, cs, key, 7);
 	if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("Unable to get unexisting string length (expected %d, got %d)", 0, status);
-		if (status > 1) status = REDISLITE_ERR;
+		if (status > 1) {
+			status = REDISLITE_ERR;
+		}
 		goto cleanup;
 	}
 
@@ -743,24 +926,34 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int test_getset() {
+int test_getset()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	int status = redislite_page_string_set_key_string(cs, key, 7, "3", 1);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
 		goto cleanup;
 	}
 
-	char* previous_value;
+	char *previous_value;
 	int previous_value_length;
 	status = redislite_page_string_getset_key_string(cs, key, 7, "41", 2, &previous_value, &previous_value_length);
 	if (status !=  REDISLITE_OK) {
@@ -811,17 +1004,27 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int test_getbit() {
+int test_getbit()
+{
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
-	char* key = "testkey";
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	char *key = "testkey";
 	int status = redislite_page_string_set_key_string(cs, key, 7, "1", 1);
 	if (status != REDISLITE_OK) {
 		printf("Failed to create a random key\n");
@@ -831,9 +1034,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 0);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 0) {
+	}
+	else if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 0, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -842,9 +1047,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 1);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 0) {
+	}
+	else if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 1, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -853,9 +1060,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 2);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 1) {
+	}
+	else if (status == 1) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 1, 2, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -864,9 +1073,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 3);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 1) {
+	}
+	else if (status == 1) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 1, 3, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -875,9 +1086,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 4);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 0) {
+	}
+	else if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 4, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -886,9 +1099,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 5);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 0) {
+	}
+	else if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 5, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -897,9 +1112,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 6);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 0) {
+	}
+	else if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 6, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -908,9 +1125,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 7);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 1) {
+	}
+	else if (status == 1) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 1, 7, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -919,9 +1138,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 8);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 0) {
+	}
+	else if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value 1 on bit %d, got %d instead\n", 0, 8, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -937,9 +1158,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 4098);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 1) {
+	}
+	else if (status == 1) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value aaa(600)aaa on bit %d, got %d instead\n", 1, 4098, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -948,9 +1171,11 @@ int test_getbit() {
 	status = redislite_page_string_getbit_key_string(db, cs, key, 7, 4096);
 	if (status < 0) {
 		goto cleanup;
-	} else if (status == 0) {
+	}
+	else if (status == 0) {
 		status = REDISLITE_OK;
-	} else {
+	}
+	else {
 		printf("getbit expected %d for value aaa(600)aaa on bit %d, got %d instead\n", 0, 4096, status);
 		status = REDISLITE_ERR;
 		goto cleanup;
@@ -963,7 +1188,9 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
@@ -971,9 +1198,16 @@ int test_get_publicapi()
 {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	changeset *cs = redislite_create_changeset(db);
-	if (cs == NULL) { redislite_close_database(db); printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	char key[10];
 	memset(key, 'a', 10);
 	int r = redislite_page_string_set_key_string(cs, key, 10, "1", 1);
@@ -997,7 +1231,7 @@ int test_get_publicapi()
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->argv = redislite_malloc(sizeof(char*) * 2);
+	params->argv = redislite_malloc(sizeof(char *) * 2);
 	if (params->argv == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
@@ -1037,7 +1271,9 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
@@ -1045,7 +1281,10 @@ int test_set_publicapi()
 {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	char key[10];
 	memset(key, 'a', 10);
 	int status = REDISLITE_OK;
@@ -1061,7 +1300,7 @@ int test_set_publicapi()
 		status = REDISLITE_SKIP;
 		goto cleanup;
 	}
-	params->argv = redislite_malloc(sizeof(char*) * 3);
+	params->argv = redislite_malloc(sizeof(char *) * 3);
 	if (params->argv == NULL) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
@@ -1124,7 +1363,7 @@ int test_set_publicapi()
 	}
 
 	if (memcmp(value, key, 10) != 0 || value[10] != 'x') {
-		printf("Content mismatch\n");
+		printf("Content mismatch on line %d\n", __LINE__);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -1137,7 +1376,9 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
@@ -1145,7 +1386,10 @@ int test_format_get_set_publicapi()
 {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	char key[10];
 	memset(key, 'a', 10);
 	int status = REDISLITE_OK;
@@ -1184,7 +1428,7 @@ int test_format_get_set_publicapi()
 	}
 
 	if (memcmp(value, "tesas", 5) != 0) {
-		printf("Content mismatch\n");
+		printf("Content mismatch on line %d\n", __LINE__);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -1197,15 +1441,19 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
 int test_format()
 {
-	redislite_params* target;
+	redislite_params *target;
 	int status = redislite_format_command(&target, "GET %d", 123532);
-	if (status != REDISLITE_OK) goto cleanup;
+	if (status != REDISLITE_OK) {
+		goto cleanup;
+	}
 
 	if (target->argc != 2) {
 		printf("target elements count expected to be %d, but got %d instead\n", 2, (int)target->argc);
@@ -1239,7 +1487,9 @@ int test_format()
 
 
 cleanup:
-	if (target) redislite_free_params(target);
+	if (target) {
+		redislite_free_params(target);
+	}
 	return status;
 }
 
@@ -1247,7 +1497,10 @@ int test_command()
 {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	int status = REDISLITE_OK;
 	redislite_reply *reply = redislite_command(db, "SET mykey value");
 	if (reply == NULL) {
@@ -1316,8 +1569,12 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (reply) redislite_free_reply(reply);
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (reply) {
+		redislite_free_reply(reply);
+	}
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
@@ -1325,7 +1582,10 @@ int test_free_and_set()
 {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	redislite_reply *reply;
 	reply = redislite_command(db, "set a 1");
 	redislite_free_reply(reply);
@@ -1347,14 +1607,17 @@ int test_command_argv()
 {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	int status = REDISLITE_OK;
 
 	const char *set_argv[] = {"SET", "mykey", "value"};
-	size_t set_argvlen[] = {3,5,5};
+	size_t set_argvlen[] = {3, 5, 5};
 
 	const char *get_argv[] = {"GET", "mykey"};
-	size_t get_argvlen[] = {3,5};
+	size_t get_argvlen[] = {3, 5};
 
 	const char *fail_get_argv[] = {"GET"};
 	size_t fail_get_argvlen[] = {3};
@@ -1429,8 +1692,12 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (reply) redislite_free_reply(reply);
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (reply) {
+		redislite_free_reply(reply);
+	}
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
@@ -1438,7 +1705,10 @@ int test_issue_2()
 {
 	remove("test.db");
 	redislite *db = redislite_open_database("test.db");
-	if (db == NULL) { printf("OOM on test.c, on line %d\n", __LINE__); return REDISLITE_SKIP; }
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
 	redislite_reply *reply;
 	reply = redislite_command(db, "SET a 1");
 	redislite_free_reply(reply);
@@ -1469,21 +1739,27 @@ cleanup:
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (reply) redislite_free_reply(reply);
-	if (status == REDISLITE_OOM) status = REDISLITE_SKIP;
+	if (reply) {
+		redislite_free_reply(reply);
+	}
+	if (status == REDISLITE_OOM) {
+		status = REDISLITE_SKIP;
+	}
 	return status;
 }
 
-int main() {
+int main()
+{
 	srand(4);
 	int test;
-	const char * test_name;
+	const char *test_name;
 
 	test = test_insert_and_find();
 	test_name = "Insert and Find";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1491,7 +1767,8 @@ int main() {
 	test_name = "Insert Middle and Find";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1499,7 +1776,8 @@ int main() {
 	test_name = "Delete key and find";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1507,7 +1785,8 @@ int main() {
 	test_name = "setnx for existing and non-existing key";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1515,7 +1794,8 @@ int main() {
 	test_name = "append string";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1523,7 +1803,8 @@ int main() {
 	test_name = "incr string";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1531,7 +1812,8 @@ int main() {
 	test_name = "decr and decrby string";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1539,7 +1821,8 @@ int main() {
 	test_name = "check for key existance";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1547,15 +1830,17 @@ int main() {
 	test_name = "testing echo";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
-	
+
 	test = test_type();
 	test_name = "testing type";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1563,7 +1848,8 @@ int main() {
 	test_name = "testing getset";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1571,7 +1857,8 @@ int main() {
 	test_name = "testing getrange";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1579,7 +1866,8 @@ int main() {
 	test_name = "testing getbit";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1587,7 +1875,8 @@ int main() {
 	test_name = "testing get on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1595,7 +1884,8 @@ int main() {
 	test_name = "testing set on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1603,7 +1893,8 @@ int main() {
 	test_name = "testing format get/set on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1611,7 +1902,8 @@ int main() {
 	test_name = "testing format parsing on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1619,7 +1911,8 @@ int main() {
 	test_name = "testing command execution on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1627,7 +1920,8 @@ int main() {
 	test_name = "testing command argv execution on publicapi";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1635,7 +1929,8 @@ int main() {
 	test_name = "testing issue #2";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 
@@ -1643,7 +1938,8 @@ int main() {
 	test_name = "testing freelist and set";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	} else if (test != REDISLITE_OK) {
+	}
+	else if (test != REDISLITE_OK) {
 		printf("Failed test %s on line %d\n", test_name, __LINE__);
 	}
 

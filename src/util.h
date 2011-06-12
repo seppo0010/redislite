@@ -3,7 +3,7 @@
 
 // we are only going to support 32 bits right now
 
-int redislitePutVarint32(unsigned char*, int);
+int redislitePutVarint32(unsigned char *, int);
 int redisliteGetVarint32(const unsigned char *, int *);
 
 #define getVarint32(A,B)  (int)((*(A)<(int)0x80) ? ((B) = (int)*(A)),1 : redisliteGetVarint32((A), (int *)&(B)))
