@@ -33,7 +33,7 @@ static char *test_add_key(changeset *cs, int *left)
 	return key;
 }
 
-#define SIZE 50
+#define SIZE 500
 
 int test_insert_and_find()
 {
@@ -68,8 +68,8 @@ int test_insert_and_find()
 		if (found == REDISLITE_OOM) {
 			continue;
 		}
-		if (found == REDISLITE_ERR) {
-			printf("Key '%s' not found\n", key[i]);
+		if (found == REDISLITE_NOT_FOUND) {
+			printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 			continue;
 		}
 
@@ -78,7 +78,7 @@ int test_insert_and_find()
 		}
 
 		if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
-			printf("Content mismatch\n");
+			printf("Content mismatch on line %d\n", __LINE__);
 			break;
 		}
 		free(value);
@@ -100,8 +100,8 @@ int test_insert_and_find()
 				continue;
 			}
 
-			if (found == REDISLITE_ERR) {
-				printf("Key '%s' not found\n", key[i]);
+			if (found == REDISLITE_NOT_FOUND) {
+				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 				continue;
 			}
 
@@ -113,17 +113,26 @@ int test_insert_and_find()
 				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
 			}
 			if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
-				printf("Content mismatch\n");
+				printf("Content mismatch on line %d\n", __LINE__);
+			}
+
+			if (!value) {
+				printf("Unable to find key: '%s'\n", key[i]);
+				continue;
+			}
+			if (length != db->page_size + 1) {
+				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
 			}
 
 			free(value);
 		}
 	}
 
-	for (i = 0; i < SIZE; i++)
+	for (i = 0; i < SIZE; i++) {
 		if (key[i] != NULL) {
 			free(key[i]);
 		}
+	}
 	redislite_close_database(db);
 	return REDISLITE_OK;
 }
@@ -259,28 +268,32 @@ int test_delete_and_find()
 	}
 	redislite_delete_keys(cs, SIZE / 2, keys, lengths);
 
-	for (i = 0; i < SIZE; i++) {
-		if (key[i] == NULL) {
-			continue;
-		}
-		int length = 0;
-		char *value = NULL;
-		int size = (int)strlen(key[i]);
-		int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
-		if (found == REDISLITE_OOM) {
-			continue;
-		}
+	if (1)
+		for (i = 0; i < SIZE; i++) {
+			if (key[i] == NULL) {
+				continue;
+			}
+			int length = 0;
+			char *value = NULL;
+			int size = (int)strlen(key[i]);
+			if (memcmp(key[i], "154142252", size) == 0) {
+				printf("a");
+			}
+			int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
+			if (found == REDISLITE_OOM) {
+				continue;
+			}
 
-		if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
-			printf("Key '%s' found after deleted\n", key[i]);
-			status = REDISLITE_ERR;
+			if (i % 2 == 0 && found != REDISLITE_NOT_FOUND) {
+				printf("Key '%s' found after deleted\n", key[i]);
+				status = REDISLITE_ERR;
+			}
+			else if (i % 2 == 1 && found == REDISLITE_NOT_FOUND) {
+				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
+				status = REDISLITE_ERR;
+			}
+			free(value);
 		}
-		else if (i % 2 == 1 && found == REDISLITE_ERR) {
-			printf("Key '%s' not found\n", key[i]);
-			status = REDISLITE_ERR;
-		}
-		free(value);
-	}
 
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
@@ -302,12 +315,28 @@ int test_delete_and_find()
 			printf("Key '%s' found after deleted %d\n", key[i], found);
 			status = REDISLITE_ERR;
 		}
-		else if (i % 2 == 1 && found == REDISLITE_ERR) {
-			printf("Key '%s' not found\n", key[i]);
+		else if (i % 2 == 1 && found == REDISLITE_NOT_FOUND) {
+			printf("Key '%s' not found on line %d\n", key[i], __LINE__);
 			status = REDISLITE_ERR;
 		}
 		free(value);
 	}
+
+	cs = redislite_create_changeset(db);
+	if (cs == NULL) {
+		redislite_close_database(db);
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return 0;
+	}
+	for (i = 1; i < SIZE; i += 2) {
+		if (key[i] != NULL) {
+			free(key[i]);
+		}
+		key[i] = test_add_key(cs, &value[i]);
+	}
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	cs = NULL; // using stored values
 
 	for (i = 0; i < SIZE; i++)
 		if (key[i] != NULL) {
@@ -1334,7 +1363,7 @@ int test_set_publicapi()
 	}
 
 	if (memcmp(value, key, 10) != 0 || value[10] != 'x') {
-		printf("Content mismatch\n");
+		printf("Content mismatch on line %d\n", __LINE__);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -1399,7 +1428,7 @@ int test_format_get_set_publicapi()
 	}
 
 	if (memcmp(value, "tesas", 5) != 0) {
-		printf("Content mismatch\n");
+		printf("Content mismatch on line %d\n", __LINE__);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}

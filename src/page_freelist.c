@@ -32,6 +32,11 @@ void redislite_write_freelist(void *_db, unsigned char *data, void *_page)
 void *redislite_read_freelist(void *_db, unsigned char *data)
 {
 	redislite_page_string *page = redislite_malloc(sizeof(redislite_page_string));
-	page->right_page = redislite_get_4bytes(&data[8]);
+	if (page == NULL) {
+		return NULL;
+	}
+
+	page->right_page = redislite_get_4bytes(&data[4]);
+
 	return page;
 }

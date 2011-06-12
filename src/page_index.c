@@ -145,6 +145,7 @@ static int redislite_remove_key(void *_cs, void *_key, int page_num)
 		return REDISLITE_NOT_FOUND;
 	}
 	int i, j;
+	// TODO: binary search
 	for (i = 0; i < page->number_of_keys; i++) {
 		if (redislite_keys_are_equal(page->keys[i], key)) {
 			redislite_free_key(page->keys[i]);
@@ -177,6 +178,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 	int _page_num = 0;
 
 	*status = REDISLITE_OK;
+
 	while (page != NULL) {
 		found = pos = 0;
 		for (i = 0; i < page->number_of_keys; i++) {
@@ -190,6 +192,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 					}
 					if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
 						found = 1;
+						_page_num = page->keys[i]->left_page;
 						if (_cs == NULL && page != db->root) {
 							redislite_free_index(db, page);
 						}
@@ -455,6 +458,7 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 			return result;
 		}
 
+		int previous_page_num = page_num;
 		char next_type;
 		if (pos == page->number_of_keys) {
 			page_num = page->right_page;
@@ -470,11 +474,13 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 			if (new_page == NULL) {
 				return REDISLITE_OOM;
 			}
+
 			int r = redislite_page_index_add_key(new_page, 0, left, key, length, type);
 			if (r != REDISLITE_OK) {
 				redislite_free(new_page);
 				return r;
 			}
+
 			page_num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_INDEX, new_page);
 			if (pos < page->number_of_keys) {
 				int r = redislite_page_index_add_key(new_page, 0, page->keys[pos]->left_page, page->keys[pos]->keyname, page->keys[pos]->keyname_size, type);
@@ -490,7 +496,7 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 			else {
 				page->keys[pos]->left_page = page_num;
 			}
-			// TODO: set page as dirty
+			redislite_add_modified_page(cs, previous_page_num, previous_page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, new_page);
 			return REDISLITE_OK;
 		}
 
