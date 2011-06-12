@@ -473,12 +473,12 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 #ifdef DEBUG
 	fseek(db->file, 0L, SEEK_END);
 	long size = ftell(db->file);
-/*
-	if (size < db->page_size * (num + 1)) {
-		redislite_free(data);
-		return NULL;
-	}
-*/
+	/*
+		if (size < db->page_size * (num + 1)) {
+			redislite_free(data);
+			return NULL;
+		}
+	*/
 #endif
 	i = fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	if (i != 0) {
