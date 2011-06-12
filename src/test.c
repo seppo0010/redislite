@@ -251,7 +251,7 @@ int test_delete_and_find()
 		return REDISLITE_SKIP;
 	}
 	int status = REDISLITE_OK;
-	int i, j;
+	int i;
 
 	char *key[SIZE];
 	int value[SIZE];
@@ -337,39 +337,6 @@ int test_delete_and_find()
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	cs = NULL; // using stored values
-
-	if (0)
-		for (i = 0; i < SIZE; i++) {
-			if (key[i] == NULL) {
-				continue;
-			}
-			int length = 0;
-			char *value = NULL;
-			int found = redislite_page_string_get_by_keyname(db, cs, key[i], strlen(key[i]), &value, &length);
-			if (found == REDISLITE_OOM) {
-				continue;
-			}
-
-			if (found == REDISLITE_NOT_FOUND) {
-				printf("Key '%s' not found on line %d\n", key[i], __LINE__);
-				continue;
-			}
-
-			if (!value) {
-				printf("Unable to find key: '%s'\n", key[i]);
-				continue;
-			}
-			if (length != db->page_size + 1) {
-				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
-			}
-			for (j = 0; j < SIZE; j++) {
-				if (value[j] != (char)(((int)key[i][0] + j) % 256)) {
-					printf("Content mismatch on line %d\n", __LINE__);
-				}
-			}
-
-			free(value);
-		}
 
 	for (i = 0; i < SIZE; i++)
 		if (key[i] != NULL) {
