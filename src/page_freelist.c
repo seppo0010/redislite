@@ -36,7 +36,7 @@ void *redislite_read_freelist(void *_db, unsigned char *data)
 		return NULL;
 	}
 
-	page->right_page = redislite_get_4bytes(&data[5]);
+	page->right_page = redislite_get_4bytes(&data[4]);
 
 	return page;
 }
