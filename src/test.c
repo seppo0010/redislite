@@ -268,7 +268,7 @@ int test_delete_and_find()
 	}
 	redislite_delete_keys(cs, SIZE / 2, keys, lengths);
 
-	if (0)
+	if (1)
 		for (i = 0; i < SIZE; i++) {
 			if (key[i] == NULL) {
 				continue;
