@@ -22,7 +22,6 @@ void redislite_free_index(void *db, void *_page)
 	}
 	redislite_page_index *page = (redislite_page_index *)_page;
 	int i;
-	printf("Freeing %ld\n", (long)_page);
 	for (i = 0; i < page->number_of_keys; i++) {
 		redislite_free_key(page->keys[i]);
 	}
@@ -193,6 +192,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 					}
 					if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
 						found = 1;
+						_page_num = page->keys[i]->left_page;
 						if (_cs == NULL && page != db->root) {
 							redislite_free_index(db, page);
 						}
@@ -375,12 +375,6 @@ int redislite_delete_keys(void *_cs, int q, char **keys, size_t *lengths)
 	int i;
 	int counter = 0;
 	for (i = 0; i < q; i++) {
-		if (memcmp(keys[i], "226240326", lengths[i]) == 0) {
-			printf("a\n");
-		}
-		if (memcmp(keys[i], "220505758", lengths[i]) == 0) {
-			printf("b\n");
-		}
 		status = redislite_delete_key(_cs, keys[i], lengths[i]);
 		if (status != REDISLITE_OK && status != REDISLITE_NOT_FOUND) {
 			break;

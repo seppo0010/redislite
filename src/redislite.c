@@ -9,6 +9,7 @@
 #include "page_freelist.h"
 #include "util.h"
 
+#define DEBUG
 
 changeset *redislite_create_changeset(redislite *db)
 {
@@ -54,11 +55,7 @@ void redislite_free_changeset(changeset *cs)
 	}
 	redislite_free(cs->opened_pages);
 	for (i = 0; i < cs->modified_pages_length; i++) {
-		if (i == 88 || i == 645) {
-			printf("ASD\n");
-		}
 		page = cs->modified_pages[i];
-		printf("about to free%d\n", page->number);
 		if (page->data != cs->db->root) {
 			page->type->free_function(cs->db, page->data);
 		}
@@ -183,9 +180,6 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	if (cs->db->readonly) {
 		return REDISLITE_READONLY;
 	}
-	if (page_number == 88 || page_number == 645) {
-		printf("a");
-	}
 
 	int i;
 	// TODO: binary search
@@ -213,10 +207,6 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 		else {
 			page_number = cs->db->number_of_pages;
 		}
-	}
-
-	if (page_number == 88 || page_number == 645) {
-		printf("a\n");
 	}
 
 	if (cs->modified_pages == NULL || (cs->modified_pages_length == 0 && cs->modified_pages_free == 0)) {
@@ -483,10 +473,12 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 #ifdef DEBUG
 	fseek(db->file, 0L, SEEK_END);
 	long size = ftell(db->file);
+/*
 	if (size < db->page_size * (num + 1)) {
 		redislite_free(data);
 		return NULL;
 	}
+*/
 #endif
 	i = fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	if (i != 0) {

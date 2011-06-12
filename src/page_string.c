@@ -154,8 +154,9 @@ int redislite_insert_string(void *_cs, char *str, int length, int *num)
 	if (first_page_size < length) {
 		page->right_page = add_extra_string(_cs, &str[first_page_size], length - first_page_size);
 		if (page->right_page < 0) {
+			int right_page = page->right_page;
 			redislite_free(page);
-			return page->right_page;
+			return right_page;
 		}
 		char *data = redislite_malloc(sizeof(char) * db->page_size - 12);
 		if (data == NULL) {
