@@ -37,6 +37,7 @@ int redislitev_format_command(redislite_params **target, const char *format, va_
 int redislite_format_command(redislite_params **target, const char *format, ...);
 redislite_reply *redislite_command(redislite *db, char *command);
 redislite_reply *redislite_command_argv(redislite *db, int argc, const char **argv, const size_t *argvlen);
+redislite_reply *redislite_execute_command(redislite *db, redislite_params *params);
 
 typedef redislite_reply *redislite_command_proc(redislite *c, redislite_params *params);
 struct redislite_command {

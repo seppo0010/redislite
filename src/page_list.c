@@ -197,7 +197,7 @@ static int lpush(void *_cs, redislite_page_list *list, char *value, int value_le
 size_t redislite_free_bytes(void *_db, redislite_page_list *page, char type)
 {
 	redislite *db = (redislite *)_db;
-	int i, pos = type == 16;
+	int i, pos = type == REDISLITE_PAGE_TYPE_LIST_FIRST ? 16 : 12;
 	unsigned char placeholder[9];
 	if (page->element_len) {
 		for (i = 0; i < page->size; i++) {
@@ -211,13 +211,20 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
+	int status;
 	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
-	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND /* can create a new key */) {
+	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND) {
 		return page_num;
 	}
-	int status = REDISLITE_OK;
+	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_ERR; // TODO: error for wrong type
+	}
 
 	redislite_page_list_first *page = NULL;
+	if (page_num > 0) {
+		page = redislite_page_get(cs->db, cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+	}
+
 	if (page_num == REDISLITE_NOT_FOUND) {
 		page = redislite_malloc(sizeof(redislite_page_list_first));
 		if (page == NULL) {
@@ -254,7 +261,60 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 		size += putVarint32(length_str, value_len);
 	}
 
-	if (redislite_free_bytes(cs->db, page->list, type) >= size) {
+	redislite_page_list *right = NULL;
+	redislite_page_list *old_right = NULL;
+	while (redislite_free_bytes(cs->db, page->list, type) < size) {
+		if (page->list->size == 0) {
+			printf("Popped all elements to make space -- value too big?\n");
+			redislite_free(right);
+			return REDISLITE_ERR;
+		}
+		if (right == NULL) {
+			// We have no space on this page; trying to move things to the next
+			// If that fails, we are gonna create a new one in between
+			if (page->list->right_page != 0) {
+				old_right = redislite_page_get(cs->db, cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST);
+				int i = 1;
+				while (redislite_free_bytes(cs->db, old_right, REDISLITE_PAGE_TYPE_LIST) >= 0 && page->list->size > 0) {
+					status = lpush(_cs, old_right, page->list->element[page->list->size - 1], page->list->element_len[page->list->size - 1]);
+					page->list->size--;
+					i++;
+				}
+				if (redislite_free_bytes(cs->db, page->list, type) >= size) {
+					redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, old_right);
+					break;
+				}
+				else {
+					page->list->size += i;
+					old_right->size -= i;
+				}
+			}
+
+			right = redislite_malloc(sizeof(redislite_page_list));
+			if (right == NULL) {
+				return REDISLITE_OOM;
+			}
+			right->left_page = page_num;
+			right->right_page = page->list->right_page;
+			right->size = 0;
+			right->element_alloced = right->size = 0;
+			right->element_len = 0;
+		}
+		status = lpush(_cs, right, page->list->element[page->list->size - 1], page->list->element_len[page->list->size - 1]);
+		if (status != REDISLITE_OK) {
+			redislite_free(right);
+			return status;
+		}
+		page->list->size--;
+	}
+	if (right != NULL) {
+		page->list->right_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, right);
+		if (old_right != NULL) {
+			old_right->left_page = page->list->right_page;
+		}
+	}
+
+	{
 		status = lpush(cs, page->list, value, value_len);
 		if (status != REDISLITE_OK) {
 			return status;
@@ -278,9 +338,6 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 				return status;
 			}
 		}
-	}
-	else {
-		// TODO: add page
 	}
 	return status;
 }

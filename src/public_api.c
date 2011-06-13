@@ -1158,7 +1158,7 @@ int redislite_format_command_argv(char **target, int argc, const char **argv, co
 	return totlen;
 }
 
-static redislite_reply *execute_command(redislite *db, redislite_params *params)
+redislite_reply *redislite_execute_command(redislite *db, redislite_params *params)
 {
 	if (params->argc < 1) {
 		redislite_reply *reply = redislite_create_reply();
@@ -1209,7 +1209,7 @@ redislite_reply *redislite_command(redislite *db, char *command)
 		return reply;
 	}
 
-	redislite_reply *reply = execute_command(db, params);
+	redislite_reply *reply = redislite_execute_command(db, params);
 	redislite_free_params(params);
 	return reply;
 }
@@ -1221,7 +1221,7 @@ redislite_reply *redislite_command_argv(redislite *db, int argc, const char **ar
 	params->argv = (char **)argv;
 	params->argvlen = (size_t *)argvlen;
 	params->must_free_argv = 0;
-	redislite_reply *reply = execute_command(db, params);
+	redislite_reply *reply = redislite_execute_command(db, params);
 
 	redislite_free_params(params);
 	return reply;

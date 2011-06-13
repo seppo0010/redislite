@@ -1748,6 +1748,33 @@ cleanup:
 	return status;
 }
 
+int test_lpush_lrange()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	redislite_reply *reply;
+	int i;
+
+	redislite_params *target;
+	for (i = 0; i < 512; i++) {
+		if (redislite_format_command(&target, "LPUSH key %d", i) != REDISLITE_OK) {
+			break;
+		}
+		reply = redislite_execute_command(db, target);
+		if (reply == NULL) {
+			break;
+		}
+		redislite_free_reply(reply);
+		redislite_free_params(target);
+	}
+
+	return REDISLITE_OK;
+}
+
 int main()
 {
 	srand(4);
@@ -1936,6 +1963,15 @@ int main()
 
 	test = test_free_and_set();
 	test_name = "testing freelist and set";
+	if (test == REDISLITE_SKIP) {
+		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	}
+	else if (test != REDISLITE_OK) {
+		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	}
+
+	test = test_lpush_lrange();
+	test_name = "testing lpush";
 	if (test == REDISLITE_SKIP) {
 		printf("Skipped test %s on line %d\n", test_name, __LINE__);
 	}
