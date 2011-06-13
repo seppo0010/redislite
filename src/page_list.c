@@ -212,13 +212,13 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 	changeset *cs = (changeset *)_cs;
 	char type;
 	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
-	if (page_num < 0 && page_num != REDISLITE_ERR) {
+	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND /* can create a new key */) {
 		return page_num;
 	}
 	int status = REDISLITE_OK;
 
 	redislite_page_list_first *page = NULL;
-	if (page_num == REDISLITE_ERR) {
+	if (page_num == REDISLITE_NOT_FOUND) {
 		page = redislite_malloc(sizeof(redislite_page_list_first));
 		if (page == NULL) {
 			return REDISLITE_OOM;
@@ -233,6 +233,7 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 		page->list->right_page = 0;
 		page->list->size = 0;
 		page->list->element_alloced = page->list->size = 0;
+		page->list->element_len = 0;
 		type = REDISLITE_PAGE_TYPE_LIST_FIRST;
 	}
 	else {
@@ -259,7 +260,10 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 			return status;
 		}
 		page->total_size++;
-		int is_new = page_num == REDISLITE_ERR;
+		int is_new = page_num == REDISLITE_NOT_FOUND;
+		if (is_new) {
+			page_num = -1;
+		}
 		page_num = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
 		if (page_num < 0) {
 			redislite_free(page->list);

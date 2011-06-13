@@ -10,8 +10,6 @@
 #include "page_list.h"
 #include "util.h"
 
-#define DEBUG
-
 changeset *redislite_create_changeset(redislite *db)
 {
 	changeset *cs = redislite_malloc(sizeof(changeset));
@@ -518,7 +516,7 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 #endif
 	i = fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	if (i != 0) {
-		fprintf(stdout, "fseek returned %d", i);
+		fprintf(stdout, "fseek returned %d\n", i);
 	}
 	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
 	if (read < db->page_size && ferror(db->file)) {
