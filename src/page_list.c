@@ -355,6 +355,9 @@ int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_l
 
 	redislite_page_list_first *page = redislite_page_get(_db, _cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
 	*len = page->total_size;
+	if (_cs == NULL) {
+		redislite_free_list_first(_db, page);
+	}
 	return REDISLITE_OK;
 }
 
