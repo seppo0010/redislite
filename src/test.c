@@ -1781,6 +1781,9 @@ int test_lpush_lrange()
 		}
 		redislite_free_reply(reply);
 	}
+	if (db) {
+		redislite_close_database(db);
+	}
 
 	return REDISLITE_OK;
 }
