@@ -341,3 +341,24 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 	}
 	return status;
 }
+
+int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int *len)
+{
+	char type;
+	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
+	if (page_num < 0) {
+		return page_num;
+	}
+	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_ERR; // TODO: error for wrong type
+	}
+
+	redislite_page_list_first *page = redislite_page_get(_db, _cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+	*len = page->total_size;
+	return REDISLITE_OK;
+}
+
+int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int start, int end, int *list_count, char ***list, int **list_len)
+{
+	return 0;
+}

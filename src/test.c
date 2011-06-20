@@ -1770,6 +1770,16 @@ int test_lpush_lrange()
 		}
 		redislite_free_reply(reply);
 		redislite_free_params(target);
+
+		reply = redislite_command(db, "LLEN key");
+		if (reply->type != REDISLITE_REPLY_INTEGER) {
+			return REDISLITE_ERR;
+		}
+		if (reply->integer != i + 1) {
+			printf("Expected LLEN to be %d, got %lld instead on line %d\n", i + 1, reply->integer, __LINE__);
+			return REDISLITE_ERR;
+		}
+		redislite_free_reply(reply);
 	}
 
 	return REDISLITE_OK;

@@ -584,6 +584,28 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 	return reply;
 }
 
+redislite_reply *redislite_llen_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	int len;
+	int llen;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = redislite_llen_by_keyname(db, NULL, key, len, &llen);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		reply->integer = llen;
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 static redislite_reply *init_multibulk(size_t size)
 {
 	int i, j;
@@ -677,7 +699,7 @@ struct redislite_command redislite_command_table[] = {
 	{"brpop", redislite_command_implementation_not_planned, 3, 0},
 	{"brpoplpush", redislite_command_implementation_not_planned, 4, 0},
 	{"blpop", redislite_command_implementation_not_planned, 3, 0},
-	{"llen", redislite_command_not_implemented_yet, 2, 0},
+	{"llen", redislite_llen_command, 2, 0},
 	{"lindex", redislite_command_not_implemented_yet, 3, 0},
 	{"lset", redislite_command_not_implemented_yet, 4, 0},
 	{"lrange", redislite_command_not_implemented_yet, 4, 0},
@@ -857,6 +879,12 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 			}
 			if (length == 6 && memcaseequal(command, "incrby", 6)) {
 				return &redislite_command_table[73];
+			}
+			break;
+
+		case 221: // 'L'+'L'+'E'
+			if (length == 4 && memcaseequal(command, "llen", 4)) {
+				return &redislite_command_table[26];
 			}
 			break;
 
