@@ -197,7 +197,7 @@ static int lpush(void *_cs, redislite_page_list *list, char *value, int value_le
 size_t redislite_free_bytes(void *_db, redislite_page_list *page, char type)
 {
 	redislite *db = (redislite *)_db;
-	int i, pos = type == REDISLITE_PAGE_TYPE_LIST_FIRST ? 16 : 12;
+	int i, pos = type == REDISLITE_PAGE_TYPE_LIST_FIRST ? 20 : 16;
 	unsigned char placeholder[9];
 	if (page->element_len) {
 		for (i = 0; i < page->size; i++) {
