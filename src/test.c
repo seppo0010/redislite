@@ -1788,208 +1788,277 @@ int test_lpush_lrange()
 	return REDISLITE_OK;
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	srand(4);
+	int i = 0, run_test = -1;
 	int test;
 	const char *test_name;
-
-	test = test_insert_and_find();
-	test_name = "Insert and Find";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (argc > 1) {
+		run_test = atoi(argv[1]);
 	}
 
-	test = test_insert_middle_and_find();
-	test_name = "Insert Middle and Find";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_insert_and_find();
+		test_name = "Insert and Find";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_delete_and_find();
-	test_name = "Delete key and find";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_insert_middle_and_find();
+		test_name = "Insert Middle and Find";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_setnx();
-	test_name = "setnx for existing and non-existing key";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_delete_and_find();
+		test_name = "Delete key and find";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_append();
-	test_name = "append string";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_setnx();
+		test_name = "setnx for existing and non-existing key";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_incr();
-	test_name = "incr string";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_append();
+		test_name = "append string";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_decr();
-	test_name = "decr and decrby string";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_incr();
+		test_name = "incr string";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_exists();
-	test_name = "check for key existance";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_decr();
+		test_name = "decr and decrby string";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_echo();
-	test_name = "testing echo";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_exists();
+		test_name = "check for key existance";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_type();
-	test_name = "testing type";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_echo();
+		test_name = "testing echo";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_getset();
-	test_name = "testing getset";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_type();
+		test_name = "testing type";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_getrange();
-	test_name = "testing getrange";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_getset();
+		test_name = "testing getset";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_getbit();
-	test_name = "testing getbit";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_getrange();
+		test_name = "testing getrange";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_get_publicapi();
-	test_name = "testing get on publicapi";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_getbit();
+		test_name = "testing getbit";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_set_publicapi();
-	test_name = "testing set on publicapi";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_get_publicapi();
+		test_name = "testing get on publicapi";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_format_get_set_publicapi();
-	test_name = "testing format get/set on publicapi";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_set_publicapi();
+		test_name = "testing set on publicapi";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_format();
-	test_name = "testing format parsing on publicapi";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_format_get_set_publicapi();
+		test_name = "testing format get/set on publicapi";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_command();
-	test_name = "testing command execution on publicapi";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_format();
+		test_name = "testing format parsing on publicapi";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_command_argv();
-	test_name = "testing command argv execution on publicapi";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_command();
+		test_name = "testing command execution on publicapi";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_issue_2();
-	test_name = "testing issue #2";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_command_argv();
+		test_name = "testing command argv execution on publicapi";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_free_and_set();
-	test_name = "testing freelist and set";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
-	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_issue_2();
+		test_name = "testing issue #2";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
 
-	test = test_lpush_lrange();
-	test_name = "testing lpush";
-	if (test == REDISLITE_SKIP) {
-		printf("Skipped test %s on line %d\n", test_name, __LINE__);
+	if (run_test == -1 || run_test == i++) {
+		test = test_free_and_set();
+		test_name = "testing freelist and set";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+
 	}
-	else if (test != REDISLITE_OK) {
-		printf("Failed test %s on line %d\n", test_name, __LINE__);
+
+	if (run_test == -1 || run_test == i++) {
+		test = test_lpush_lrange();
+		test_name = "testing lpush";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
 	}
 
 	free(dummy);
