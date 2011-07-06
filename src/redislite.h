@@ -46,6 +46,7 @@ redislite *redislite_create_database(const char *filename);
 redislite *redislite_open_database(const char *filename);
 void redislite_close_database(redislite *db);
 unsigned char *redislite_read_page(redislite *db, changeset *cs, int num);
+redislite_page *redislite_modified_page(changeset *cs, int page_number);
 int redislite_add_modified_page(changeset *cs, int page_number, char type, void *page_data);
 int redislite_add_opened_page(changeset *cs, int page_number, char type, void *page_data);
 

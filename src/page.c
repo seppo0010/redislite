@@ -10,12 +10,8 @@ void *redislite_page_get(void *_db, void *_cs, int num, char type)
 	redislite *db = (redislite *)_db;
 	if (cs) {
 		int i;
-		for (i = 0; i < cs->modified_pages_length; i++) {
-			redislite_page *page = cs->modified_pages[i];
-			if (page->number == num) {
-				return page->data;
-			}
-		}
+		redislite_page *page = redislite_modified_page(cs, num);
+		if (page != NULL) return page->data;
 		for (i = 0; i < cs->opened_pages_length; i++) {
 			redislite_page *page = cs->opened_pages[i];
 			if (page->number == num) {

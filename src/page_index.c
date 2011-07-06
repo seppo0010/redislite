@@ -437,6 +437,7 @@ int redislite_insert_key(void *_cs, char *key, int length, int left, char type)
 				if (new_page == NULL) {
 					return REDISLITE_OOM;
 				}
+				page_num = page->keys[pos]->left_page;
 				page = new_page;
 				continue;
 			}

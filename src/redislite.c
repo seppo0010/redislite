@@ -26,7 +26,7 @@ changeset *redislite_create_changeset(redislite *db)
 	return cs;
 }
 
-static redislite_page *redislite_modified_page(changeset *cs, int page_number)
+redislite_page *redislite_modified_page(changeset *cs, int page_number)
 {
 	int i;
 	for (i = 0; i < cs->modified_pages_length; i++) {
