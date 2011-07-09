@@ -48,7 +48,7 @@ void redislite_free_changeset(changeset *cs)
 	for (i = 0; i < cs->opened_pages_length; i++) {
 		page = cs->opened_pages[i];
 		redislite_page *_page = redislite_modified_page(cs, page->number);
-		if (_page != NULL && _page->data != page->data) {
+		if (_page == NULL || _page->data != page->data) {
 			page->type->free_function(cs->db, page->data);
 		}
 		redislite_free(page);
@@ -208,6 +208,7 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 		if (page) {
 			if (page->data != page_data) {
 				redislite_close_opened_page(cs, page_number);
+				page->type->free_function(cs->db, page->data);
 				page->type = redislite_page_get_type(cs->db, type);
 				page->data = page_data;
 			}
