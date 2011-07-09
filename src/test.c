@@ -2,6 +2,7 @@
 #include "page_string.h"
 #include "page_index.h"
 #include "public_api.h"
+#include "util.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1788,6 +1789,64 @@ int test_lpush_lrange()
 	return REDISLITE_OK;
 }
 
+int test_lpush_lpop()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	redislite_reply *reply;
+	int i, error = 0;
+	long long value;
+
+	redislite_params *target;
+	for (i = 0; i < 512; i++) {
+		if (redislite_format_command(&target, "LPUSH key %d", i) != REDISLITE_OK) {
+			error = 1;
+			break;
+		}
+		reply = redislite_execute_command(db, target);
+		if (reply == NULL) {
+			error = 1;
+			break;
+		}
+		redislite_free_reply(reply);
+		redislite_free_params(target);
+	}
+
+	if (error == 0) {
+		for (i = 511; i >= 0; i--) {
+			reply = redislite_command(db, "LPOP key");
+			if (reply->type != REDISLITE_REPLY_STRING) {
+				error = 1;
+				break;
+			}
+
+			if (str_to_long_long(reply->str, reply->len, &value) != REDISLITE_OK || value != i) {
+				printf("Expected LPOP to be %d, got %s instead on line %d\n", i, reply->str, __LINE__);
+				error = 1;
+				break;
+			} else {
+				//printf("%d OK\n", i);
+			}
+			redislite_free_reply(reply);
+		}
+		reply = redislite_command(db, "LPOP key");
+		if (reply->type != REDISLITE_REPLY_NIL) {
+			printf("Expected LPOP to be NIL when emptying list, got %d instead on line %d\n", reply->type, __LINE__);
+		}
+		redislite_free_reply(reply);
+	}
+
+	if (db) {
+		redislite_close_database(db);
+	}
+	if (error) return REDISLITE_ERR;
+	return REDISLITE_OK;
+}
+
 int main(int argc, char **argv)
 {
 	srand(4);
@@ -2053,6 +2112,17 @@ int main(int argc, char **argv)
 	if (run_test == -1 || run_test == i++) {
 		test = test_lpush_lrange();
 		test_name = "testing lpush";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+	}
+
+	if (run_test == -1 || run_test == i++) {
+		test = test_lpush_lpop();
+		test_name = "testing lpush lpop";
 		if (test == REDISLITE_SKIP) {
 			printf("Skipped test %s on line %d\n", test_name, __LINE__);
 		}

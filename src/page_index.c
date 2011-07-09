@@ -345,7 +345,7 @@ int redislite_exists_key(void *_db, void *_cs, char *key, int length)
 	return 0;
 }
 
-static int redislite_delete_key(void *_cs, char *key, int length)
+int redislite_delete_key(void *_cs, char *key, int length)
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;

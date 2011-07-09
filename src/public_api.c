@@ -584,6 +584,30 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 	return reply;
 }
 
+redislite_reply *redislite_lpop_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	int len, value_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_lpop_by_keyname(cs, key, len, &value, &value_len);
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_STRING;
+		reply->str = value;
+		reply->len = value_len;
+	} else if (status != REDISLITE_NOT_FOUND) {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 redislite_reply *redislite_llen_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -695,7 +719,7 @@ struct redislite_command redislite_command_table[] = {
 	{"lpushx", redislite_command_not_implemented_yet, 3, 0},
 	{"linsert", redislite_command_not_implemented_yet, 5, 0},
 	{"rpop", redislite_command_not_implemented_yet, 2, 0},
-	{"lpop", redislite_command_not_implemented_yet, 2, 0},
+	{"lpop", redislite_lpop_command, 2, 0},
 	{"brpop", redislite_command_implementation_not_planned, 3, 0},
 	{"brpoplpush", redislite_command_implementation_not_planned, 4, 0},
 	{"blpop", redislite_command_implementation_not_planned, 3, 0},
@@ -915,6 +939,12 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 		case 234: // 'S'+'U'+'B'
 			if (length == 6 && memcaseequal(command, "substr", 6)) {
 				return &redislite_command_table[11];
+			}
+			break;
+
+		case 235: // 'L'+'P'+'O'
+			if (length == 4 && memcaseequal(command, "lpop", 4)) {
+				return &redislite_command_table[22];
 			}
 			break;
 

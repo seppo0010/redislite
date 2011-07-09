@@ -1,4 +1,6 @@
 #include "redislite.h"
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <limits.h>
 #include <errno.h>
@@ -379,8 +381,10 @@ int intlen(int integer)
 int str_to_long_long(char *str, int len, long long *value)
 {
 	char *eptr;
-	str[len] = '\0';
-	*value = strtoll(str, &eptr, 10);
+	char _str[20];
+	memcpy(_str, str, len);
+	_str[len] = '\0';
+	*value = strtoll(_str, &eptr, 10);
 	if (eptr[0] != '\0') {
 		return REDISLITE_ERR;
 	}

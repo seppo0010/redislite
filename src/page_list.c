@@ -348,6 +348,56 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 	return status;
 }
 
+int redislite_lpop_by_keyname(void *_cs, char *keyname, int keyname_len, char **value, int *value_len)
+{
+	changeset *cs = (changeset *)_cs;
+	char type;
+	int i;
+	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	if (page_num < 0) {
+		return page_num;
+	}
+
+	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_WRONG_TYPE;
+	}
+
+	redislite_page_list_first *page = redislite_page_get(cs->db, cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+
+	redislite_page_list *list = page->list;
+	int list_page_num = page_num;
+	while (list->size == 0) {
+		list_page_num = list->right_page;
+		list = redislite_page_get(cs->db, cs, list->right_page, REDISLITE_PAGE_TYPE_LIST);
+	}
+	*value = list->element[0];
+	*value_len = list->element_len[0];
+	for (i = 1; i < list->size; i++) {
+		list->element[i - 1] = list->element[i];
+		list->element_len[i - 1] = list->element_len[i];
+	}
+	list->size--;
+	page->total_size--;
+
+	if (page->total_size == 0) {
+		char *value_aux = redislite_malloc(sizeof(char) * (*value_len));
+		if (value_aux == NULL) {
+			return REDISLITE_OOM;
+		}
+		memcpy(value_aux, *value, *value_len);
+		redislite_delete_key(_cs, keyname, keyname_len);
+		redislite_free(*value);
+		*value = value_aux;
+		// TODO: avoid double key lookup
+	} else {
+		redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
+		if (list != page->list)
+			redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
+	}
+
+	return REDISLITE_OK;
+}
+
 int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int *len)
 {
 	char type;
@@ -356,7 +406,7 @@ int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_l
 		return page_num;
 	}
 	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
-		return REDISLITE_ERR; // TODO: error for wrong type
+		return REDISLITE_WRONG_TYPE;
 	}
 
 	redislite_page_list_first *page = redislite_page_get(_db, _cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);

@@ -26,5 +26,6 @@ void redislite_delete_list_first(void *_cs, void *page);
 size_t redislite_free_bytes(void *_db, redislite_page_list *list, char type);
 
 int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *value, int value_len);
+int redislite_lpop_by_keyname(void *_cs, char *keyname, int keyname_len, char **value, int *value_len);
 int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int *len);
 int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int start, int end, int *list_count, char ***list, int **list_len);
