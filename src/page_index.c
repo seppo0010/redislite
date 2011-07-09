@@ -60,6 +60,12 @@ void *redislite_read_index(void *db, unsigned char *data)
 	page->number_of_keys = redislite_get_2bytes(&data[8]);
 	page->alloced_keys = page->number_of_keys;
 	page->right_page = redislite_get_4bytes(&data[10]);
+	page->db = db;
+	if (page->alloced_keys == 0) {
+		page->keys = NULL;
+		return page;
+	}
+
 	page->keys = redislite_malloc(sizeof(redislite_page_index_key) * page->alloced_keys);
 	if (page->keys == NULL) {
 		goto cleanup;
@@ -82,7 +88,6 @@ void *redislite_read_index(void *db, unsigned char *data)
 		page->keys[i]->left_page = redislite_get_4bytes(&data[pos]);
 		pos += 4;
 	}
-	page->db = db;
 	return page;
 cleanup:
 	if (page->keys) {

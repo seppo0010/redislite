@@ -73,7 +73,7 @@ void *redislite_read_list(void *_db, unsigned char *data)
 	if (page->element == NULL) {
 		goto cleanup;
 	}
-	page->element_len = redislite_malloc(sizeof(char *) * page->size);
+	page->element_len = redislite_malloc(sizeof(int) * page->size);
 	if (page->element_len == NULL) {
 		goto cleanup;
 	}
@@ -238,7 +238,6 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 		page->total_size = 0;
 		page->list->left_page = 0;
 		page->list->right_page = 0;
-		page->list->size = 0;
 		page->list->element_alloced = page->list->size = 0;
 		page->list->element_len = 0;
 		type = REDISLITE_PAGE_TYPE_LIST_FIRST;
@@ -274,14 +273,21 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 			// If that fails, we are gonna create a new one in between
 			if (page->list->right_page != 0) {
 				old_right = redislite_page_get(cs->db, cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST);
-				int i = 1;
-				while (redislite_free_bytes(cs->db, old_right, REDISLITE_PAGE_TYPE_LIST) >= 0 && page->list->size > 0) {
+				int i = 0, tmp_size;
+				unsigned char placeholder[9];
+				while (page->list->size > 0) {
+					tmp_size = page->list->element_len[page->list->size - 1] + putVarint32(placeholder, page->list->element_len[page->list->size - 1]);
+					if (redislite_free_bytes(cs->db, old_right, REDISLITE_PAGE_TYPE_LIST) < tmp_size) break;
+					if (redislite_free_bytes(cs->db, page->list, type) >= size) break;
 					status = lpush(_cs, old_right, page->list->element[page->list->size - 1], page->list->element_len[page->list->size - 1]);
 					page->list->size--;
 					i++;
 				}
 				if (redislite_free_bytes(cs->db, page->list, type) >= size) {
-					redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, old_right);
+					for (;i>0;i--) {
+						redislite_free(page->list->element[i + page->list->size - 1]);
+					}
+					redislite_add_modified_page(cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST, old_right);
 					break;
 				}
 				else {
@@ -296,7 +302,6 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 			}
 			right->left_page = page_num;
 			right->right_page = page->list->right_page;
-			right->size = 0;
 			right->element_alloced = right->size = 0;
 			right->element_len = 0;
 		}
@@ -306,6 +311,7 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 			return status;
 		}
 		page->list->size--;
+		redislite_free(page->list->element[page->list->size]);
 	}
 	if (right != NULL) {
 		page->list->right_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, right);
