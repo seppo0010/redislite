@@ -175,6 +175,27 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 	return page_number;
 }
 
+static int redislite_close_opened_page(changeset *cs, int page_number)
+{
+	int i;
+	redislite_page *page;
+	for (i = 0; i < cs->opened_pages_length; i++) {
+		page = cs->opened_pages[i];
+		if (page->number == page_number) {
+			page->type->free_function(cs->db, page->data);
+			redislite_free(page);
+			for (; i < cs->opened_pages_length - 1; i++) {
+				cs->opened_pages[i] = cs->opened_pages[i+1];
+			}
+			cs->opened_pages_length--;
+			cs->opened_pages_free++;
+			break;
+		}
+		if (page->number > page_number) break;
+	}
+	return REDISLITE_OK;
+}
+
 int redislite_add_modified_page(changeset *cs, int page_number, char type, void *page_data)
 {
 	if (cs->db->readonly) {
@@ -182,12 +203,11 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	}
 
 	int i;
-	// TODO: binary search
 	if (page_number != -1) {
 		redislite_page *page = redislite_modified_page(cs, page_number);
 		if (page) {
 			if (page->data != page_data) {
-				page->type->free_function(cs->db, page->data);
+				redislite_close_opened_page(cs, page_number);
 				page->type = redislite_page_get_type(cs->db, type);
 				page->data = page_data;
 			}
