@@ -417,7 +417,83 @@ int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_l
 	return REDISLITE_OK;
 }
 
-int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int start, int end, int *list_count, char ***list, int **list_len)
+int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int start, int end, int *ret_list_count_p, char ***ret_list_p, int **ret_list_len_p)
 {
-	return 0;
+	char type;
+	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
+	if (page_num < 0) {
+		return page_num;
+	}
+	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_WRONG_TYPE;
+	}
+
+	redislite_page_list_first *page = redislite_page_get(_db, _cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+	if (page == NULL) return REDISLITE_OOM;
+	int len = page->total_size;
+
+	if (start < 0) start += len;
+	if (end < 0) end += len;
+	if (start < 0) start = 0;
+	if (end >= len) end = len;
+
+	if (start > end || start >= len) {
+		*ret_list_count_p = 0;
+		return REDISLITE_OK;
+	}
+
+	int ret_list_count = end - start + 1;
+	char **ret_list = redislite_malloc(sizeof(char*) * ret_list_count);
+	if (ret_list == NULL) {
+		return REDISLITE_OOM;
+	}
+	int *ret_list_len = redislite_malloc(sizeof(int) * ret_list_count);
+	if (ret_list_len == NULL) {
+		redislite_free(ret_list);
+		return REDISLITE_OOM;
+	}
+
+	redislite_page_list *list = page->list;
+	int page_start = 0;
+	int pos = 0;
+	int i, right_page;
+	while (page_start <= end) {
+		if (page_start + list->size > start) {
+			for (i = 0; i < list->size && pos < ret_list_count; i++) {
+				if (page_start + i >= start) {
+					ret_list[pos] = redislite_malloc(sizeof(char) * list->element_len[i]);
+					if (ret_list[pos] == NULL) goto cleanup;
+					memcpy(ret_list[pos], list->element[i], list->element_len[i]);
+					ret_list_len[pos] = list->element_len[i];
+					pos++;
+				}
+			}
+		}
+		if (pos == ret_list_count) break;
+		page_start += list->size;
+		right_page = list->right_page;
+		if (_cs == NULL && page->list != list) {
+			redislite_free_list(_db, list);
+		}
+		list = redislite_page_get(_db, _cs, right_page, REDISLITE_PAGE_TYPE_LIST);
+		if (page == NULL) {
+			goto cleanup;
+		}
+	}
+
+	if (_cs == NULL && page->list != list) {
+		redislite_free_list(_db, list);
+	}
+	redislite_free_list_first(_db, page);
+	*ret_list_p = ret_list;
+	*ret_list_len_p = ret_list_len;
+	*ret_list_count_p = ret_list_count;
+	return REDISLITE_OK;
+cleanup:
+	for (; pos >= 0; pos--) {
+		redislite_free(ret_list[i]);
+	}
+	redislite_free(ret_list);
+	redislite_free(ret_list_len);
+	return REDISLITE_OOM;
 }

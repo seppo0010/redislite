@@ -608,6 +608,72 @@ redislite_reply *redislite_lpop_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_lrange_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	int len, status;
+	long long start, end;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+
+	status = str_to_long_long(params->argv[2], params->argvlen[2], &start);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+	status = str_to_long_long(params->argv[3], params->argvlen[3], &end);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	int size;
+	char **values;
+	int *values_len;
+	status = redislite_lrange_by_keyname(db, NULL, key, len, start, end, &size, &values, &values_len);
+	int i = 0;
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_ARRAY;
+		reply->elements = size;
+		reply->element = redislite_malloc(sizeof(redislite_reply*) * size);
+		if (reply->element == NULL) goto cleanup;
+
+		for (; i < size; i++) {
+			reply->element[i] = redislite_create_reply();
+			if (reply->element[i] == NULL) goto cleanup;
+			reply->element[i]->type = REDISLITE_REPLY_STRING;
+			reply->element[i]->str = values[i];
+			reply->element[i]->len = values_len[i];
+		}
+		redislite_free(values);
+		redislite_free(values_len);
+	} else if (status != REDISLITE_NOT_FOUND) {
+		set_error_message(status, reply);
+	}
+	return reply;
+cleanup:
+	if (reply->element != NULL) {
+		for (i--; i >= 0; i--) {
+			redislite_free(reply->element[i]);
+		}
+		redislite_free(reply->element);
+	}
+	redislite_free(values);
+	redislite_free(values_len);
+	redislite_free(reply);
+	return NULL;
+}
+
 redislite_reply *redislite_llen_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -726,7 +792,7 @@ struct redislite_command redislite_command_table[] = {
 	{"llen", redislite_llen_command, 2, 0},
 	{"lindex", redislite_command_not_implemented_yet, 3, 0},
 	{"lset", redislite_command_not_implemented_yet, 4, 0},
-	{"lrange", redislite_command_not_implemented_yet, 4, 0},
+	{"lrange", redislite_lrange_command, 4, 0},
 	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
 	{"lrem", redislite_command_not_implemented_yet, 4, 0},
 	{"rpoplpush", redislite_command_not_implemented_yet, 3, 0},
@@ -909,6 +975,12 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 		case 221: // 'L'+'L'+'E'
 			if (length == 4 && memcaseequal(command, "llen", 4)) {
 				return &redislite_command_table[26];
+			}
+			break;
+
+		case 223: // 'L'+'R'+'A'
+			if (length == 6 && memcaseequal(command, "lrange", 6)) {
+				return &redislite_command_table[29];
 			}
 			break;
 

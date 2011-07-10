@@ -1782,6 +1782,30 @@ int test_lpush_lrange()
 		}
 		redislite_free_reply(reply);
 	}
+
+	reply = redislite_command(db, "LRANGE key 0 -1");
+	if (reply->type != REDISLITE_REPLY_ARRAY) {
+		return REDISLITE_ERR;
+	}
+	if (reply->elements != 512) {
+		printf("Expected LRANGE to have %d positions, got %d instead on line %d\n", 512, reply->elements, __LINE__);
+		return REDISLITE_ERR;
+	}
+	long long test;
+	for (i = 0; i < 512; i++) {
+		if (str_to_long_long(reply->element[i]->str, reply->element[i]->len, &test) != REDISLITE_OK) {
+			printf("Error transforming %s (%d len) to long long on line %d\n", reply->element[i]->str, reply->element[i]->len, __LINE__);
+			return REDISLITE_ERR;
+		}
+		if (test != 511 - i) {
+			printf("Expecting item at pos %d to be %d, got %lld instead on line %d\n", i, 511 - i, test, __LINE__);
+
+			return REDISLITE_ERR;
+		}
+	}
+
+	redislite_free_reply(reply);
+
 	if (db) {
 		redislite_close_database(db);
 	}
