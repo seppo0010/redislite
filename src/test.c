@@ -1852,7 +1852,8 @@ int test_lpush_lpop()
 				printf("Expected LPOP to be %d, got %s instead on line %d\n", i, reply->str, __LINE__);
 				error = 1;
 				break;
-			} else {
+			}
+			else {
 				//printf("%d OK\n", i);
 			}
 			redislite_free_reply(reply);
@@ -1867,7 +1868,9 @@ int test_lpush_lpop()
 	if (db) {
 		redislite_close_database(db);
 	}
-	if (error) return REDISLITE_ERR;
+	if (error) {
+		return REDISLITE_ERR;
+	}
 	return REDISLITE_OK;
 }
 

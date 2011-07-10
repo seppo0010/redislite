@@ -602,7 +602,8 @@ redislite_reply *redislite_lpop_command(redislite *db, redislite_params *params)
 		reply->type = REDISLITE_REPLY_STRING;
 		reply->str = value;
 		reply->len = value_len;
-	} else if (status != REDISLITE_NOT_FOUND) {
+	}
+	else if (status != REDISLITE_NOT_FOUND) {
 		set_error_message(status, reply);
 	}
 	return reply;
@@ -645,19 +646,24 @@ redislite_reply *redislite_lrange_command(redislite *db, redislite_params *param
 	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_ARRAY;
 		reply->elements = size;
-		reply->element = redislite_malloc(sizeof(redislite_reply*) * size);
-		if (reply->element == NULL) goto cleanup;
+		reply->element = redislite_malloc(sizeof(redislite_reply *) * size);
+		if (reply->element == NULL) {
+			goto cleanup;
+		}
 
 		for (; i < size; i++) {
 			reply->element[i] = redislite_create_reply();
-			if (reply->element[i] == NULL) goto cleanup;
+			if (reply->element[i] == NULL) {
+				goto cleanup;
+			}
 			reply->element[i]->type = REDISLITE_REPLY_STRING;
 			reply->element[i]->str = values[i];
 			reply->element[i]->len = values_len[i];
 		}
 		redislite_free(values);
 		redislite_free(values_len);
-	} else if (status != REDISLITE_NOT_FOUND) {
+	}
+	else if (status != REDISLITE_NOT_FOUND) {
 		set_error_message(status, reply);
 	}
 	return reply;

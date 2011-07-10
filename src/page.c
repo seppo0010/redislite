@@ -11,7 +11,9 @@ void *redislite_page_get(void *_db, void *_cs, int num, char type)
 	if (cs) {
 		int i;
 		redislite_page *page = redislite_modified_page(cs, num);
-		if (page != NULL) return page->data;
+		if (page != NULL) {
+			return page->data;
+		}
 		for (i = 0; i < cs->opened_pages_length; i++) {
 			redislite_page *page = cs->opened_pages[i];
 			if (page->number == num) {

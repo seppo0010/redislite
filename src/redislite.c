@@ -185,13 +185,15 @@ static int redislite_close_opened_page(changeset *cs, int page_number)
 			page->type->free_function(cs->db, page->data);
 			redislite_free(page);
 			for (; i < cs->opened_pages_length - 1; i++) {
-				cs->opened_pages[i] = cs->opened_pages[i+1];
+				cs->opened_pages[i] = cs->opened_pages[i + 1];
 			}
 			cs->opened_pages_length--;
 			cs->opened_pages_free++;
 			break;
 		}
-		if (page->number > page_number) break;
+		if (page->number > page_number) {
+			break;
+		}
 	}
 	return REDISLITE_OK;
 }
