@@ -1,4 +1,4 @@
-#include "redislite.h"
+#include "core.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "redislite.h"
+#include "core.h"
 #include "page.h"
 #include "util.h"
 

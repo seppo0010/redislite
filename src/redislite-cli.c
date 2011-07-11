@@ -41,6 +41,7 @@
 #include <assert.h>
 
 #include "redislite.h"
+#include "core.h"
 #include "public_api.h"
 #include "version.h"
 #include "sds.h"

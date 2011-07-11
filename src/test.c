@@ -1,4 +1,5 @@
 #include "redislite.h"
+#include "core.h"
 #include "page_string.h"
 #include "page_index.h"
 #include "public_api.h"

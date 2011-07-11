@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include "public_api.h"
+#include "core.h"
 #include "redislite.h"
 #include "sds.h"
 #include "page_index.h"

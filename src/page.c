@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include "page.h"
-#include "redislite.h"
+#include "core.h"
 #include "page_index.h"
 #include "page_freelist.h"
 

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "redislite.h"
+#include "core.h"
 #include "page_index.h"
 #include "page_list.h"
 #include "util.h"
