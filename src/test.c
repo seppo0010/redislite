@@ -1819,7 +1819,7 @@ int test_lpush_lrange()
 		return REDISLITE_ERR;
 	}
 	if (reply->elements != 512) {
-		printf("Expected LRANGE to have %d positions, got %d instead on line %d\n", 512, reply->elements, __LINE__);
+		printf("Expected LRANGE to have %d positions, got %d instead on line %d\n", 512, (int)reply->elements, __LINE__);
 		return REDISLITE_ERR;
 	}
 
