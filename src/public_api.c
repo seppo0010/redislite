@@ -702,6 +702,43 @@ redislite_reply *redislite_llen_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_lindex_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	int len, value_len;
+	long long pos;
+
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &pos);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	key = params->argv[1];
+	len = params->argvlen[1];
+
+	status = redislite_lindex_by_keyname(db, NULL, key, len, (int)pos, &value, &value_len);
+	if (status == REDISLITE_OK) {
+		if (value_len > 0) {
+			reply->type = REDISLITE_REPLY_STRING;
+			reply->str = value;
+			reply->len = value_len;
+		}
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 static redislite_reply *init_multibulk(size_t size)
 {
 	int i, j;
@@ -796,7 +833,7 @@ struct redislite_command redislite_command_table[] = {
 	{"brpoplpush", redislite_command_implementation_not_planned, 4, 0},
 	{"blpop", redislite_command_implementation_not_planned, 3, 0},
 	{"llen", redislite_llen_command, 2, 0},
-	{"lindex", redislite_command_not_implemented_yet, 3, 0},
+	{"lindex", redislite_lindex_command, 3, 0},
 	{"lset", redislite_command_not_implemented_yet, 4, 0},
 	{"lrange", redislite_lrange_command, 4, 0},
 	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
@@ -1005,6 +1042,12 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 		case 225: // 'A'+'P'+'P'
 			if (length == 6 && memcaseequal(command, "append", 6)) {
 				return &redislite_command_table[4];
+			}
+			break;
+
+		case 227: // 'A'+'P'+'P'
+			if (length == 6 && memcaseequal(command, "lindex", 6)) {
+				return &redislite_command_table[27];
 			}
 			break;
 

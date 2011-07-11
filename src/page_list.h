@@ -29,3 +29,4 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 int redislite_lpop_by_keyname(void *_cs, char *keyname, int keyname_len, char **value, int *value_len);
 int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int *len);
 int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int start, int end, int *list_count, char ***list, int **list_len);
+int redislite_lindex_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int pos, char **value, int *value_len);

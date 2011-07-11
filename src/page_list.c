@@ -322,6 +322,9 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 		if (old_right != NULL) {
 			old_right->left_page = page->list->right_page;
 		}
+		else {
+			page->list->left_page = page->list->right_page;
+		}
 	}
 
 	{
@@ -515,5 +518,78 @@ cleanup:
 	}
 	redislite_free(ret_list);
 	redislite_free(ret_list_len);
+	return REDISLITE_OOM;
+}
+
+int redislite_lindex_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int pos, char **value, int *value_len)
+{
+	// We are gonna keep constant time for pos=-1
+	// pos=0 is already as fast as possible in lrange
+	if (pos != -1) {
+		int ret_list_count;
+		int *ret_list_len;
+		char **ret_list;
+		int status = redislite_lrange_by_keyname(_db, _cs, keyname, keyname_len, pos, pos, &ret_list_count, &ret_list, &ret_list_len);
+		if (status == REDISLITE_OK && ret_list_count == 1) {
+			*value = ret_list[0];
+			*value_len = ret_list_len[0];
+			redislite_free(ret_list);
+			redislite_free(ret_list_len);
+		}
+		else {
+			*value = NULL;
+			*value_len = 0;
+		}
+		return status;
+	}
+	char type;
+	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
+	if (page_num < 0) {
+		return page_num;
+	}
+
+	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_WRONG_TYPE;
+	}
+
+	redislite_page_list_first *page = redislite_page_get(_db, _cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+	if (page == NULL) {
+		goto cleanup;
+	}
+
+	redislite_page_list *list;
+	if (page->list->left_page == 0) {
+		list = page->list;
+	}
+	else {
+		list = redislite_page_get(_db, _cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST);
+		if (list == NULL) {
+			goto cleanup;
+		}
+	}
+	char *ret_value = redislite_malloc(sizeof(char) * list->element_len[list->size - 1]);
+	if (ret_value == NULL) {
+		goto cleanup;
+	}
+	memcpy(ret_value, list->element[list->size - 1], list->element_len[list->size - 1]);
+	*value = ret_value;
+	*value_len = list->element_len[list->size - 1];
+	if (list != NULL && list != page->list) {
+		redislite_free_list(_db, list);
+	}
+	if (page != NULL) {
+		redislite_free_list_first(_db, page);
+	}
+	return REDISLITE_OK;
+
+cleanup:
+	if (_cs == NULL) {
+		if (list != NULL && list != page->list) {
+			redislite_free_list(_db, list);
+		}
+		if (page != NULL) {
+			redislite_free_list_first(_db, page);
+		}
+	}
 	return REDISLITE_OOM;
 }
