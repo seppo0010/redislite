@@ -108,7 +108,7 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_list;
 		type->read_function = &redislite_read_list;
 		type->free_function = &redislite_free_list;
-		type->delete_function = NULL;
+		type->delete_function = &redislite_delete_list;
 		int status = redislite_page_register_type(db, type);
 		if (status != REDISLITE_OK) {
 			free(type);
@@ -125,7 +125,7 @@ static int init_db(redislite *db)
 		type->write_function = &redislite_write_list_first;
 		type->read_function = &redislite_read_list_first;
 		type->free_function = &redislite_free_list_first;
-		type->delete_function = NULL;
+		type->delete_function = &redislite_delete_list_first;
 		int status = redislite_page_register_type(db, type);
 		if (status != REDISLITE_OK) {
 			free(type);
