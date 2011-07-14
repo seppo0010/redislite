@@ -278,9 +278,6 @@ int test_delete_and_find()
 			int length = 0;
 			char *value = NULL;
 			int size = (int)strlen(key[i]);
-			if (memcmp(key[i], "154142252", size) == 0) {
-				printf("a");
-			}
 			int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
 			if (found == REDISLITE_OOM) {
 				continue;
