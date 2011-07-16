@@ -69,6 +69,10 @@ void *redislite_read_list(void *_db, unsigned char *data)
 	page->right_page = redislite_get_4bytes(&data[8]);
 	page->left_page = redislite_get_4bytes(&data[12]);
 	page->element_len = NULL; // in case the next alloc fails, we don't want to free this
+	if (page->element_alloced == 0) {
+		page->element = NULL;
+		return page;
+	}
 	page->element = redislite_malloc(sizeof(char *) * page->size);
 	if (page->element == NULL) {
 		goto cleanup;
@@ -406,6 +410,24 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, int keyname_len, char **
 		list_page_num = list->right_page;
 		list = redislite_page_get(cs->db, cs, list->right_page, REDISLITE_PAGE_TYPE_LIST);
 	}
+
+	if (page->list->size == 0 && list_page_num == page->list->right_page && redislite_free_bytes(cs->db, list, REDISLITE_PAGE_TYPE_FIRST) > 0 && list->size > 0) {
+		for (i = 0; i < list->size; i++)
+			lpush(cs, page->list, list->element[list->size - i - 1], list->element_len[list->size - i - 1]);
+		page->list->right_page = list->right_page;
+		list->right_page = list->left_page = 0;
+		redislite_page_delete(_cs, list_page_num, REDISLITE_PAGE_TYPE_LIST);
+		list_page_num = page_num;
+
+		if (page->list->right_page > 0) {
+			list = redislite_page_get(cs->db, cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST);
+			list->left_page = page_num;
+			redislite_add_modified_page(cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST, list);
+		}
+		list = page->list;
+		// TODO: delete old page
+	}
+
 	*value = list->element[0];
 	*value_len = list->element_len[0];
 	for (i = 1; i < list->size; i++) {
