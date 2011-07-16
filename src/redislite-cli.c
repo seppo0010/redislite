@@ -324,7 +324,7 @@ static sds cliFormatReplyTTY(redislite_reply *r, char *prefix)
 			out = sdscatprintf(out, "(error) %s\n", r->str);
 			break;
 		case REDISLITE_REPLY_STATUS:
-			out = sdscat(out, r->str);
+			out = sdscatlen(out, r->str, r->len);
 			out = sdscat(out, "\n");
 			break;
 		case REDISLITE_REPLY_INTEGER:
