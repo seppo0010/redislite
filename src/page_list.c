@@ -412,8 +412,9 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, int keyname_len, char **
 	}
 
 	if (page->list->size == 0 && list_page_num == page->list->right_page && redislite_free_bytes(cs->db, list, REDISLITE_PAGE_TYPE_FIRST) > 0 && list->size > 0) {
-		for (i = 0; i < list->size; i++)
+		for (i = 0; i < list->size; i++) {
 			lpush(cs, page->list, list->element[list->size - i - 1], list->element_len[list->size - i - 1]);
+		}
 		page->list->right_page = list->right_page;
 		list->right_page = list->left_page = 0;
 		redislite_page_delete(_cs, list_page_num, REDISLITE_PAGE_TYPE_LIST);
