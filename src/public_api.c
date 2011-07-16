@@ -308,7 +308,7 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 			return NULL;
 		}
 		memcpy(reply->str, "none", 4);
-		reply->type = REDISLITE_REPLY_STRING;
+		reply->type = REDISLITE_REPLY_STATUS;
 		reply->len = 4;
 	}
 	else if (status < 0) {
@@ -323,7 +323,7 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 						return NULL;
 					}
 					memcpy(reply->str, "string", 6);
-					reply->type = REDISLITE_REPLY_STRING;
+					reply->type = REDISLITE_REPLY_STATUS;
 					reply->len = 6;
 					break;
 				}
