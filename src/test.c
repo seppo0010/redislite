@@ -14,12 +14,12 @@ static char *test_add_key(changeset *cs, int *left)
 	int rnd = rand();
 	char *key = (char *)malloc(sizeof(char) * 14);
 	sprintf(key, "%d", rnd);
-	int size = (int)strlen(key);
+	size_t size = (size_t)strlen(key);
 
 	if (dummy == NULL) {
 		dummy = malloc(sizeof(char) * cs->db->page_size + 1);
 		memset(dummy, 'a', cs->db->page_size + 1);
-		int i;
+		size_t i;
 		for (i = 0; i < cs->db->page_size + 1; i++) {
 			dummy[i] = (char)(('a' + i) % 128);
 		}
@@ -51,7 +51,7 @@ int test_insert_and_find()
 		printf("OOM on test.c, on line %d\n", __LINE__);
 		return REDISLITE_SKIP;
 	}
-	int i;
+	size_t i;
 
 	char *key[SIZE];
 	int value[SIZE];
@@ -63,9 +63,9 @@ int test_insert_and_find()
 		if (key[i] == NULL) {
 			continue;
 		}
-		int length = 0;
+		size_t length = 0;
 		char *value = NULL;
-		int size = (int)strlen(key[i]);
+		size_t size = (size_t)strlen(key[i]);
 		size_t found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
 		if (found == REDISLITE_OOM) {
 			continue;
@@ -94,9 +94,9 @@ int test_insert_and_find()
 			if (key[i] == NULL) {
 				continue;
 			}
-			int length = 0;
+			size_t length = 0;
 			char *value = NULL;
-			int size = (int)strlen(key[i]);
+			size_t size = (size_t)strlen(key[i]);
 			size_t found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
 			if (found == REDISLITE_OOM) {
 				continue;
@@ -176,7 +176,7 @@ int test_insert_middle_and_find()
 	}
 
 	char *value;
-	int length;
+	size_t length;
 	size_t found = redislite_page_string_get_by_keyname(db, cs, key, 200, &value, &length);
 	int status;
 	if (found == REDISLITE_OK) {
@@ -253,7 +253,7 @@ int test_delete_and_find()
 		return REDISLITE_SKIP;
 	}
 	int status = REDISLITE_OK;
-	int i;
+	size_t i;
 
 	char *key[SIZE];
 	int value[SIZE];
@@ -264,7 +264,7 @@ int test_delete_and_find()
 	char **keys = malloc(sizeof(char *) * (SIZE / 2));
 	size_t *lengths = malloc(sizeof(size_t) * (SIZE / 2));
 	for (i = 0; i < SIZE / 2; i++) {
-		int size = (int)strlen(key[i * 2]);
+		size_t size = (size_t)strlen(key[i * 2]);
 		keys[i] = key[i * 2];
 		lengths[i] = (size_t)size;
 	}
@@ -275,9 +275,9 @@ int test_delete_and_find()
 			if (key[i] == NULL) {
 				continue;
 			}
-			int length = 0;
+			size_t length = 0;
 			char *value = NULL;
-			int size = (int)strlen(key[i]);
+			size_t size = (size_t)strlen(key[i]);
 			int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
 			if (found == REDISLITE_OOM) {
 				continue;
@@ -302,9 +302,9 @@ int test_delete_and_find()
 		if (key[i] == NULL) {
 			continue;
 		}
-		int length = 0;
+		size_t length = 0;
 		char *value = NULL;
-		int size = (int)strlen(key[i]);
+		size_t size = (size_t)strlen(key[i]);
 		int found = redislite_page_string_get_by_keyname(db, cs, key[i], size, &value, &length);
 		if (found == REDISLITE_OOM) {
 			continue;
@@ -392,7 +392,7 @@ int test_append()
 		}
 
 		char *lookup_value;
-		int lookup_length;
+		size_t lookup_length;
 		size_t found = redislite_page_string_get_by_keyname(db, cs, key, 10, &lookup_value, &lookup_length);
 		if (found == REDISLITE_OOM) {
 			status = REDISLITE_SKIP;
@@ -786,7 +786,7 @@ int test_getrange()
 	}
 
 	char *str;
-	int str_length;
+	size_t str_length;
 	status = redislite_page_string_getrange_key_string(db, cs, key, 7, 0, 0, &str, &str_length);
 	if (status != REDISLITE_OK) {
 		printf("Failed to getrange\n");
@@ -856,7 +856,7 @@ int test_echo()
 	char *test_str = malloc(sizeof(char) * 100);
 	memset(test_str, 'a', 100);
 	char *dst;
-	int dst_length;
+	size_t dst_length;
 	int status = redislite_echo(test_str, 100, &dst, &dst_length);
 	if (status == REDISLITE_OOM) {
 		dst = NULL;
@@ -953,7 +953,7 @@ int test_getset()
 	}
 
 	char *previous_value;
-	int previous_value_length;
+	size_t previous_value_length;
 	status = redislite_page_string_getset_key_string(cs, key, 7, "41", 2, &previous_value, &previous_value_length);
 	if (status !=  REDISLITE_OK) {
 		printf("Unable to getset string on line %d - received %d\n", __LINE__, status);
@@ -1348,7 +1348,7 @@ int test_set_publicapi()
 	redislite_free_reply(reply);
 
 	char *value;
-	int length;
+	size_t length;
 	size_t found = redislite_page_string_get_by_keyname(db, NULL, key, 10, &value, &length);
 
 	if (found < 0) {
@@ -1413,7 +1413,7 @@ int test_format_get_set_publicapi()
 	redislite_free_reply(reply);
 
 	char *value;
-	int length;
+	size_t length;
 	size_t found = redislite_page_string_get_by_keyname(db, NULL, "test", 4, &value, &length);
 
 	if (found < 0) {

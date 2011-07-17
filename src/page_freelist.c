@@ -25,7 +25,7 @@ void redislite_write_freelist(void *_db, unsigned char *data, void *_page)
 
 	redislite_put_4bytes(&data[0], 0); // reserverd
 	redislite_put_4bytes(&data[4], page->right_page);
-	int size = db->page_size - 8;
+	size_t size = db->page_size - 8;
 	memset(&data[8], 0, size);
 }
 

@@ -1,7 +1,7 @@
 typedef struct {
 	void *db;
 	int right_page;
-	int size;
+	size_t size;
 } redislite_page_freelist;
 
 void redislite_write_freelist(void *_db, unsigned char *data, void *page);

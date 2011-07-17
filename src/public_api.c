@@ -195,7 +195,7 @@ static void set_error_message(int status, redislite_reply *reply)
 redislite_reply *redislite_strlen_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -216,14 +216,17 @@ redislite_reply *redislite_strlen_command(redislite *db, redislite_params *param
 redislite_reply *redislite_get_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
 	}
 	key = params->argv[1];
 	len = params->argvlen[1];
-	int status = redislite_page_string_get_by_keyname(db, NULL, key, len, &reply->str, &reply->len);
+	size_t reply_len = 0;
+	int status = redislite_page_string_get_by_keyname(db, NULL, key, len, &reply->str, &reply_len);
+	reply->len = (int)reply_len;
+
 	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_STRING;
 	}
@@ -236,7 +239,7 @@ redislite_reply *redislite_get_command(redislite *db, redislite_params *params)
 redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
-	int len, value_len;
+	size_t len, value_len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -276,7 +279,7 @@ redislite_reply *redislite_del_command(redislite *db, redislite_params *params)
 redislite_reply *redislite_exists_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -293,7 +296,7 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 {
 	char type;
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -336,7 +339,7 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
-	int len, value_len;
+	size_t len, value_len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -362,7 +365,7 @@ redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params
 redislite_reply *redislite_append_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
-	int len, value_len;
+	size_t len, value_len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -372,7 +375,7 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 	value = params->argv[2];
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
-	int new_len;
+	size_t new_len;
 	int status = redislite_page_string_append_key_string(cs, key, len, value, value_len, &new_len);
 	if (status != REDISLITE_OK) {
 		set_error_message(status, reply);
@@ -382,14 +385,14 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	reply->type = REDISLITE_REPLY_INTEGER;
-	reply->integer = new_len;
+	reply->integer = (int)new_len;
 	return reply;
 }
 
 redislite_reply *redislite_getbit_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	long long bit_offset;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
@@ -420,7 +423,7 @@ redislite_reply *redislite_getrange_command(redislite *db, redislite_params *par
 {
 
 	char *key;
-	int len;
+	size_t len;
 	long long start;
 	long long end;
 	redislite_reply *reply = redislite_create_reply();
@@ -446,7 +449,9 @@ redislite_reply *redislite_getrange_command(redislite *db, redislite_params *par
 		return reply;
 	}
 
-	status = redislite_page_string_getrange_key_string(db, NULL, key, len, start, end, &reply->str, &reply->len);
+	size_t reply_len = 0;
+	status = redislite_page_string_getrange_key_string(db, NULL, key, len, start, end, &reply->str, &reply_len);
+	reply->len = (int)reply_len;
 	if (status < REDISLITE_OK) {
 		set_error_message(status, reply);
 		return reply;
@@ -458,7 +463,7 @@ redislite_reply *redislite_getrange_command(redislite *db, redislite_params *par
 redislite_reply *redislite_incr_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -481,7 +486,7 @@ redislite_reply *redislite_incr_command(redislite *db, redislite_params *params)
 redislite_reply *redislite_decr_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -504,7 +509,7 @@ redislite_reply *redislite_decr_command(redislite *db, redislite_params *params)
 redislite_reply *redislite_incrby_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -536,7 +541,7 @@ redislite_reply *redislite_incrby_command(redislite *db, redislite_params *param
 redislite_reply *redislite_decrby_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -568,8 +573,8 @@ redislite_reply *redislite_decrby_command(redislite *db, redislite_params *param
 redislite_reply *redislite_llen_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
-	int llen = 0;
+	size_t len;
+	size_t llen = 0;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -590,7 +595,7 @@ redislite_reply *redislite_llen_command(redislite *db, redislite_params *params)
 redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
-	int len, value_len;
+	size_t len, value_len;
 	key = params->argv[1];
 	len = params->argvlen[1];
 	value = params->argv[2];
@@ -613,7 +618,7 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 redislite_reply *redislite_lpushx_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
-	int len, value_len;
+	size_t len, value_len;
 	key = params->argv[1];
 	len = params->argvlen[1];
 	value = params->argv[2];
@@ -636,7 +641,7 @@ redislite_reply *redislite_lpushx_command(redislite *db, redislite_params *param
 redislite_reply *redislite_lpop_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
-	int len, value_len;
+	size_t len, value_len;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -661,7 +666,8 @@ redislite_reply *redislite_lpop_command(redislite *db, redislite_params *params)
 redislite_reply *redislite_lrange_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len, status;
+	size_t len;
+	int status;
 	long long start, end;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
@@ -687,11 +693,11 @@ redislite_reply *redislite_lrange_command(redislite *db, redislite_params *param
 		return reply;
 	}
 
-	int size;
+	size_t size;
 	char **values;
-	int *values_len;
+	size_t *values_len;
 	status = redislite_lrange_by_keyname(db, NULL, key, len, start, end, &size, &values, &values_len);
-	int i = 0;
+	size_t i = 0;
 	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_ARRAY;
 		reply->elements = size;
@@ -718,8 +724,11 @@ redislite_reply *redislite_lrange_command(redislite *db, redislite_params *param
 	return reply;
 cleanup:
 	if (reply->element != NULL) {
-		for (i--; i >= 0; i--) {
+		for (i--;; i--) {
 			redislite_free(reply->element[i]);
+			if (i == 0) {
+				break;
+			}
 		}
 		redislite_free(reply->element);
 	}
@@ -732,7 +741,7 @@ cleanup:
 redislite_reply *redislite_lindex_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
-	int len, value_len;
+	size_t len, value_len;
 	long long pos;
 
 	redislite_reply *reply = redislite_create_reply();
@@ -768,7 +777,7 @@ redislite_reply *redislite_lindex_command(redislite *db, redislite_params *param
 
 static redislite_reply *init_multibulk(size_t size)
 {
-	int i, j;
+	size_t i, j;
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -783,8 +792,11 @@ static redislite_reply *init_multibulk(size_t size)
 	for (i = 0; i < size; i++) {
 		reply->element[i] = redislite_malloc(sizeof(redislite_reply));
 		if (reply->element[i] == NULL) {
-			for (j = i - 1; j >= 0; j--) {
+			for (j = i - 1;; j--) {
 				redislite_free(reply->element[j]);
+				if (j == 0) {
+					break;
+				}
 			}
 			redislite_free(reply->element);
 			redislite_free(reply);
@@ -797,7 +809,7 @@ static redislite_reply *init_multibulk(size_t size)
 redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
 {
 	char *key;
-	int len;
+	size_t len, reply_len;
 	int i, status;
 	redislite_reply *reply = init_multibulk(params->argc - 1);
 	if (reply == NULL) {
@@ -807,7 +819,9 @@ redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
 	for (i = 1; i < params->argc; i++) {
 		key = params->argv[i];
 		len = params->argvlen[i];
-		status = redislite_page_string_get_by_keyname(db, NULL, key, len, &reply->element[i - 1]->str, &reply->element[i - 1]->len);
+		reply_len = 0;
+		status = redislite_page_string_get_by_keyname(db, NULL, key, len, &reply->element[i - 1]->str, &reply_len);
+		reply->element[i - 1]->len = (int)reply_len;
 		if (status == REDISLITE_OK) {
 			reply->element[i - 1]->type = REDISLITE_REPLY_STRING;
 		}
@@ -954,7 +968,7 @@ struct redislite_command redislite_command_table[] = {
 
 static int memcaseequal(const char *str1, const char *str2, size_t length)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < length; i++) {
 		if (str1[i] == str2[i]) {
@@ -986,7 +1000,7 @@ static int memcaseequal(const char *str1, const char *str2, size_t length)
 	return 1;
 }
 
-struct redislite_command *redislite_command_lookup(char *command, int length) {
+struct redislite_command *redislite_command_lookup(char *command, size_t length) {
 	if (length < 2) {
 		return NULL;
 	}
@@ -1128,7 +1142,7 @@ struct redislite_command *redislite_command_lookup(char *command, int length) {
 }
 
 /* Helper function for redislitev_format_command(). */
-static int add_argument(redislite_params *target, char *str, int len)
+static int add_argument(redislite_params *target, char *str, size_t len)
 {
 	if (target->argc == 0) {
 		target->argvlen = redislite_malloc(sizeof(char *) * 1);

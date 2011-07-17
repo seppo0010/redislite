@@ -175,7 +175,7 @@ cleanup:
 
 redislite *redislite_create_database(const char *filename)
 {
-	int page_size = DEFAULT_PAGE_SIZE;
+	size_t page_size = DEFAULT_PAGE_SIZE;
 
 	redislite *db = redislite_malloc(sizeof(redislite));
 	if (db == NULL) {

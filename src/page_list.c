@@ -23,7 +23,7 @@ void redislite_free_list(void *_db, void *_page)
 	if (page == NULL) {
 		return;
 	}
-	int i;
+	size_t i;
 	for (i = 0; i < page->size; i++)
 		if (page->element[i] != NULL) {
 			redislite_free(page->element[i]);
@@ -49,8 +49,8 @@ void redislite_write_list(void *_db, unsigned char *data, void *_page)
 	redislite_put_4bytes(&data[8], page->right_page);
 	redislite_put_4bytes(&data[12], page->left_page);
 
-	int pos = 16;
-	int i;
+	size_t pos = 16;
+	size_t i;
 	for (i = 0; i < page->size; i++) {
 		pos += putVarint32(&data[pos], page->element_len[i]);
 		memcpy(&data[pos], page->element[i], page->element_len[i]);
@@ -77,11 +77,11 @@ void *redislite_read_list(void *_db, unsigned char *data)
 	if (page->element == NULL) {
 		goto cleanup;
 	}
-	page->element_len = redislite_malloc(sizeof(int) * page->size);
+	page->element_len = redislite_malloc(sizeof(size_t) * page->size);
 	if (page->element_len == NULL) {
 		goto cleanup;
 	}
-	int i, pos = 16;
+	size_t i, pos = 16;
 	for (i = 0; i < page->size; i++) {
 		pos += getVarint32(&data[pos], page->element_len[i]);
 		page->element[i] = redislite_malloc(sizeof(char) * page->element_len[i]);
@@ -94,9 +94,12 @@ void *redislite_read_list(void *_db, unsigned char *data)
 	return page;
 cleanup:
 	if (page->element) {
-		for (; i >= 0; i--) {
+		for (;; i--) {
 			if (page->element[i]) {
 				redislite_free(page->element[i]);
+			}
+			if (i == 0) {
+				break;
 			}
 		}
 		redislite_free(page->element);
@@ -151,7 +154,7 @@ void *redislite_read_list_first(void *_db, unsigned char *data)
 	return page;
 }
 
-static int lpush(void *_cs, redislite_page_list *list, char *value, int value_len)
+static int lpush(void *_cs, redislite_page_list *list, char *value, size_t value_len)
 {
 	char *element = redislite_malloc(sizeof(char) * value_len);
 	if (element == NULL) {
@@ -164,7 +167,7 @@ static int lpush(void *_cs, redislite_page_list *list, char *value, int value_le
 			if (element == NULL) {
 				return REDISLITE_OOM;
 			}
-			int *element_len = redislite_malloc(sizeof(int) * (list->size + 1));
+			size_t *element_len = redislite_malloc(sizeof(size_t) * (list->size + 1));
 			if (element_len == NULL) {
 				redislite_free(element);
 				return REDISLITE_OOM;
@@ -177,7 +180,7 @@ static int lpush(void *_cs, redislite_page_list *list, char *value, int value_le
 			if (element == NULL) {
 				return REDISLITE_OOM;
 			}
-			int *element_len = redislite_realloc(list->element_len, sizeof(int) * (list->size + 1));
+			size_t *element_len = redislite_realloc(list->element_len, sizeof(size_t) * (list->size + 1));
 			if (element_len == NULL) {
 				return REDISLITE_OOM;    // TODO: rollback element realloc?
 			}
@@ -187,7 +190,7 @@ static int lpush(void *_cs, redislite_page_list *list, char *value, int value_le
 		list->element_alloced++;
 	}
 
-	int i;
+	size_t i;
 	for (i = list->size; i > 0; i--) {
 		list->element[i] = list->element[i - 1];
 		list->element_len[i] = list->element_len[i - 1];
@@ -201,17 +204,20 @@ static int lpush(void *_cs, redislite_page_list *list, char *value, int value_le
 size_t redislite_free_bytes(void *_db, redislite_page_list *page, char type)
 {
 	redislite *db = (redislite *)_db;
-	int i, pos = type == REDISLITE_PAGE_TYPE_LIST_FIRST ? 20 : 16;
+	size_t i, pos = type == REDISLITE_PAGE_TYPE_LIST_FIRST ? 20 : 16;
 	unsigned char placeholder[9];
 	if (page->element_len) {
 		for (i = 0; i < page->size; i++) {
 			pos += putVarint32(placeholder, page->element_len[i]) + page->element_len[i];
 		}
 	}
+	if (db->page_size < pos) {
+		return 0;
+	}
 	return db->page_size - pos;
 }
 
-int redislite_lpushx_by_keyname(void *_cs, char *keyname, int keyname_len, char *value, int value_len)
+int redislite_lpushx_by_keyname(void *_cs, char *keyname, size_t keyname_len, char *value, size_t value_len)
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
@@ -230,7 +236,7 @@ int redislite_lpushx_by_keyname(void *_cs, char *keyname, int keyname_len, char 
 	return redislite_lpush_page_num(_cs, &page_num, value, value_len);
 }
 
-int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *value, int value_len)
+int redislite_lpush_by_keyname(void *_cs, char *keyname, size_t keyname_len, char *value, size_t value_len)
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
@@ -255,7 +261,7 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 	return status;
 }
 
-int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, int value_len)
+int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, size_t value_len)
 {
 	changeset *cs = (changeset *)_cs;
 	int status;
@@ -295,7 +301,7 @@ int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, int value_
 		return REDISLITE_WRONG_TYPE;
 	}
 
-	int size = value_len;
+	size_t size = value_len;
 	{
 		unsigned char length_str[9];
 		size += putVarint32(length_str, value_len);
@@ -314,7 +320,7 @@ int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, int value_
 			// If that fails, we are gonna create a new one in between
 			if (page->list->right_page != 0) {
 				old_right = redislite_page_get(cs->db, cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST);
-				int i = 0, tmp_size;
+				size_t i = 0, tmp_size;
 				unsigned char placeholder[9];
 				while (page->list->size > 0) {
 					tmp_size = page->list->element_len[page->list->size - 1] + putVarint32(placeholder, page->list->element_len[page->list->size - 1]);
@@ -388,11 +394,11 @@ int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, int value_
 	return status;
 }
 
-int redislite_lpop_by_keyname(void *_cs, char *keyname, int keyname_len, char **value, int *value_len)
+int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char **value, size_t *value_len)
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
-	int i;
+	size_t i;
 	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
 	if (page_num < 0) {
 		return page_num;
@@ -459,7 +465,7 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, int keyname_len, char **
 	return REDISLITE_OK;
 }
 
-int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int *len)
+int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, size_t keyname_len, size_t *len)
 {
 	char type;
 	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
@@ -478,7 +484,7 @@ int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, int keyname_l
 	return REDISLITE_OK;
 }
 
-int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int start, int end, int *ret_list_count_p, char ***ret_list_p, int **ret_list_len_p)
+int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, size_t keyname_len, int start, int end, size_t *ret_list_count_p, char ***ret_list_p, size_t **ret_list_len_p)
 {
 	char type;
 	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
@@ -493,7 +499,7 @@ int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname
 	if (page == NULL) {
 		return REDISLITE_OOM;
 	}
-	int len = page->total_size;
+	int len = (int)page->total_size;
 
 	if (start < 0) {
 		start += len;
@@ -518,7 +524,7 @@ int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname
 	if (ret_list == NULL) {
 		return REDISLITE_OOM;
 	}
-	int *ret_list_len = redislite_malloc(sizeof(int) * ret_list_count);
+	size_t *ret_list_len = redislite_malloc(sizeof(size_t) * ret_list_count);
 	if (ret_list_len == NULL) {
 		redislite_free(ret_list);
 		return REDISLITE_OOM;
@@ -529,8 +535,8 @@ int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname
 	int pos = 0;
 	int i, right_page;
 	while (page_start <= end) {
-		if (page_start + list->size > start) {
-			for (i = 0; i < list->size && pos < ret_list_count; i++) {
+		if (page_start + (int)list->size > start) {
+			for (i = 0; i < (int)list->size && pos < ret_list_count; i++) {
 				if (page_start + i >= start) {
 					ret_list[pos] = redislite_malloc(sizeof(char) * list->element_len[i]);
 					if (ret_list[pos] == NULL) {
@@ -565,21 +571,24 @@ int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, int keyname
 	*ret_list_count_p = ret_list_count;
 	return REDISLITE_OK;
 cleanup:
-	for (; pos >= 0; pos--) {
+	for (;; pos--) {
 		redislite_free(ret_list[i]);
+		if (pos == 0) {
+			break;
+		}
 	}
 	redislite_free(ret_list);
 	redislite_free(ret_list_len);
 	return REDISLITE_OOM;
 }
 
-int redislite_lindex_by_keyname(void *_db, void *_cs, char *keyname, int keyname_len, int pos, char **value, int *value_len)
+int redislite_lindex_by_keyname(void *_db, void *_cs, char *keyname, size_t keyname_len, int pos, char **value, size_t *value_len)
 {
 	// We are gonna keep constant time for pos=-1
 	// pos=0 is already as fast as possible in lrange
 	if (pos != -1) {
-		int ret_list_count;
-		int *ret_list_len;
+		size_t ret_list_count;
+		size_t *ret_list_len;
 		char **ret_list;
 		int status = redislite_lrange_by_keyname(_db, _cs, keyname, keyname_len, pos, pos, &ret_list_count, &ret_list, &ret_list_len);
 		if (status == REDISLITE_OK && ret_list_count == 1) {

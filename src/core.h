@@ -11,12 +11,12 @@
 typedef struct {
 	redislite *db;
 
-	int opened_pages_length;
-	int opened_pages_free;
+	size_t opened_pages_length;
+	size_t opened_pages_free;
 	void **opened_pages;
 
-	int modified_pages_length;
-	int modified_pages_free;
+	size_t modified_pages_length;
+	size_t modified_pages_free;
 	void **modified_pages;
 } changeset;
 

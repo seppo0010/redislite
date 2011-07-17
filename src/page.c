@@ -9,11 +9,11 @@ void *redislite_page_get(void *_db, void *_cs, int num, char type)
 	changeset *cs = (changeset *)_cs;
 	redislite *db = (redislite *)_db;
 	if (cs) {
-		int i;
 		redislite_page *page = redislite_modified_page(cs, num);
 		if (page != NULL) {
 			return page->data;
 		}
+		size_t i;
 		for (i = 0; i < cs->opened_pages_length; i++) {
 			redislite_page *page = cs->opened_pages[i];
 			if (page->number == num) {
@@ -38,7 +38,7 @@ void *redislite_page_get(void *_db, void *_cs, int num, char type)
 	return result;
 }
 
-void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, int length, char *type)
+void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, size_t length, char *type)
 {
 	int num = redislite_value_page_for_key(_db, _cs, key_name, length, type);
 	if (num < 0) {

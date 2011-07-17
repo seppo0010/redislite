@@ -38,7 +38,7 @@ void redislite_write_string(void *_db, unsigned char *data, void *_page)
 	redislite_put_4bytes(&data[0], 0); // reserverd
 	redislite_put_4bytes(&data[4], page->size);
 	redislite_put_4bytes(&data[8], page->right_page);
-	int size = db->page_size - 12;
+	size_t size = db->page_size - 12;
 	if (size > page->size) {
 		size = page->size;
 	}
@@ -53,7 +53,7 @@ void *redislite_read_string(void *_db, unsigned char *data)
 	page->size = redislite_get_4bytes(&data[4]);
 	page->right_page = redislite_get_4bytes(&data[8]);
 
-	int size = db->page_size - 12;
+	size_t size = db->page_size - 12;
 	page->value = redislite_malloc(sizeof(char) * size);
 	memcpy(page->value, &data[12], size);
 	return page;
@@ -95,18 +95,19 @@ void *redislite_read_string_overflow(void *_db, unsigned char *data)
 
 	page->right_page = redislite_get_4bytes(&data[4]);
 
-	int size = db->page_size - 8;
+	size_t size = db->page_size - 8;
 	page->value = redislite_malloc(sizeof(char) * size);
 	memcpy(page->value, &data[8], size);
 	return page;
 }
 
-static int add_extra_string(void *_cs, char *str, int length)
+static int add_extra_string(void *_cs, char *str, size_t length)
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;
-	int total_pages = (int)ceil((float)(length) / (db->page_size - 8));
-	int i, size, next_page = 0;
+	size_t total_pages = (size_t)ceil((float)(length) / (db->page_size - 8));
+	size_t i, size;
+	int next_page = 0;
 	for (i = total_pages; i >= 1; i--) {
 		redislite_page_string_overflow *overflow_page = redislite_malloc(sizeof(redislite_page_string_overflow));
 		if (overflow_page == NULL) {
@@ -138,7 +139,7 @@ static int add_extra_string(void *_cs, char *str, int length)
 	return next_page;
 }
 
-int redislite_insert_string(void *_cs, char *str, int length, int *num)
+int redislite_insert_string(void *_cs, char *str, size_t length, int *num)
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;
@@ -150,7 +151,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int *num)
 		return REDISLITE_OOM;
 	}
 	page->size = length;
-	int first_page_size = db->page_size - 12;
+	size_t first_page_size = db->page_size - 12;
 	if (first_page_size < length) {
 		page->right_page = add_extra_string(_cs, &str[first_page_size], length - first_page_size);
 		if (page->right_page < 0) {
@@ -189,7 +190,7 @@ int redislite_insert_string(void *_cs, char *str, int length, int *num)
 	return REDISLITE_OK;
 }
 
-int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, int key_length, char **str, int *length)
+int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, size_t key_length, char **str, size_t *length)
 {
 	redislite *db = (redislite *)_db;
 	char type;
@@ -218,8 +219,8 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 	memcpy(data, page->value, MIN(page->size, db->page_size - 12));
 
 	int next = page->right_page;
-	int i = 0;
-	int pos, size;
+	size_t i = 0;
+	size_t pos, size;
 	while (next != 0) {
 		void *_extra = redislite_page_get(_db, _cs, next, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
 		// TODO handle OOM
@@ -242,7 +243,7 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, i
 }
 
 
-int redislite_page_string_getset_key_string(void *_cs, char *key_name, int key_length, char *str, int length, char **previous_value, int *previous_value_length)
+int redislite_page_string_getset_key_string(void *_cs, char *key_name, size_t key_length, char *str, size_t length, char **previous_value, size_t *previous_value_length)
 {
 	changeset *cs = (changeset *)_cs;
 	int status = redislite_page_string_get_by_keyname(cs->db, _cs, key_name, key_length, previous_value, previous_value_length);
@@ -254,7 +255,7 @@ int redislite_page_string_getset_key_string(void *_cs, char *key_name, int key_l
 	return status;
 }
 
-int redislite_page_string_set_key_string(void *_cs, char *key_name, int key_length, char *str, int length)
+int redislite_page_string_set_key_string(void *_cs, char *key_name, size_t key_length, char *str, size_t length)
 {
 	changeset *cs = (changeset *)_cs;
 	int left;
@@ -271,7 +272,7 @@ int redislite_page_string_set_key_string(void *_cs, char *key_name, int key_leng
 	return REDISLITE_OK;
 }
 
-int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_length, char *str, int length)
+int redislite_page_string_setnx_key_string(void *_cs, char *key_name, size_t key_length, char *str, size_t length)
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
@@ -290,7 +291,7 @@ int redislite_page_string_setnx_key_string(void *_cs, char *key_name, int key_le
 	}
 }
 
-int redislite_page_string_strlen_by_keyname(void *_db, void *_cs, char *key_name, int key_length)
+int redislite_page_string_strlen_by_keyname(void *_db, void *_cs, char *key_name, size_t key_length)
 {
 	char type;
 	int page_num = redislite_value_page_for_key(_db, _cs, key_name, key_length, &type);
@@ -307,7 +308,7 @@ int redislite_page_string_strlen_by_keyname(void *_db, void *_cs, char *key_name
 	return page->size;
 }
 
-int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_length, char *str, int length, int *new_length)
+int redislite_page_string_append_key_string(void *_cs, char *key_name, size_t key_length, char *str, size_t length, size_t *new_length)
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;
@@ -319,9 +320,9 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 			return REDISLITE_WRONG_TYPE;
 		}
 		redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
-		int previous_length = page->size;
+		size_t previous_length = page->size;
 		if (page->right_page > 0) {
-			int pos = cs->db->page_size - 12;
+			size_t pos = cs->db->page_size - 12;
 			redislite_page_string_overflow *overflow = redislite_page_get(cs->db, _cs, page_num, type);
 			int overflow_page_num = overflow->right_page;
 			while (overflow->right_page != 0) {
@@ -331,8 +332,11 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 					overflow_page_num = overflow->right_page;
 				}
 			}
-			int page_pos = previous_length - pos;
-			int free_bytes = cs->db->page_size - page_pos - 8;
+			size_t page_pos = previous_length - pos;
+			size_t free_bytes = 0;
+			if (cs->db->page_size > page_pos + 8) {
+				free_bytes = cs->db->page_size - page_pos - 8;
+			}
 			if (length <= free_bytes) {
 				memcpy(&overflow->value[page_pos], str, length);
 				redislite_add_modified_page(cs, overflow_page_num, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow);
@@ -350,7 +354,7 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 				redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
 			}
 			else {
-				int first_page_size = db->page_size - 12;
+				size_t first_page_size = db->page_size - 12;
 
 				page->right_page = add_extra_string(_cs, &str[first_page_size - page->size], length + page->size - first_page_size);
 				if (page->right_page < 0) {
@@ -375,7 +379,7 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 	}
 }
 
-int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, int key_length, long long incr, long long *new_value)
+int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, size_t key_length, long long incr, long long *new_value)
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;
@@ -424,20 +428,20 @@ int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, int key_
 	return REDISLITE_ERR;
 }
 
-int redislite_page_string_incr_key_string(void *_cs, char *key_name, int key_length, long long *new_value)
+int redislite_page_string_incr_key_string(void *_cs, char *key_name, size_t key_length, long long *new_value)
 {
 	return redislite_page_string_incr_by_key_string(_cs, key_name, key_length, 1, new_value);
 }
-int redislite_page_string_decr_key_string(void *_cs, char *key_name, int key_length, long long *new_value)
+int redislite_page_string_decr_key_string(void *_cs, char *key_name, size_t key_length, long long *new_value)
 {
 	return redislite_page_string_incr_by_key_string(_cs, key_name, key_length, -1, new_value);
 }
-int redislite_page_string_decr_by_key_string(void *_cs, char *key_name, int key_length, long long decr, long long *new_value)
+int redislite_page_string_decr_by_key_string(void *_cs, char *key_name, size_t key_length, long long decr, long long *new_value)
 {
 	return redislite_page_string_incr_by_key_string(_cs, key_name, key_length, -decr, new_value);
 }
 
-int redislite_echo(char *src_name, int src_length, char **dst_name, int *dst_length)
+int redislite_echo(char *src_name, size_t src_length, char **dst_name, size_t *dst_length)
 {
 	if (src_length > 0 && dst_name && dst_length) {
 		char *dst = redislite_malloc(sizeof(char) * src_length);
@@ -452,7 +456,7 @@ int redislite_echo(char *src_name, int src_length, char **dst_name, int *dst_len
 	return REDISLITE_ERR;
 }
 
-int redislite_page_string_strlen_key_string(void *_db, void *_cs, char *key_name, int key_length)
+int redislite_page_string_strlen_key_string(void *_db, void *_cs, char *key_name, size_t key_length)
 {
 	redislite *db = (redislite *)_db;
 	char type;
@@ -468,14 +472,14 @@ int redislite_page_string_strlen_key_string(void *_db, void *_cs, char *key_name
 		return REDISLITE_WRONG_TYPE;
 	}
 	redislite_page_string *page = (redislite_page_string *)_page;
-	int len = page->size;
+	size_t len = page->size;
 	if (_cs == NULL) {
 		redislite_free_string(db, page);
 	}
 	return len;
 }
 
-int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_name, int key_length, int _start, int _end, char **str, int *str_length)
+int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_name, size_t key_length, int _start, int _end, char **str, size_t *str_length)
 {
 	redislite *db = (redislite *)_db;
 	char type;
@@ -495,9 +499,9 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 		return REDISLITE_WRONG_TYPE;
 	}
 	redislite_page_string *page = (redislite_page_string *)_page;
-	int len = page->size;
-	int start = (_start < 0 ? _start + len : _start);
-	int end = (_end < 0 ? _end + len : _end) + 1;
+	size_t len = page->size;
+	size_t start = (size_t)(_start < 0 ? _start + (int)len : _start);
+	size_t end = (size_t)(_end < 0 ? _end + (int)len : _end) + 1;
 	if (start > len) {
 		start = len;
 	}
@@ -519,8 +523,8 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 		return REDISLITE_OOM;
 	}
 
-	int page_end = db->page_size - 12;
-	int copied = 0;
+	size_t page_end = db->page_size - 12;
+	size_t copied = 0;
 	if (start < page_end) {
 		copied += MIN(end, page_end) - start;
 		memcpy(response, &page->value[start], copied);
@@ -564,7 +568,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	return REDISLITE_OK;
 }
 
-int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name, int key_length, long long bitoffset)
+int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name, size_t key_length, long long bitoffset)
 {
 	if ((bitoffset < 0) || ((unsigned long long)bitoffset >> 3) >= (512 * 1024 * 1024)) {
 		return REDISLITE_BIT_OFFSET_INVALID;
