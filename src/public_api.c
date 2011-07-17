@@ -7,6 +7,11 @@
 #include "page_string.h"
 #include "page_list.h"
 #include "util.h"
+#include "version.h"
+
+
+char *redislite_git_SHA1();
+char *redislite_git_dirty();
 
 redislite_reply *redislite_create_reply()
 {
@@ -832,6 +837,28 @@ redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_info_command(redislite *db, redislite_params *params)
+{
+	redislite_reply *reply = redislite_create_reply();
+	reply->type = REDISLITE_REPLY_STRING;
+	const char *format =
+	    "redislite_version:%s\r\n"
+	    "redislite_git_sha1:%s\r\n"
+	    "redislite_git_dirty:%d\r\n";
+	int len = strlen(format) + 1 /* NULL-terminated */ + 1 /* version */ + 6 /* sha */ - 1 /* dirty */;
+
+	reply->str = redislite_malloc(sizeof(char) * len);
+	sprintf(reply->str, format,
+	        REDISLITE_VERSION,
+	        redislite_git_SHA1(),
+	        strtol(redislite_git_dirty(), NULL, 10) > 0
+	       );
+
+	reply->len = len - 1;
+	reply->str[len - 1] = '\0';
+	return reply;
+}
+
 redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_params *params)
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -950,7 +977,7 @@ struct redislite_command redislite_command_table[] = {
 	{"flushdb", redislite_command_implementation_not_planned, 1, 0},
 	{"flushall", redislite_command_not_implemented_yet, 1, 0},
 	{"sort", redislite_command_not_implemented_yet, 2, 0},
-	{"info", redislite_command_not_implemented_yet, 1, 0},
+	{"info", redislite_info_command, 1, 0},
 	{"monitor", redislite_command_implementation_not_planned, 1, 0},
 	{"ttl", redislite_command_implementation_not_planned, 2, 0},
 	{"persist", redislite_command_implementation_not_planned, 2, 0},
@@ -1057,8 +1084,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			break;
 
 		case 221: // 'L'+'L'+'E'
+			// 'I'+'N'+'F'
 			if (length == 4 && memcaseequal(command, "llen", 4)) {
 				return &redislite_command_table[26];
+			}
+			else if (length == 4 && memcaseequal(command, "info", 4)) {
+				return &redislite_command_table[103];
 			}
 			break;
 

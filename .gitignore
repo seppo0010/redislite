@@ -5,3 +5,4 @@ src/redislite-cli
 src/redislite.db
 *.o
 *.a
+src/release.h

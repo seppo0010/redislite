@@ -43,6 +43,7 @@
 #include "redislite.h"
 #include "core.h"
 #include "public_api.h"
+#include "release.h"
 #include "version.h"
 #include "sds.h"
 #include "help.h"
@@ -61,15 +62,8 @@ static struct config {
 
 static void usage();
 
-// FIXME: may be later
-char *redislite_git_SHA1(void)
-{
-	return "";
-}
-char *redislite_git_dirty(void)
-{
-	return "";
-}
+char *redislite_git_SHA1(void);
+char *redislite_git_dirty(void);
 
 /*------------------------------------------------------------------------------
  * Utility functions
