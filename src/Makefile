@@ -2,16 +2,21 @@ all: test cli
 dependencies:
 	cd ../deps/linenoise && $(MAKE)
 
+.c.o:
+	$(CC) $(ARCH) -c -Wall -W -O0 -g $<
+
 redislite-cli.o:
-	redislite-cli.c ../deps/linenoise/linenoise.h help.h version.h fmacros.h
+	$(CC) $(ARCH) -c -Wall -W -O0 -g -I../deps/linenoise redislite-cli.c
 
-cli: dependencies
-	$(CC) -Wall -I../deps/linenoise -lm -g -o redislite-cli redislite-cli.c memory.c core.c redislite.c util.c page_index.c page.c\
-	 page_string.c page_first.c page_freelist.c page_list.c public_api.c sds.c ../deps/linenoise/linenoise.o
+libredislite.a: memory.o core.o redislite.o util.o page_index.o page.o page_string.o page_first.o page_freelist.o page_list.o public_api.o sds.o
+	ar -cq libredislite.a memory.o core.o redislite.o util.o page_index.o page.o\
+	 page_string.o page_first.o page_freelist.o page_list.o public_api.o sds.o
 
-test:
-	$(CC) -Wall -lm -g -o test test.c memory.c core.c redislite.c util.c page_index.c page.c page_string.c page_first.c page_freelist.c\
-	 page_list.c public_api.c sds.c
+cli: dependencies redislite-cli.o libredislite.a
+	$(CC) -Wall -lm -O0 -g -o redislite-cli redislite-cli.o libredislite.a ../deps/linenoise/linenoise.o
+
+test: libredislite.a
+	$(CC) -Wall -lm -O0 -g -o test test.c libredislite.a
 
 clean:
-	rm -rf test test.dSYM redislite-cli
+	rm -rf test test.dSYM redislite-cli *.o *.a

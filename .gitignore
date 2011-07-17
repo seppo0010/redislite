@@ -4,3 +4,4 @@ src/test.db
 src/redislite-cli
 src/redislite.db
 *.o
+*.a
