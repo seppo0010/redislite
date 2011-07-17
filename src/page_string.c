@@ -301,7 +301,7 @@ int redislite_page_string_strlen_by_keyname(void *_db, void *_cs, char *key_name
 		return page_num;
 	}
 	if (type != REDISLITE_PAGE_TYPE_STRING) {
-		return REDISLITE_ERR; // TODO: error for wrong type
+		return REDISLITE_WRONG_TYPE;
 	}
 	redislite_page_string *page = redislite_page_get(_db, _cs, page_num, type);
 	return page->size;
@@ -316,7 +316,7 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, int key_l
 	int page_num = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
 	if (page_num >= 0) {
 		if (type != REDISLITE_PAGE_TYPE_STRING) {
-			return REDISLITE_ERR; // TODO: error for wrong type
+			return REDISLITE_WRONG_TYPE;
 		}
 		redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
 		int previous_length = page->size;
@@ -395,7 +395,7 @@ int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, int key_
 	}
 
 	if (type != REDISLITE_PAGE_TYPE_STRING) {
-		return REDISLITE_ERR; // TODO: type error
+		return REDISLITE_WRONG_TYPE;
 	}
 
 	redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
@@ -465,7 +465,7 @@ int redislite_page_string_strlen_key_string(void *_db, void *_cs, char *key_name
 			redislite_page_type *page_type = redislite_page_get_type(db, type);
 			page_type->free_function(db, _page);
 		}
-		return REDISLITE_ERR;
+		return REDISLITE_WRONG_TYPE;
 	}
 	redislite_page_string *page = (redislite_page_string *)_page;
 	int len = page->size;
@@ -492,7 +492,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 			redislite_page_type *page_type = redislite_page_get_type(db, type);
 			page_type->free_function(db, _page);
 		}
-		return REDISLITE_ERR;
+		return REDISLITE_WRONG_TYPE;
 	}
 	redislite_page_string *page = (redislite_page_string *)_page;
 	int len = page->size;
@@ -567,8 +567,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name, int key_length, long long bitoffset)
 {
 	if ((bitoffset < 0) || ((unsigned long long)bitoffset >> 3) >= (512 * 1024 * 1024)) {
-		// bit offset is not an integer or out of range
-		return REDISLITE_ERR;
+		return REDISLITE_BIT_OFFSET_INVALID;
 	}
 
 	redislite *db = (redislite *)_db;
@@ -583,8 +582,7 @@ int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name
 			redislite_page_type *page_type = redislite_page_get_type(_db, type);
 			page_type->free_function(_db, _page);
 		}
-		// wrong type
-		return REDISLITE_ERR;
+		return REDISLITE_WRONG_TYPE;
 	}
 
 	redislite_page_string *page = (redislite_page_string *)_page;

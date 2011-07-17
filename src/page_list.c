@@ -220,7 +220,7 @@ int redislite_lpushx_by_keyname(void *_cs, char *keyname, int keyname_len, char 
 		return page_num;
 	}
 	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
-		return REDISLITE_ERR; // TODO: error for wrong type
+		return REDISLITE_WRONG_TYPE;
 	}
 
 	if (page_num == 0) {
@@ -239,7 +239,7 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, int keyname_len, char *
 		return page_num;
 	}
 	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
-		return REDISLITE_ERR; // TODO: error for wrong type
+		return REDISLITE_WRONG_TYPE;
 	}
 
 	int is_new = page_num == REDISLITE_NOT_FOUND;
