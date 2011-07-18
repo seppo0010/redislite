@@ -76,7 +76,7 @@ int test_insert_and_find()
 		}
 
 		if (length != cs->db->page_size + 1) {
-			printf("Wrong length (%d) should be %d\n", length, cs->db->page_size + 1);
+			printf("Wrong length (%lu) should be %lu\n", (unsigned long)length, (unsigned long)cs->db->page_size + 1);
 		}
 
 		if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
@@ -112,7 +112,7 @@ int test_insert_and_find()
 				continue;
 			}
 			if (length != db->page_size + 1) {
-				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
+				printf("Wrong length (%lu) should be %lu\n", (unsigned long)length, (unsigned long)db->page_size + 1);
 			}
 			if (value[0] != key[i][0] || value[length - 1] != key[i][1]) {
 				printf("Content mismatch on line %d\n", __LINE__);
@@ -123,7 +123,7 @@ int test_insert_and_find()
 				continue;
 			}
 			if (length != db->page_size + 1) {
-				printf("Wrong length (%d) should be %d\n", length, db->page_size + 1);
+				printf("Wrong length (%lu) should be %lu\n", (unsigned long)length, (unsigned long)db->page_size + 1);
 			}
 
 			free(value);
@@ -793,7 +793,7 @@ int test_getrange()
 		goto cleanup;
 	}
 	else if (str_length != 1) {
-		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1, str_length);
+		printf("getrange mismatch; expecting length %d, but got %lu instead\n", 1, (unsigned long)str_length);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -810,7 +810,7 @@ int test_getrange()
 		goto cleanup;
 	}
 	else if (str_length != 1024) {
-		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1024, str_length);
+		printf("getrange mismatch; expecting length %d, but got %lu instead\n", 1024, (unsigned long)str_length);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -827,7 +827,7 @@ int test_getrange()
 		goto cleanup;
 	}
 	else if (str_length != 1) {
-		printf("getrange mismatch; expecting length %d, but got %d instead\n", 1, str_length);
+		printf("getrange mismatch; expecting length %d, but got %lu instead\n", 1, (unsigned long)str_length);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -960,7 +960,7 @@ int test_getset()
 		goto cleanup;
 	}
 	if (previous_value_length != 1) {
-		printf("Expecting getset previous length %d, got %d instead\n", 1, previous_value_length);
+		printf("Expecting getset previous length %d, got %lu instead\n", 1, (unsigned long)previous_value_length);
 		goto cleanup;
 	}
 	if (previous_value[0] != '3') {
@@ -975,7 +975,7 @@ int test_getset()
 		goto cleanup;
 	}
 	if (previous_value_length != 2) {
-		printf("Expecting getset previous length %d, got %d instead\n", 2, previous_value_length);
+		printf("Expecting getset previous length %d, got %lu instead\n", 2, (unsigned long)previous_value_length);
 		goto cleanup;
 	}
 	if (previous_value[0] != '4' || previous_value[1] != '1') {
@@ -990,7 +990,7 @@ int test_getset()
 		goto cleanup;
 	}
 	if (previous_value_length != 0) {
-		printf("Expecting getset previous length %d, got %d instead\n", 0, previous_value_length);
+		printf("Expecting getset previous length %d, got %lu instead\n", 0, (unsigned long)previous_value_length);
 		goto cleanup;
 	}
 
@@ -1356,7 +1356,7 @@ int test_set_publicapi()
 	}
 
 	if (length != 11) {
-		printf("Wrong length (%d) should be %d\n", length, 11);
+		printf("Wrong length (%lu) should be %d\n", (unsigned long)length, 11);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}
@@ -1421,7 +1421,7 @@ int test_format_get_set_publicapi()
 	}
 
 	if (length != 5) {
-		printf("Wrong length (%d) should be %d\n", length, 5);
+		printf("Wrong length (%lu) should be %d\n", (unsigned long)length, 5);
 		status = REDISLITE_ERR;
 		goto cleanup;
 	}

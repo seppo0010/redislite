@@ -342,7 +342,7 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 #endif
 	i = fseek(db->file, (long)db->page_size * num, SEEK_SET);
 	if (i != 0) {
-		fprintf(stdout, "fseek returned %d\n", i);
+		fprintf(stdout, "fseek returned %lu\n", (unsigned long)i);
 	}
 	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
 	if (read < db->page_size && ferror(db->file)) {
@@ -354,7 +354,7 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 	}
 #else
 	if (read < db->page_size && feof(db->file)) {
-		printf("Early EOF (seek to pos %ld, attempt to read %d)\n", (long)db->page_size * num, db->page_size);
+		printf("Early EOF (seek to pos %lu, attempt to read %lu)\n", (unsigned long)db->page_size * num, (unsigned long)db->page_size);
 	}
 #endif
 	if (read < db->page_size) {
