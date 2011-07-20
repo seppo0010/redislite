@@ -25,4 +25,4 @@ test: libredislite.a
 	$(CC) -Wall -lm -O0 -g -o test test.c libredislite.a
 
 clean:
-	rm -rf test test.dSYM redislite-cli *.o *.a
+	rm -rf test test.dSYM redislite-cli *.o *.a redislite-cli.dSYM
