@@ -270,7 +270,7 @@ redislite_reply *redislite_keys_command(redislite *db, redislite_params *params)
 	int size, i = 0;
 	char **values;
 	int *values_len;
-	int status = redislite_get_keys(db, NULL, NULL, 0, &size, &values, &values_len);
+	int status = redislite_get_keys(db, NULL, params->argv[1], params->argvlen[1], &size, &values, &values_len);
 	if (status < 0) {
 		set_error_message(status, reply);
 	}

@@ -668,6 +668,7 @@ int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int
 
 	redislite_page_index *page;
 	int current_page_num;
+	int allkeys = pattern_len == 2 && (pattern[0] == '*' && pattern[1] == '\0');
 	while (1) {
 		if (pages[pages_pos] == 0) {
 			page = db->root;
@@ -717,26 +718,30 @@ int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int
 		if (page == db->root || (_cs != NULL && page == redislite_modified_page(_cs, pages[pages_pos - 1]))) {
 			// should copy
 			for (i = 0; i < page->number_of_keys; i++) {
-				keys[keys_pos] = redislite_malloc(sizeof(char *) * page->keys[i]->keyname_size);
-				if (keys[keys_pos] == NULL) {
-					goto cleanup;
-				}
-				memcpy(keys[keys_pos], page->keys[i]->keyname, page->keys[i]->keyname_size);
-				keys_length[keys_pos] = page->keys[i]->keyname_size;
-				keys_pos++;
 				if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
 					pages[pages_pos++] = page->keys[i]->left_page;
+				}
+				else if (allkeys || stringmatchlen(pattern, pattern_len, page->keys[i]->keyname, page->keys[i]->keyname_size, 0)) {
+					keys[keys_pos] = redislite_malloc(sizeof(char *) * page->keys[i]->keyname_size);
+					if (keys[keys_pos] == NULL) {
+						goto cleanup;
+					}
+					memcpy(keys[keys_pos], page->keys[i]->keyname, page->keys[i]->keyname_size);
+					keys_length[keys_pos] = page->keys[i]->keyname_size;
+					keys_pos++;
 				}
 			}
 		}
 		else {
 			// should NOT copy
 			for (i = 0; i < page->number_of_keys; i++) {
-				keys[keys_pos] = page->keys[i]->keyname;
-				keys_length[keys_pos] = page->keys[i]->keyname_size;
-				keys_pos++;
 				if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
 					pages[pages_pos++] = page->keys[i]->left_page;
+				}
+				else if (allkeys || stringmatchlen(pattern, pattern_len, page->keys[i]->keyname, page->keys[i]->keyname_size, 0)) {
+					keys[keys_pos] = page->keys[i]->keyname;
+					keys_length[keys_pos] = page->keys[i]->keyname_size;
+					keys_pos++;
 				}
 			}
 			if (page != db->root) {
