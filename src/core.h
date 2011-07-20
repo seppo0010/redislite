@@ -28,3 +28,4 @@ redislite_page *redislite_modified_page(changeset *cs, int page_number);
 int redislite_add_modified_page(changeset *cs, int page_number, char type, void *page_data);
 int redislite_add_opened_page(changeset *cs, int page_number, char type, void *page_data);
 int redislite_set_root(redislite *db, redislite_page_index *page);
+int redislite_close_opened_page(changeset *cs, int page_number);

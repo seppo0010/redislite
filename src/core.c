@@ -199,7 +199,7 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 	return page_number;
 }
 
-static int redislite_close_opened_page(changeset *cs, int page_number)
+int redislite_close_opened_page(changeset *cs, int page_number)
 {
 	size_t i;
 	redislite_page *page;

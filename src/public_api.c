@@ -261,6 +261,56 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_keys_command(redislite *db, redislite_params *params)
+{
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	int size, i = 0;
+	char **values;
+	int *values_len;
+	int status = redislite_get_keys(db, NULL, NULL, 0, &size, &values, &values_len);
+	if (status < 0) {
+		set_error_message(status, reply);
+	}
+	else {
+		reply->type = REDISLITE_REPLY_ARRAY;
+		reply->elements = size;
+		reply->element = redislite_malloc(sizeof(redislite_reply *) * size);
+		if (reply->element == NULL) {
+			goto cleanup;
+		}
+
+		for (; i < size; i++) {
+			reply->element[i] = redislite_create_reply();
+			if (reply->element[i] == NULL) {
+				goto cleanup;
+			}
+			reply->element[i]->type = REDISLITE_REPLY_STRING;
+			reply->element[i]->str = values[i];
+			reply->element[i]->len = values_len[i];
+		}
+		redislite_free(values);
+		redislite_free(values_len);
+	}
+	return reply;
+cleanup:
+	if (reply->element != NULL) {
+		for (i--;; i--) {
+			redislite_free(reply->element[i]);
+			if (i == 0) {
+				break;
+			}
+		}
+		redislite_free(reply->element);
+	}
+	redislite_free(values);
+	redislite_free(values_len);
+	redislite_free(reply);
+	return NULL;
+}
+
 redislite_reply *redislite_del_command(redislite *db, redislite_params *params)
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -959,7 +1009,7 @@ struct redislite_command redislite_command_table[] = {
 	{"renamenx", redislite_command_not_implemented_yet, 3, 0},
 	{"expire", redislite_command_implementation_not_planned, 3, 0},
 	{"expireat", redislite_command_implementation_not_planned, 3, 0},
-	{"keys", redislite_command_not_implemented_yet, 2, 0},
+	{"keys", redislite_keys_command, 2, 0},
 	{"dbsize", redislite_command_not_implemented_yet, 1, 0},
 	{"auth", redislite_command_implementation_not_planned, 2, 0},
 	{"ping", redislite_command_implementation_not_planned, 1, 0},
@@ -1126,6 +1176,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 		case 230: // 'E'+'X'+'I'
 			if (length == 6 && memcaseequal(command, "exists", 6)) {
 				return &redislite_command_table[7];
+			}
+			break;
+
+		case 233: // 'K'+'E'+'Y'
+			if (length == 4 && memcaseequal(command, "keys", 4)) {
+				return &redislite_command_table[85];
 			}
 			break;
 

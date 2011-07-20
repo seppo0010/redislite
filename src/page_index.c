@@ -640,3 +640,145 @@ int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, 
 
 	return REDISLITE_OK;
 }
+
+// TODO: unit test
+int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int *number_of_keys_p, char ***keys_p, int **keys_length_p)
+{
+	redislite *db = (redislite *)_db;
+	size_t i = 0, keys_pos = 0;
+	size_t keys_alloced = 20;
+	int *keys_length = NULL, *pages = NULL;
+
+	char **keys = redislite_malloc(sizeof(char *) * keys_alloced);
+	if (keys == NULL) {
+		goto cleanup;
+	}
+	keys_length = redislite_malloc(sizeof(int) * keys_alloced);
+	if (keys_length == NULL) {
+		goto cleanup;
+	}
+
+	size_t pages_pos = 0;
+	size_t pages_alloced = 20;
+	pages = redislite_malloc(sizeof(int) * pages_alloced);
+	if (pages == NULL) {
+		goto cleanup;
+	}
+	pages[0] = 0;
+
+	redislite_page_index *page;
+	int current_page_num;
+	while (1) {
+		if (pages[pages_pos] == 0) {
+			page = db->root;
+		}
+		else {
+			page = redislite_page_get(db, _cs, pages[pages_pos], REDISLITE_PAGE_TYPE_INDEX);
+		}
+		current_page_num = pages[pages_pos];
+
+		if (page == NULL) {
+			goto cleanup;
+		}
+
+		if (pages_alloced < pages_pos + page->number_of_keys) {
+			pages_alloced *= 2;
+			if (pages_alloced < pages_pos + page->number_of_keys) {
+				pages_alloced = pages_pos + page->number_of_keys;
+			}
+			int *pages_tmp = redislite_realloc(pages, sizeof(char *) * pages_alloced);
+			if (pages_tmp == NULL) {
+				goto cleanup;
+			}
+			pages = pages_tmp;
+		}
+
+		if (keys_alloced < keys_pos + page->number_of_keys + 1) {
+			keys_alloced *= 2;
+			if (keys_alloced < keys_pos + page->number_of_keys) {
+				keys_alloced = keys_pos + page->number_of_keys + 1;
+			}
+			char **keys_tmp = redislite_realloc(keys, sizeof(char *) * keys_alloced);
+			if (keys_tmp == NULL) {
+				goto cleanup;
+			}
+			keys = keys_tmp;
+
+			int *keys_length_tmp = redislite_realloc(keys_length, sizeof(int) * keys_alloced);
+			if (keys_length_tmp == NULL) {
+				goto cleanup;
+			}
+			keys_length = keys_length_tmp;
+		}
+
+		if (page->right_page) {
+			pages[pages_pos++] = page->right_page;
+		}
+		if (page == db->root || (_cs != NULL && page == redislite_modified_page(_cs, pages[pages_pos - 1]))) {
+			// should copy
+			for (i = 0; i < page->number_of_keys; i++) {
+				keys[keys_pos] = redislite_malloc(sizeof(char *) * page->keys[i]->keyname_size);
+				if (keys[keys_pos] == NULL) {
+					goto cleanup;
+				}
+				memcpy(keys[keys_pos], page->keys[i]->keyname, page->keys[i]->keyname_size);
+				keys_length[keys_pos] = page->keys[i]->keyname_size;
+				keys_pos++;
+				if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
+					pages[pages_pos++] = page->keys[i]->left_page;
+				}
+			}
+		}
+		else {
+			// should NOT copy
+			for (i = 0; i < page->number_of_keys; i++) {
+				keys[keys_pos] = page->keys[i]->keyname;
+				keys_length[keys_pos] = page->keys[i]->keyname_size;
+				keys_pos++;
+				if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
+					pages[pages_pos++] = page->keys[i]->left_page;
+				}
+			}
+			if (page != db->root) {
+				for (i = 0; i < page->number_of_keys; i++) {
+					redislite_free(page->keys[i]); // not freeing the char*, only the key
+				}
+				if (_cs == NULL) {
+					redislite_free(page->keys);
+					redislite_free(page);
+				}
+				else {
+					// we are cheating here!
+					page->number_of_keys = 0;
+					redislite_close_opened_page(_cs, current_page_num);
+				}
+			}
+		}
+
+		if (pages_pos == 0) {
+			break;
+		}
+		pages_pos--;
+	}
+	redislite_free(pages);
+
+	*number_of_keys_p = keys_pos;
+	*keys_p = keys;
+	*keys_length_p = keys_length;
+	return REDISLITE_OK;
+
+cleanup:
+	if (keys) {
+		for (; keys_pos > 0; keys_pos--) {
+			redislite_free(keys[keys_pos] - 1);
+		}
+		redislite_free(keys);
+	}
+	if (keys_length) {
+		redislite_free(keys_length);
+	}
+	if (pages) {
+		redislite_free(pages);
+	}
+	return REDISLITE_OOM;
+}

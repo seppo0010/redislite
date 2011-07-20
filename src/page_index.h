@@ -30,5 +30,6 @@ void redislite_free_index(void *db, void *_page);
 int redislite_delete_key(void *_cs, char *key, size_t length);
 int redislite_delete_keys(void *_cs, int q, char **keys, size_t *lengths);
 int redislite_exists_key(void *_db, void *_cs, char *key, size_t length);
+int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int *number_of_keys_p, char ***keys_p, int **keys_length_p);
 
 #endif
