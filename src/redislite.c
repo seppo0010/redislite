@@ -202,6 +202,7 @@ redislite *redislite_create_database(const char *filename)
 	db->file_change_counter = 0;
 	db->number_of_pages = 0;
 	db->first_freelist_page = 0;
+	db->number_of_keys = 0;
 	db->number_of_freelist_pages = 0;
 	db->readonly = 0;
 

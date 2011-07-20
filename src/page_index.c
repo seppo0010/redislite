@@ -362,6 +362,7 @@ int redislite_delete_key(void *_cs, char *key, size_t length)
 			int left_page = index_key->left_page;
 			char type = index_key->type;
 			status = redislite_remove_key(_cs, index_key, page_num);
+			db->number_of_keys--;
 			index_key = NULL;
 			if (status == REDISLITE_OK) {
 				redislite_page_delete(_cs, left_page, type);
@@ -637,6 +638,7 @@ int redislite_page_index_add_key(redislite_page_index *page, int pos, int left, 
 	page->keys[target_pos] = index_key;
 	page->number_of_keys++;
 	page->free_space -= new_key_length;
+	((redislite *)page->db)->number_of_keys++;
 
 	return REDISLITE_OK;
 }

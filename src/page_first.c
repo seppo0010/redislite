@@ -22,8 +22,9 @@ void redislite_write_first(void *_db, unsigned char *data, void *page)
 	redislite_put_4bytes(&data[28], db->number_of_pages);
 	redislite_put_4bytes(&data[32], db->first_freelist_page);
 	redislite_put_4bytes(&data[36], db->number_of_freelist_pages);
+	redislite_put_4bytes(&data[40], db->number_of_keys);
 	redislite_write_index(_db, &data[100], db->root);
-	memset(&data[40], 0, 100 - 40); // reserved
+	memset(&data[44], 0, 100 - 44); // reserved
 }
 
 void *redislite_read_first(void *_db, unsigned char *data)
@@ -35,6 +36,7 @@ void *redislite_read_first(void *_db, unsigned char *data)
 	db->number_of_pages = redislite_get_4bytes(&data[28]);
 	db->first_freelist_page = redislite_get_4bytes(&data[32]);
 	db->number_of_freelist_pages = redislite_get_4bytes(&data[36]);
+	db->number_of_keys = redislite_get_4bytes(&data[40]);
 
 	db->root = (redislite_page_index *)redislite_read_index(db, &data[100]);
 	return db->root;

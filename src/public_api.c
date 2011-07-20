@@ -311,6 +311,17 @@ cleanup:
 	return NULL;
 }
 
+redislite_reply *redislite_dbsize_command(redislite *db, redislite_params *params)
+{
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	reply->type = REDISLITE_REPLY_INTEGER;
+	reply->integer = db->number_of_keys;
+	return reply;
+}
+
 redislite_reply *redislite_del_command(redislite *db, redislite_params *params)
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -1010,7 +1021,7 @@ struct redislite_command redislite_command_table[] = {
 	{"expire", redislite_command_implementation_not_planned, 3, 0},
 	{"expireat", redislite_command_implementation_not_planned, 3, 0},
 	{"keys", redislite_keys_command, 2, 0},
-	{"dbsize", redislite_command_not_implemented_yet, 1, 0},
+	{"dbsize", redislite_dbsize_command, 1, 0},
 	{"auth", redislite_command_implementation_not_planned, 2, 0},
 	{"ping", redislite_command_implementation_not_planned, 1, 0},
 	{"echo", redislite_command_not_implemented_yet, 2, 0},
@@ -1119,8 +1130,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			break;
 
 		case 217: // 'M'+'G'+'E'
+			// 'D'+'B'+'S'
 			if (length == 4 && memcaseequal(command, "mget", 4)) {
 				return &redislite_command_table[15];
+			}
+			else if (length == 6 && memcaseequal(command, "dbsize", 6)) {
+				return &redislite_command_table[86];
 			}
 			break;
 
