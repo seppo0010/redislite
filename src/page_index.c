@@ -767,6 +767,22 @@ int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int
 	}
 	redislite_free(pages);
 
+	// downsizing the arrays, we don't need to consume more memory than we are consuming now
+	if (keys_alloced > keys_pos) {
+		keys_alloced = keys_pos;
+		char **keys_tmp = redislite_realloc(keys, sizeof(char *) * keys_alloced);
+		if (keys_tmp == NULL) {
+			goto cleanup;
+		}
+		keys = keys_tmp;
+
+		int *keys_length_tmp = redislite_realloc(keys_length, sizeof(int) * keys_alloced);
+		if (keys_length_tmp == NULL) {
+			goto cleanup;
+		}
+		keys_length = keys_length_tmp;
+	}
+
 	*number_of_keys_p = keys_pos;
 	*keys_p = keys;
 	*keys_length_p = keys_length;
