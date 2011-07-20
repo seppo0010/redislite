@@ -21,7 +21,7 @@ int redislite_get_2bytes(const unsigned char *p);
 int intlen(int integer);
 int str_to_long_long(char *str, int len, long long *value);
 
-int stringmatchlen(const char *pattern, int patternLen, const char *string, int stringLen, int nocase);
-int stringmatch(const char *pattern, const char *string, int nocase);
+int redislite_stringmatchlen(const char *pattern, int patternLen, const char *string, int stringLen, int nocase);
+int redislite_stringmatch(const char *pattern, const char *string, int nocase);
 
 #endif

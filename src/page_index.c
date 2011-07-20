@@ -721,7 +721,7 @@ int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int
 				if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
 					pages[pages_pos++] = page->keys[i]->left_page;
 				}
-				else if (allkeys || stringmatchlen(pattern, pattern_len, page->keys[i]->keyname, page->keys[i]->keyname_size, 0)) {
+				else if (allkeys || redislite_stringmatchlen(pattern, pattern_len, page->keys[i]->keyname, page->keys[i]->keyname_size, 0)) {
 					keys[keys_pos] = redislite_malloc(sizeof(char *) * page->keys[i]->keyname_size);
 					if (keys[keys_pos] == NULL) {
 						goto cleanup;
@@ -738,7 +738,7 @@ int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int
 				if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
 					pages[pages_pos++] = page->keys[i]->left_page;
 				}
-				else if (allkeys || stringmatchlen(pattern, pattern_len, page->keys[i]->keyname, page->keys[i]->keyname_size, 0)) {
+				else if (allkeys || redislite_stringmatchlen(pattern, pattern_len, page->keys[i]->keyname, page->keys[i]->keyname_size, 0)) {
 					keys[keys_pos] = page->keys[i]->keyname;
 					keys_length[keys_pos] = page->keys[i]->keyname_size;
 					keys_pos++;

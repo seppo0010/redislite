@@ -395,8 +395,8 @@ int str_to_long_long(char *str, int len, long long *value)
 }
 
 /* Glob-style pattern matching. */
-int stringmatchlen(const char *pattern, int patternLen,
-                   const char *string, int stringLen, int nocase)
+int redislite_stringmatchlen(const char *pattern, int patternLen,
+                             const char *string, int stringLen, int nocase)
 {
 	while(patternLen) {
 		switch(pattern[0]) {
@@ -409,8 +409,8 @@ int stringmatchlen(const char *pattern, int patternLen,
 					return 1;    /* match */
 				}
 				while(stringLen) {
-					if (stringmatchlen(pattern + 1, patternLen - 1,
-					                   string, stringLen, nocase)) {
+					if (redislite_stringmatchlen(pattern + 1, patternLen - 1,
+					                             string, stringLen, nocase)) {
 						return 1;    /* match */
 					}
 					string++;
@@ -534,7 +534,7 @@ int stringmatchlen(const char *pattern, int patternLen,
 	return 0;
 }
 
-int stringmatch(const char *pattern, const char *string, int nocase)
+int redislite_stringmatch(const char *pattern, const char *string, int nocase)
 {
-	return stringmatchlen(pattern, strlen(pattern), string, strlen(string), nocase);
+	return redislite_stringmatchlen(pattern, strlen(pattern), string, strlen(string), nocase);
 }
