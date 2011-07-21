@@ -277,19 +277,21 @@ redislite_reply *redislite_keys_command(redislite *db, redislite_params *params)
 	else {
 		reply->type = REDISLITE_REPLY_ARRAY;
 		reply->elements = size;
-		reply->element = redislite_malloc(sizeof(redislite_reply *) * size);
-		if (reply->element == NULL) {
-			goto cleanup;
-		}
-
-		for (; i < size; i++) {
-			reply->element[i] = redislite_create_reply();
-			if (reply->element[i] == NULL) {
+		if (size > 0) {
+			reply->element = redislite_malloc(sizeof(redislite_reply *) * size);
+			if (reply->element == NULL) {
 				goto cleanup;
 			}
-			reply->element[i]->type = REDISLITE_REPLY_STRING;
-			reply->element[i]->str = values[i];
-			reply->element[i]->len = values_len[i];
+
+			for (; i < size; i++) {
+				reply->element[i] = redislite_create_reply();
+				if (reply->element[i] == NULL) {
+					goto cleanup;
+				}
+				reply->element[i]->type = REDISLITE_REPLY_STRING;
+				reply->element[i]->str = values[i];
+				reply->element[i]->len = values_len[i];
+			}
 		}
 		redislite_free(values);
 		redislite_free(values_len);
@@ -892,7 +894,7 @@ redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
 			reply->element[i - 1]->type = REDISLITE_REPLY_STRING;
 		}
 		else {
-			set_error_message(status, reply->element[i - 1]);
+			reply->element[i - 1]->type = REDISLITE_REPLY_NIL;
 		}
 	}
 	return reply;
