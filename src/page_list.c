@@ -321,7 +321,7 @@ int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 	int enough_space;
 	redislite_page_list *list;
 	if (page->list->left_page != 0) {
-		list = redislite_page_get(cs->db, _cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST_FIRST);
+		list = redislite_page_get(cs->db, _cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST);
 		enough_space = redislite_free_bytes(cs->db, list, type) >= size;
 	}
 	else {
