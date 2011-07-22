@@ -511,12 +511,7 @@ int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 				return REDISLITE_OOM;
 			}
 			right->left_page = *page_num_p;
-			if (page->list->right_page == 0) {
-				right->right_page = right->left_page;
-			}
-			else {
-				right->right_page = page->list->right_page;
-			}
+			right->right_page = page->list->right_page;
 			right->element_alloced = right->size = 0;
 			right->element_len = 0;
 		}
