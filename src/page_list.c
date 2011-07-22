@@ -582,6 +582,9 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 		if (list == NULL) {
 			return REDISLITE_OOM;
 		}
+		while (list->size == 0) {
+			list = redislite_page_get(cs->db, cs, list->left_page, REDISLITE_PAGE_TYPE_LIST);
+		}
 	}
 
 	*value = list->element[list->size - 1];
