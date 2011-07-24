@@ -313,6 +313,24 @@ cleanup:
 	return NULL;
 }
 
+redislite_reply *redislite_ping_command(redislite *db, redislite_params *params)
+{
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	reply->str = redislite_malloc(sizeof(char) * 5);
+	if (reply->str == NULL) {
+		redislite_free(reply);
+		return NULL;
+	}
+	memcpy(reply->str, "PONG", sizeof("PONG"));
+	reply->type = REDISLITE_REPLY_STRING;
+	reply->len = 4;
+	return reply;
+}
+
 redislite_reply *redislite_dbsize_command(redislite *db, redislite_params *params)
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -1073,7 +1091,7 @@ struct redislite_command redislite_command_table[] = {
 	{"keys", redislite_keys_command, 2, 0},
 	{"dbsize", redislite_dbsize_command, 1, 0},
 	{"auth", redislite_command_implementation_not_planned, 2, 0},
-	{"ping", redislite_command_implementation_not_planned, 1, 0},
+	{"ping", redislite_ping_command, 1, 0},
 	{"echo", redislite_command_not_implemented_yet, 2, 0},
 	{"save", redislite_command_implementation_not_planned, 1, 0},
 	{"bgsave", redislite_command_implementation_not_planned, 1, 0},
@@ -1241,6 +1259,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 		case 230: // 'E'+'X'+'I'
 			if (length == 6 && memcaseequal(command, "exists", 6)) {
 				return &redislite_command_table[7];
+			}
+			break;
+
+		case 231: // 'P'+'I'+'N'
+			if (length == 4 && memcaseequal(command, "ping", 4)) {
+				return &redislite_command_table[88];
 			}
 			break;
 
