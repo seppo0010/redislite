@@ -574,6 +574,7 @@ int redislite_insert_key(void *_cs, char *key, size_t length, int left, char typ
 			if (cs == NULL && page != db->root) {
 				redislite_free_index(db, page);
 			}
+			redislite_add_modified_page(cs, previous_page_num, previous_page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
 			page = new_index_page;
 		}
 	}
