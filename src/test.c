@@ -1903,6 +1903,36 @@ int test_lpush_lpop()
 	return REDISLITE_OK;
 }
 
+int test_keys_empty_db()
+{
+	remove("test.db");
+	redislite *db = redislite_open_database("test.db");
+	if (db == NULL) {
+		printf("OOM on test.c, on line %d\n", __LINE__);
+		return REDISLITE_SKIP;
+	}
+	int status = REDISLITE_OK;
+	redislite_reply *reply;
+	reply = redislite_command(db, "KEYS *");
+	if (reply->type != REDISLITE_REPLY_ARRAY) {
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+	if (reply->elements != 0) {
+		printf("Expected KEYS * to have %d positions, got %d instead on line %d\n", 0, (int)reply->elements, __LINE__);
+		status = REDISLITE_ERR;
+		goto cleanup;
+	}
+cleanup:
+	if (reply) {
+		redislite_free_reply(reply);
+	}
+	if (db) {
+		redislite_close_database(db);
+	}
+	return status;
+}
+
 int main(int argc, char **argv)
 {
 	srand(4);
@@ -2179,6 +2209,17 @@ int main(int argc, char **argv)
 	if (run_test == -1 || run_test == i++) {
 		test = test_lpush_lpop();
 		test_name = "testing lpush lpop";
+		if (test == REDISLITE_SKIP) {
+			printf("Skipped test %s on line %d\n", test_name, __LINE__);
+		}
+		else if (test != REDISLITE_OK) {
+			printf("Failed test %s on line %d\n", test_name, __LINE__);
+		}
+	}
+
+	if (run_test == -1 || run_test == i++) {
+		test = test_keys_empty_db();
+		test_name = "testing keys on empty database";
 		if (test == REDISLITE_SKIP) {
 			printf("Skipped test %s on line %d\n", test_name, __LINE__);
 		}

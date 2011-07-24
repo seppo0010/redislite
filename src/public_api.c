@@ -36,7 +36,9 @@ static void redislite_free_reply_value(redislite_reply *reply)
 				if (reply->element[j]) {
 					redislite_free_reply(reply->element[j]);
 				}
-			redislite_free(reply->element);
+			if (reply->element) {
+				redislite_free(reply->element);
+			}
 			break;
 
 		case REDISLITE_REPLY_ERROR:
@@ -292,6 +294,9 @@ redislite_reply *redislite_keys_command(redislite *db, redislite_params *params)
 				reply->element[i]->str = values[i];
 				reply->element[i]->len = values_len[i];
 			}
+		}
+		else {
+			reply->element = NULL;
 		}
 		redislite_free(values);
 		redislite_free(values_len);
