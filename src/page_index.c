@@ -17,6 +17,7 @@ void redislite_free_key(redislite_page_index_key *key)
 
 void redislite_free_index(void *db, void *_page)
 {
+	db = db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	if (_page == NULL) {
 		return;
 	}
@@ -31,6 +32,7 @@ void redislite_free_index(void *db, void *_page)
 
 void redislite_write_index(void *db, unsigned char *data, void *_page)
 {
+	db = db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_page_index *page = (redislite_page_index *)_page;
 	redislite_put_4bytes(&data[0], 0); // reserved
 	redislite_put_4bytes(&data[4], page->free_space);
@@ -718,7 +720,7 @@ int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int
 		if (page->right_page) {
 			pages[pages_pos++] = page->right_page;
 		}
-		if (page == db->root || (_cs != NULL && page == redislite_modified_page(_cs, pages[pages_pos - 1]))) {
+		if (page == db->root || (_cs != NULL && (void *)page == redislite_modified_page(_cs, pages[pages_pos - 1])->data)) {
 			// should copy
 			for (i = 0; i < page->number_of_keys; i++) {
 				if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
@@ -788,8 +790,8 @@ int redislite_get_keys(void *_db, void *_cs, char *pattern, int pattern_len, int
 	else if (keys_pos == 0) {
 		redislite_free(keys_length);
 		redislite_free(keys);
-		keys =
-		    keys_length = NULL;
+		keys = NULL;
+		keys_length = NULL;
 	}
 
 	*number_of_keys_p = keys_pos;

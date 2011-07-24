@@ -320,6 +320,8 @@ cleanup:
 
 redislite_reply *redislite_ping_command(redislite *db, redislite_params *params)
 {
+	db = db; // XXX: avoid unused-parameter warning; we are implementing a prototype
+	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -338,6 +340,7 @@ redislite_reply *redislite_ping_command(redislite *db, redislite_params *params)
 
 redislite_reply *redislite_dbsize_command(redislite *db, redislite_params *params)
 {
+	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;
@@ -973,6 +976,8 @@ redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
 
 redislite_reply *redislite_info_command(redislite *db, redislite_params *params)
 {
+	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
+	db = db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_reply *reply = redislite_create_reply();
 	reply->type = REDISLITE_REPLY_STRING;
 	const char *format =
@@ -995,6 +1000,8 @@ redislite_reply *redislite_info_command(redislite *db, redislite_params *params)
 
 redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_params *params)
 {
+	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
+	db = db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_reply *reply = redislite_create_reply();
 	set_error_message(REDISLITE_NOT_IMPLEMENTED_YET, reply);
 	return reply;
@@ -1002,6 +1009,8 @@ redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_
 
 redislite_reply *redislite_command_implementation_not_planned(redislite *db, redislite_params *params)
 {
+	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
+	db = db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_reply *reply = redislite_create_reply();
 	set_error_message(REDISLITE_IMPLEMENTATION_NOT_PLANNED, reply);
 	return reply;

@@ -19,6 +19,7 @@ void redislite_delete_list(void *_cs, void *_page)
 
 void redislite_free_list(void *_db, void *_page)
 {
+	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_page_list *page = (redislite_page_list *)_page;
 	if (page == NULL) {
 		return;
@@ -39,6 +40,7 @@ void redislite_free_list(void *_db, void *_page)
 
 void redislite_write_list(void *_db, unsigned char *data, void *_page)
 {
+	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_page_list *page = (redislite_page_list *)_page;
 	if (page == NULL) {
 		return;
@@ -188,7 +190,7 @@ static int grow_list(redislite_page_list *list)
 	return REDISLITE_OK;
 }
 
-static int rpush(void *_cs, redislite_page_list *list, char *value, size_t value_len)
+static int rpush(redislite_page_list *list, char *value, size_t value_len)
 {
 	char *element = redislite_malloc(sizeof(char) * value_len);
 	if (element == NULL) {
@@ -207,7 +209,7 @@ static int rpush(void *_cs, redislite_page_list *list, char *value, size_t value
 	return REDISLITE_OK;
 }
 
-static int lpush(void *_cs, redislite_page_list *list, char *value, size_t value_len)
+static int lpush(redislite_page_list *list, char *value, size_t value_len)
 {
 	char *element = redislite_malloc(sizeof(char) * value_len);
 	if (element == NULL) {
@@ -330,7 +332,7 @@ int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 	}
 
 	if (enough_space) {
-		status = rpush(_cs, list, value, value_len);
+		status = rpush(list, value, value_len);
 		if (status != REDISLITE_OK) {
 			return status;
 		}
@@ -350,7 +352,7 @@ int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 		}
 		new_list->element_alloced = new_list->size = 0;
 		new_list->element_len = 0;
-		status = lpush(_cs, new_list, value, value_len);
+		status = lpush(new_list, value, value_len);
 		if (status != REDISLITE_OK) {
 			redislite_free(new_list);
 			return status;
@@ -489,7 +491,7 @@ int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 					if (redislite_free_bytes(cs->db, page->list, type) >= size) {
 						break;
 					}
-					status = lpush(_cs, old_right, page->list->element[page->list->size - 1], page->list->element_len[page->list->size - 1]);
+					status = lpush(old_right, page->list->element[page->list->size - 1], page->list->element_len[page->list->size - 1]);
 					page->list->size--;
 					i++;
 				}
@@ -515,7 +517,7 @@ int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 			right->element_alloced = right->size = 0;
 			right->element_len = 0;
 		}
-		status = lpush(_cs, right, page->list->element[page->list->size - 1], page->list->element_len[page->list->size - 1]);
+		status = lpush(right, page->list->element[page->list->size - 1], page->list->element_len[page->list->size - 1]);
 		if (status != REDISLITE_OK) {
 			redislite_free(right);
 			return status;
@@ -534,7 +536,7 @@ int redislite_lpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 	}
 
 	{
-		status = lpush(cs, page->list, value, value_len);
+		status = lpush(page->list, value, value_len);
 		if (status != REDISLITE_OK) {
 			return status;
 		}
@@ -557,7 +559,6 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
-	size_t i;
 	int status = REDISLITE_OK;
 	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
 	if (page_num < 0) {
@@ -671,7 +672,7 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 
 	if (page->list->size == 0 && list_page_num == page->list->right_page && redislite_free_bytes(cs->db, list, REDISLITE_PAGE_TYPE_FIRST) > 0 && list->size > 0) {
 		for (i = 0; i < list->size; i++) {
-			lpush(cs, page->list, list->element[list->size - i - 1], list->element_len[list->size - i - 1]);
+			lpush(page->list, list->element[list->size - i - 1], list->element_len[list->size - i - 1]);
 		}
 		page->list->right_page = list->right_page;
 		list->right_page = list->left_page = 0;

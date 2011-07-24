@@ -8,6 +8,7 @@
 
 void redislite_free_freelist(void *_db, void *_page)
 {
+	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_page_string *page = (redislite_page_string *)_page;
 	if (page == NULL) {
 		return;
@@ -31,6 +32,7 @@ void redislite_write_freelist(void *_db, unsigned char *data, void *_page)
 
 void *redislite_read_freelist(void *_db, unsigned char *data)
 {
+	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_page_string *page = redislite_malloc(sizeof(redislite_page_string));
 	if (page == NULL) {
 		return NULL;

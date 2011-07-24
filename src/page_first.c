@@ -8,10 +8,13 @@
 
 void redislite_free_first(void *_db, void *page)
 {
+	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
+	page = page; // XXX: avoid unused-parameter warning; we are implementing a prototype
 }
 
 void redislite_write_first(void *_db, unsigned char *data, void *page)
 {
+	page = page; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite *db = (redislite *)_db;
 	memcpy(data, HEADER_STRING, sizeof(HEADER_STRING));
 	data[20] = (db->page_size >> 8); // page size

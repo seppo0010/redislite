@@ -1,8 +1,10 @@
 #include "core.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#include <math.h>
+#include <ctype.h>
 #include <limits.h>
+#include <math.h>
 #include <errno.h>
 
 #define SLOT_2_0     0x001fc07f

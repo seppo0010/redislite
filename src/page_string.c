@@ -19,6 +19,7 @@ void redislite_delete_string(void *_cs, void *_page)
 
 void redislite_free_string(void *_db, void *_page)
 {
+	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_page_string *page = (redislite_page_string *)_page;
 	if (page == NULL) {
 		return;
@@ -73,6 +74,7 @@ void redislite_delete_string_overflow(void *_cs, void *_page)
 
 void redislite_free_string_overflow(void *_db, void *_page)
 {
+	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_page_string_overflow *page = (redislite_page_string_overflow *)_page;
 	redislite_free(page->value);
 	redislite_free(page);
