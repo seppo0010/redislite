@@ -926,3 +926,46 @@ cleanup:
 	}
 	return REDISLITE_OOM;
 }
+
+int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int param_start, int param_end)
+{
+	changeset *cs = (changeset *)_cs;
+	char type;
+	int status = REDISLITE_OK, ltrim, rtrim;
+	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	if (page_num < 0) {
+		return page_num;
+	}
+
+	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_WRONG_TYPE;
+	}
+
+	redislite_page_list_first *page = redislite_page_get(cs->db, cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+	if (page == NULL) {
+		return REDISLITE_OOM;
+	}
+
+	int llen = page->total_size;
+	int start = param_start;
+	int end = param_end;
+
+	if (start < 0) start = llen+start;
+	if (end < 0) end = llen+end;
+	if (start < 0) start = 0;
+
+	if (start > end || start >= llen) {
+		ltrim = llen;
+		rtrim = 0;
+	} else {
+		if (end >= llen) end = llen-1;
+		ltrim = start;
+		rtrim = llen-end-1;
+	}
+
+	if (rtrim < ltrim) {
+		// TODO: delete list
+	}
+
+
+}

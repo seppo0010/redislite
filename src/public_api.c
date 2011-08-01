@@ -940,6 +940,51 @@ redislite_reply *redislite_lindex_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_ltrim_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	size_t len, value_len;
+	long long start, stop;
+
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &start);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	status = str_to_long_long(params->argv[3], params->argvlen[3], &stop);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	key = params->argv[1];
+	len = params->argvlen[1];
+
+	changeset *cs = redislite_create_changeset(db);
+	status = redislite_ltrim_by_keyname(cs, key, len, start, stop);
+	redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		set_status_message(REDISLITE_OK, reply);
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 static redislite_reply *init_multibulk(size_t size)
 {
 	size_t i, j;
