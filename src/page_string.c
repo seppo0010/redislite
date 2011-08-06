@@ -395,7 +395,7 @@ int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, size_t k
 		}
 		int size = sprintf(s_value, "%lld", incr);
 		if (size < 0) {
-			return REDISLITE_ERR;
+			return REDISLITE_EXPECT_INTEGER;
 		}
 		return redislite_page_string_set_key_string(_cs, key_name, key_length, s_value, size);
 	}
@@ -406,7 +406,7 @@ int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, size_t k
 
 	redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
 	if (page->right_page || page->size > db->page_size - 13) {
-		return REDISLITE_ERR; // TODO: not integer or out of range
+		return REDISLITE_EXPECT_INTEGER;
 	}
 
 	long long value;
