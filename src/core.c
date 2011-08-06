@@ -92,7 +92,6 @@ int redislite_save_changeset(changeset *cs)
 	}
 
 	if (!file) {
-		fclose(file);
 		return REDISLITE_ERR;
 	}
 
