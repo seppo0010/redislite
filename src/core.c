@@ -305,6 +305,7 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 	cs->modified_pages_free--;
 	if (page_number >= cs->db->number_of_pages) {
 		cs->db->number_of_pages = page_number + 1;
+		redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, cs->db->root);
 	}
 	return page_number;
 }
