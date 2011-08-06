@@ -249,6 +249,25 @@ size_t redislite_free_bytes(void *_db, redislite_page_list *page, char type)
 	return db->page_size - pos;
 }
 
+int redislite_rpushx_by_keyname(void *_cs, char *keyname, size_t keyname_len, char *value, size_t value_len)
+{
+	changeset *cs = (changeset *)_cs;
+	char type;
+	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND) {
+		return page_num;
+	}
+	if (page_num > 0 && type != REDISLITE_PAGE_TYPE_LIST_FIRST) {
+		return REDISLITE_WRONG_TYPE;
+	}
+
+	if (page_num == 0) {
+		return 0;
+	}
+
+	return redislite_rpush_page_num(_cs, &page_num, value, value_len);
+}
+
 int redislite_rpush_by_keyname(void *_cs, char *keyname, size_t keyname_len, char *value, size_t value_len)
 {
 	changeset *cs = (changeset *)_cs;
