@@ -248,6 +248,7 @@ int redislite_add_modified_page(changeset *cs, int page_number, char type, void 
 				return REDISLITE_OOM;
 			}
 			cs->db->first_freelist_page = freelist_page->right_page;
+			redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, cs->db->root);
 		}
 		else {
 			page_number = cs->db->number_of_pages;
