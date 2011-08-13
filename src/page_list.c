@@ -931,6 +931,7 @@ int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
+	size_t i;
 	int status = REDISLITE_OK, ltrim, rtrim;
 	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
 	if (page_num < 0) {
@@ -967,5 +968,90 @@ int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int
 		// TODO: delete list
 	}
 
+	int page_pos = 0, list_page_num = page_num;
+	redislite_page_list *list = page->list;
 
+	while (1) {
+		if (ltrim <= page_pos + (int)list->size) {
+			if (ltrim < page_pos && rtrim >= page_pos + (int)list->size) {
+				if (page_num == list_page_num) {
+					for (i = 0; i < list->size; i++)
+						if (list->element[i] != NULL) {
+							redislite_free(list->element[i]);
+						}
+					if (list->element != NULL) {
+						redislite_free(list->element);
+					}
+					if (list->element_len != NULL) {
+						redislite_free(list->element_len);
+					}
+					list->element = NULL;
+					list->element_len = NULL;
+				} else {
+					redislite_page_list *left = redislite_page_get(cs->db, cs, list->left_page, REDISLITE_PAGE_TYPE_LIST);
+					if (left == NULL) {
+						status = REDISLITE_OOM;
+						goto cleanup;
+					}
+					redislite_page_list *right = redislite_page_get(cs->db, cs, list->right_page, REDISLITE_PAGE_TYPE_LIST);
+					if (right == NULL) {
+						status = REDISLITE_OOM;
+						goto cleanup;
+					}
+					left->right_page = list->right_page;
+					right->left_page = list->left_page;
+					list->right_page = list->left_page = 0;
+					status = redislite_page_delete(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST);
+					if (status != REDISLITE_OK) goto cleanup;
+					if (left->right_page != page_num) { 
+						status = redislite_add_modified_page(cs, left->right_page, REDISLITE_PAGE_TYPE_LIST, right);
+						if (status > 0) status = 0;
+						if (status != REDISLITE_OK) goto cleanup;
+					}
+					if (right->left_page != page_num) {
+						status = redislite_add_modified_page(cs, right->left_page, REDISLITE_PAGE_TYPE_LIST, left);
+						if (status > 0) status = 0;
+						if (status != REDISLITE_OK) goto cleanup;
+					}
+				}
+			} else {
+				int left_trim = ltrim - page_pos;
+				if (left_trim < 0) left_trim = 0;
+				int right_trim = rtrim - page_pos;
+				if (right_trim > (int)list->size) right_trim = list->size;
+				for (i = 0; i < list->size; i++) {
+					if ((int)i < left_trim || (int)i >= right_trim) {
+						redislite_free(list->element[i]);
+					} else {
+						list->element[i - left_trim] = list->element[i];
+						list->element_len[i - left_trim] = list->element_len[i];
+					}
+				}
+				page->total_size += right_trim - left_trim - list->size;
+				list->size = right_trim - left_trim;
+				status = redislite_add_modified_page(cs, list_page_num, page_num == list_page_num ? REDISLITE_PAGE_TYPE_LIST_FIRST : REDISLITE_PAGE_TYPE_LIST, page_num == list_page_num ? (void*)page : (void*)list);
+				if (status > 0) status = 0;
+				if (status != REDISLITE_OK) goto cleanup;
+			}
+		}
+
+		if (rtrim >= page_pos + (int)list->size) {
+			break;
+		}
+		list_page_num = list->right_page;
+		list = redislite_page_get(cs->db, cs, list->right_page, REDISLITE_PAGE_TYPE_LIST);
+		if (list == NULL) {
+			status = REDISLITE_OOM;
+			goto cleanup;
+		}
+	}
+
+	status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
+	if (status > 0) status = 0;
+	else goto cleanup;
+
+	return status;
+cleanup:
+	//TODO: cleanup
+	return status;
 }

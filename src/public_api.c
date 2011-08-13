@@ -942,8 +942,8 @@ redislite_reply *redislite_lindex_command(redislite *db, redislite_params *param
 
 redislite_reply *redislite_ltrim_command(redislite *db, redislite_params *params)
 {
-	char *key, *value;
-	size_t len, value_len;
+	char *key;
+	size_t len;
 	long long start, stop;
 
 	redislite_reply *reply = redislite_create_reply();
@@ -1115,7 +1115,7 @@ struct redislite_command redislite_command_table[] = {
 	{"lindex", redislite_lindex_command, 3, 0},
 	{"lset", redislite_command_not_implemented_yet, 4, 0},
 	{"lrange", redislite_lrange_command, 4, 0},
-	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
+	{"ltrim", redislite_ltrim_command, 4, 0},
 	{"lrem", redislite_command_not_implemented_yet, 4, 0},
 	{"rpoplpush", redislite_command_not_implemented_yet, 3, 0},
 	{"sadd", redislite_command_not_implemented_yet, 3, 0},
@@ -1387,6 +1387,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			else if (length == 4 && memcaseequal(command, "rpop", 4)) {
 				return &redislite_command_table[21];
+			}
+			break;
+
+		case 242: // 'L'+'T'+'R'
+			if (length == 5 && memcaseequal(command, "ltrim", 5)) {
+				return &redislite_command_table[30];
 			}
 			break;
 
