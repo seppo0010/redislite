@@ -96,6 +96,7 @@ static const char *expected_integer = "value is not an integer or out of range";
 static const char *expected_double = "Value is not a double";
 static const char *invalid_bit_offset = "bit offset is not an integer or out of range";
 static const char *invalid_bit = "ERR bit is not an integer or out of range";
+static const char *key_not_found = "ERR no such key";
 static const char *ok = "OK";
 static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
 static const char *implementation_not_planned = "This command hasn't been planned to be implemented on redislite";
@@ -652,6 +653,12 @@ redislite_reply *redislite_rename_command(redislite *db, redislite_params *param
 		redislite_save_changeset(cs);
 		set_status_message(status, reply);
 	}
+	else if (status == REDISLITE_NOT_FOUND) {
+		reply->type = REDISLITE_REPLY_ERROR;
+		reply->str = redislite_malloc(strlen(key_not_found) + 1);
+		memcpy(reply->str, key_not_found, strlen(key_not_found) + 1);
+		reply->len = strlen(key_not_found) + 1;
+	}
 	else {
 		set_error_message(status, reply);
 	}
@@ -678,6 +685,12 @@ redislite_reply *redislite_renamenx_command(redislite *db, redislite_params *par
 		redislite_save_changeset(cs);
 		reply->integer = 1;
 		reply->type = REDISLITE_REPLY_INTEGER;
+	}
+	else if (status == REDISLITE_NOT_FOUND) {
+		reply->type = REDISLITE_REPLY_ERROR;
+		reply->str = redislite_malloc(strlen(key_not_found) + 1);
+		memcpy(reply->str, key_not_found, strlen(key_not_found) + 1);
+		reply->len = strlen(key_not_found) + 1;
 	}
 	else if (status == REDISLITE_ALREADY_EXISTS) {
 		reply->integer = 0;
