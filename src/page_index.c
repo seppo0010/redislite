@@ -350,7 +350,7 @@ int redislite_exists_key(void *_db, void *_cs, char *key, size_t length)
 	return 0;
 }
 
-int redislite_delete_key(void *_cs, char *key, size_t length)
+int redislite_delete_key(void *_cs, char *key, size_t length, int delete_data)
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;
@@ -367,7 +367,7 @@ int redislite_delete_key(void *_cs, char *key, size_t length)
 			db->number_of_keys--;
 			status = redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, db->root);
 			index_key = NULL;
-			if (status == REDISLITE_OK) {
+			if (status == REDISLITE_OK && delete_data) {
 				redislite_page_delete(_cs, left_page, type);
 			}
 		}
@@ -387,7 +387,7 @@ int redislite_delete_keys(void *_cs, int q, char **keys, size_t *lengths)
 	int i;
 	int counter = 0;
 	for (i = 0; i < q; i++) {
-		status = redislite_delete_key(_cs, keys[i], lengths[i]);
+		status = redislite_delete_key(_cs, keys[i], lengths[i], 1);
 		if (status != REDISLITE_OK && status != REDISLITE_NOT_FOUND) {
 			break;
 		}
@@ -584,6 +584,26 @@ int redislite_insert_key(void *_cs, char *key, size_t length, int left, char typ
 		}
 	}
 	return REDISLITE_NOT_FOUND;
+}
+
+int redislite_page_index_rename_key(void *_cs, char *src, size_t src_len, char *target, size_t target_len)
+{
+	if (src_len == target_len && memcmp(src, target, target_len) == 0) {
+		return REDISLITE_SOURCE_DESTINATION_SAME;
+	}
+	changeset *cs = (changeset *)_cs;
+
+	int status;
+	redislite_page_index_key *key = redislite_index_key_for_index_name(cs->db, cs, src, src_len, &status, NULL);
+	if (status != REDISLITE_OK) {
+		return status;
+	}
+	status = redislite_insert_key(_cs, target, target_len, key->left_page, key->type);
+	if (status != REDISLITE_OK) {
+		return status;
+	}
+	status = redislite_delete_key(_cs, src, src_len, 0); // TODO: avoid double lookup
+	return status;
 }
 
 int redislite_page_index_add_key(void *_cs, redislite_page_index *page, int pos, int left, char *key, size_t length, char type)

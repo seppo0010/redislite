@@ -618,7 +618,7 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			return REDISLITE_OOM;
 		}
 		memcpy(value_aux, *value, *value_len);
-		redislite_delete_key(_cs, keyname, keyname_len);
+		redislite_delete_key(_cs, keyname, keyname_len, 1);
 		redislite_free(*value);
 		*value = value_aux;
 		// TODO: avoid double key lookup
@@ -722,7 +722,7 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			return REDISLITE_OOM;
 		}
 		memcpy(value_aux, *value, *value_len);
-		redislite_delete_key(_cs, keyname, keyname_len);
+		redislite_delete_key(_cs, keyname, keyname_len, 1);
 		redislite_free(*value);
 		*value = value_aux;
 		// TODO: avoid double key lookup
