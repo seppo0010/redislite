@@ -606,6 +606,23 @@ int redislite_page_index_rename_key(void *_cs, char *src, size_t src_len, char *
 	return status;
 }
 
+int redislite_page_index_renamenx_key(void *_cs, char *src, size_t src_len, char *target, size_t target_len)
+{
+	changeset *cs = (changeset *)_cs;
+
+	int status;
+	redislite_index_key_for_index_name(cs->db, cs, target, target_len, &status, NULL);
+	if (status == REDISLITE_NOT_FOUND) {
+		return redislite_page_index_rename_key(_cs, src, src_len, target, target_len);
+	}
+	else if (status == REDISLITE_OK) {
+		return REDISLITE_ALREADY_EXISTS;
+	}
+	else {
+		return status;
+	}
+}
+
 int redislite_page_index_add_key(void *_cs, redislite_page_index *page, int pos, int left, char *key, size_t length, char type)
 {
 	changeset *cs = (changeset *)_cs;

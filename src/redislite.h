@@ -40,5 +40,6 @@ void redislite_close_database(redislite *db);
 #define REDISLITE_BIT_OFFSET_INVALID -12
 #define REDISLITE_BIT_INVALID -13
 #define REDISLITE_SOURCE_DESTINATION_SAME -14
+#define REDISLITE_ALREADY_EXISTS -15
 
 #endif
