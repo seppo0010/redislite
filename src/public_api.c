@@ -632,6 +632,33 @@ redislite_reply *redislite_incrby_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+
+redislite_reply *redislite_rename_command(redislite *db, redislite_params *params)
+{
+	char *src, *target;
+	size_t src_len, target_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	src = params->argv[1];
+	src_len = params->argvlen[1];
+	target = params->argv[2];
+	target_len = params->argvlen[2];
+	changeset *cs = redislite_create_changeset(db);
+
+	int status = redislite_page_index_rename_key(cs, src, src_len, target, target_len);
+	if (status == REDISLITE_OK) {
+		redislite_save_changeset(cs);
+		set_status_message(status, reply);
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
 redislite_reply *redislite_decrby_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -1166,7 +1193,7 @@ struct redislite_command redislite_command_table[] = {
 	{"randomkey", redislite_command_not_implemented_yet, 1, 0},
 	{"select", redislite_command_implementation_not_planned, 2, 0},
 	{"move", redislite_command_implementation_not_planned, 3, 0},
-	{"rename", redislite_command_not_implemented_yet, 3, 0},
+	{"rename", redislite_rename_command, 3, 0},
 	{"renamenx", redislite_command_not_implemented_yet, 3, 0},
 	{"expire", redislite_command_implementation_not_planned, 3, 0},
 	{"expireat", redislite_command_implementation_not_planned, 3, 0},
@@ -1335,6 +1362,11 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 		case 227: // 'A'+'P'+'P'
 			if (length == 6 && memcaseequal(command, "lindex", 6)) {
 				return &redislite_command_table[27];
+			}
+			break;
+		case 229: // 'R'+'E'+'N'
+			if (length == 6 && memcaseequal(command, "rename", 6)) {
+				return &redislite_command_table[81];
 			}
 			break;
 
