@@ -258,9 +258,14 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_page_string_set_key_string(cs, key, len, value, value_len);
-	redislite_save_changeset(cs);
+	status = redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
-	set_status_message(status, reply);
+	if (status < 0) {
+		set_error_message(status, reply);
+	}
+	else {
+		set_status_message(status, reply);
+	}
 	return reply;
 }
 
@@ -359,13 +364,17 @@ redislite_reply *redislite_del_command(redislite *db, redislite_params *params)
 	}
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_delete_keys(cs, params->argc - 1, &params->argv[1], &params->argvlen[1]);
+	if (status >= 0) {
+		int ret = redislite_save_changeset(cs);
+		if (ret < 0) status = ret;
+	}
+
 	if (status < 0) {
 		set_error_message(status, reply);
 	}
 	else {
 		reply->type = REDISLITE_REPLY_INTEGER;
 		reply->integer = status;
-		redislite_save_changeset(cs);
 	}
 	redislite_free_changeset(cs);
 	return reply;
@@ -445,7 +454,10 @@ redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_page_string_setnx_key_string(cs, key, len, value, value_len);
-	redislite_save_changeset(cs);
+	if (status >= 0) {
+		int ret = redislite_save_changeset(cs);
+		if (ret < 0) status = ret;
+	}
 	redislite_free_changeset(cs);
 	if (status < 0) {
 		set_error_message(status, reply);
@@ -477,7 +489,12 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 		redislite_free_changeset(cs);
 		return reply;
 	}
-	redislite_save_changeset(cs);
+	status = redislite_save_changeset(cs);
+	if (status != REDISLITE_OK) {
+		set_error_message(status, reply);
+		redislite_free_changeset(cs);
+		return reply;
+	}
 	redislite_free_changeset(cs);
 	reply->type = REDISLITE_REPLY_INTEGER;
 	reply->integer = (int)new_len;
@@ -568,8 +585,11 @@ redislite_reply *redislite_incr_command(redislite *db, redislite_params *params)
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_page_string_incr_key_string(cs, key, len, &reply->integer);
 	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_INTEGER;
-		redislite_save_changeset(cs);
 	}
 	else {
 		set_error_message(status, reply);
@@ -591,8 +611,11 @@ redislite_reply *redislite_decr_command(redislite *db, redislite_params *params)
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_page_string_decr_key_string(cs, key, len, &reply->integer);
 	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_INTEGER;
-		redislite_save_changeset(cs);
 	}
 	else {
 		set_error_message(status, reply);
@@ -623,8 +646,11 @@ redislite_reply *redislite_incrby_command(redislite *db, redislite_params *param
 	}
 	status = redislite_page_string_incr_by_key_string(cs, key, len, incr, &reply->integer);
 	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_INTEGER;
-		redislite_save_changeset(cs);
 	}
 	else {
 		set_error_message(status, reply);
@@ -650,7 +676,10 @@ redislite_reply *redislite_rename_command(redislite *db, redislite_params *param
 
 	int status = redislite_page_index_rename_key(cs, src, src_len, target, target_len);
 	if (status == REDISLITE_OK) {
-		redislite_save_changeset(cs);
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
 		set_status_message(status, reply);
 	}
 	else if (status == REDISLITE_NOT_FOUND) {
@@ -682,7 +711,10 @@ redislite_reply *redislite_renamenx_command(redislite *db, redislite_params *par
 
 	int status = redislite_page_index_renamenx_key(cs, src, src_len, target, target_len);
 	if (status == REDISLITE_OK) {
-		redislite_save_changeset(cs);
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
 		reply->integer = 1;
 		reply->type = REDISLITE_REPLY_INTEGER;
 	}
@@ -725,8 +757,11 @@ redislite_reply *redislite_decrby_command(redislite *db, redislite_params *param
 	}
 	status = redislite_page_string_decr_by_key_string(cs, key, len, decr, &reply->integer);
 	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_INTEGER;
-		redislite_save_changeset(cs);
 	}
 	else {
 		set_error_message(status, reply);
@@ -767,6 +802,10 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_lpush_by_keyname(cs, key, len, value, value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
 	if (status != REDISLITE_OK) {
 		redislite_reply *reply = redislite_create_reply();
 		if (reply == NULL) {
@@ -775,7 +814,6 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 		set_error_message(status, reply);
 		return reply;
 	}
-	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	return redislite_llen_command(db, params);
 }
@@ -790,6 +828,10 @@ redislite_reply *redislite_rpush_command(redislite *db, redislite_params *params
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_rpush_by_keyname(cs, key, len, value, value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
 	if (status != REDISLITE_OK) {
 		redislite_reply *reply = redislite_create_reply();
 		if (reply == NULL) {
@@ -798,7 +840,6 @@ redislite_reply *redislite_rpush_command(redislite *db, redislite_params *params
 		set_error_message(status, reply);
 		return reply;
 	}
-	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	return redislite_llen_command(db, params);
 }
@@ -813,6 +854,10 @@ redislite_reply *redislite_rpushx_command(redislite *db, redislite_params *param
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_rpushx_by_keyname(cs, key, len, value, value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
 	if (status != REDISLITE_OK) {
 		redislite_reply *reply = redislite_create_reply();
 		if (reply == NULL) {
@@ -821,7 +866,6 @@ redislite_reply *redislite_rpushx_command(redislite *db, redislite_params *param
 		set_error_message(status, reply);
 		return reply;
 	}
-	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	return redislite_llen_command(db, params);
 }
@@ -836,6 +880,10 @@ redislite_reply *redislite_lpushx_command(redislite *db, redislite_params *param
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_lpushx_by_keyname(cs, key, len, value, value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
 	if (status != REDISLITE_OK) {
 		redislite_reply *reply = redislite_create_reply();
 		if (reply == NULL) {
@@ -844,7 +892,6 @@ redislite_reply *redislite_lpushx_command(redislite *db, redislite_params *param
 		set_error_message(status, reply);
 		return reply;
 	}
-	redislite_save_changeset(cs);
 	redislite_free_changeset(cs);
 	return redislite_llen_command(db, params);
 }
@@ -861,7 +908,10 @@ redislite_reply *redislite_rpop_command(redislite *db, redislite_params *params)
 	len = params->argvlen[1];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_rpop_by_keyname(cs, key, len, &value, &value_len);
-	redislite_save_changeset(cs);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
 	redislite_free_changeset(cs);
 	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_STRING;
@@ -886,7 +936,10 @@ redislite_reply *redislite_lpop_command(redislite *db, redislite_params *params)
 	len = params->argvlen[1];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_lpop_by_keyname(cs, key, len, &value, &value_len);
-	redislite_save_changeset(cs);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
 	redislite_free_changeset(cs);
 	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_STRING;
