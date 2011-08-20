@@ -92,6 +92,7 @@ int redislite_save_changeset(changeset *cs)
 	}
 
 	if (!file) {
+		fprintf(stderr, "Unable to write to file '%s'\n", cs->db->filename);
 		return REDISLITE_ERR;
 	}
 
@@ -102,13 +103,18 @@ int redislite_save_changeset(changeset *cs)
 		return REDISLITE_OOM;
 	}
 
+	int status = REDISLITE_OK;
 	for (i = 0; i < cs->modified_pages_length; ++i) {
 		redislite_page *page = cs->modified_pages[i];
 
 		memset(&data[0], '\0', cs->db->page_size); // TODO: we could allow garbage on unused bytes
 		page->type->write_function(cs->db, &data[0], page->data);
 		fseek(file, cs->db->page_size * page->number, SEEK_SET);
-		fwrite(data, cs->db->page_size, sizeof(unsigned char), file);
+		if (fwrite(data, sizeof(unsigned char), cs->db->page_size, file) < cs->db->page_size) {
+			fprintf(stderr, "Unable to write to file '%s'\n", cs->db->filename);
+			status = REDISLITE_ERR;
+			break;
+		}
 	}
 	redislite_free(data);
 	fclose(file);
@@ -116,7 +122,7 @@ int redislite_save_changeset(changeset *cs)
 		fclose(cs->db->file);
 		cs->db->file = NULL;
 	}
-	return REDISLITE_OK;
+	return status;
 }
 
 int redislite_add_opened_page(changeset *cs, int page_number, char type, void *page_data)
@@ -329,7 +335,11 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 	}
 
 	if (!db->file) {
-		db->file = fopen(db->filename, "rb+");
+		db->file = fopen(db->filename, "rb");
+	}
+	if (!db->file) {
+		fprintf(stderr, "Unable to open file '%s'\n", db->filename);
+		return NULL;
 	}
 #ifdef DEBUG
 	fseek(db->file, 0L, SEEK_END);
