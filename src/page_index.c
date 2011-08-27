@@ -858,3 +858,26 @@ cleanup:
 	}
 	return REDISLITE_OOM;
 }
+
+int redislite_flush(void *_cs)
+{
+	changeset *cs = (changeset *)_cs;
+	redislite *db = cs->db;
+
+	redislite_page_index *page = (redislite_page_index *)db->root;
+	size_t i;
+	for (i = 0; i < page->number_of_keys; i++) {
+		redislite_free_key(page->keys[i]);
+	}
+	redislite_free(page->keys);
+	page->keys = NULL;
+	page->number_of_keys = 0;
+	page->right_page = 0;
+	// TODO: multithread safeness
+	db->number_of_pages = 0;
+	db->first_freelist_page = 0;
+	db->number_of_freelist_pages = 0;
+	db->number_of_keys = 0;
+	redislite_add_modified_page(_cs, 0, REDISLITE_PAGE_TYPE_FIRST, page);
+	return REDISLITE_OK;
+}

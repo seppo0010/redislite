@@ -366,7 +366,9 @@ redislite_reply *redislite_del_command(redislite *db, redislite_params *params)
 	int status = redislite_delete_keys(cs, params->argc - 1, &params->argv[1], &params->argvlen[1]);
 	if (status >= 0) {
 		int ret = redislite_save_changeset(cs);
-		if (ret < 0) status = ret;
+		if (ret < 0) {
+			status = ret;
+		}
 	}
 
 	if (status < 0) {
@@ -456,7 +458,9 @@ redislite_reply *redislite_setnx_command(redislite *db, redislite_params *params
 	int status = redislite_page_string_setnx_key_string(cs, key, len, value, value_len);
 	if (status >= 0) {
 		int ret = redislite_save_changeset(cs);
-		if (ret < 0) status = ret;
+		if (ret < 0) {
+			status = ret;
+		}
 	}
 	redislite_free_changeset(cs);
 	if (status < 0) {
@@ -1121,6 +1125,25 @@ redislite_reply *redislite_mget_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+
+redislite_reply *redislite_flushall_command(redislite *db, redislite_params *params)
+{
+	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
+	changeset *cs = redislite_create_changeset(db);
+
+	redislite_reply *reply = redislite_create_reply();
+	int status = redislite_flush(cs);
+	if (status < 0) {
+		set_error_message(status, reply);
+		goto cleanup;
+	}
+	status = redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	set_status_message(status, reply);
+cleanup:
+	return reply;
+}
+
 redislite_reply *redislite_info_command(redislite *db, redislite_params *params)
 {
 	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
@@ -1265,7 +1288,7 @@ struct redislite_command redislite_command_table[] = {
 	{"discard", redislite_command_not_implemented_yet, 1, 0},
 	{"sync", redislite_command_implementation_not_planned, 1, 0},
 	{"flushdb", redislite_command_implementation_not_planned, 1, 0},
-	{"flushall", redislite_command_not_implemented_yet, 1, 0},
+	{"flushall", redislite_flushall_command, 1, 0},
 	{"sort", redislite_command_not_implemented_yet, 2, 0},
 	{"info", redislite_info_command, 1, 0},
 	{"monitor", redislite_command_implementation_not_planned, 1, 0},
@@ -1432,8 +1455,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			break;
 
 		case 231: // 'P'+'I'+'N'
+			// 'F'+'L'+'U'
 			if (length == 4 && memcaseequal(command, "ping", 4)) {
 				return &redislite_command_table[88];
+			}
+			else if (length == 8 && memcaseequal(command, "flushall", 8)) {
+				return &redislite_command_table[101];
 			}
 			break;
 
