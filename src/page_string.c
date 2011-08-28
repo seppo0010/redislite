@@ -266,7 +266,7 @@ int redislite_page_string_set_key_string(void *_cs, char *key_name, size_t key_l
 		return status;
 	}
 
-	status = redislite_insert_key(cs, key_name, key_length, left, REDISLITE_PAGE_TYPE_STRING);
+	status = redislite_insert_key(cs, cs->db->root, key_name, key_length, left, REDISLITE_PAGE_TYPE_STRING);
 	if (status < 0) {
 		return status;
 	}
@@ -278,7 +278,7 @@ int redislite_page_string_setnx_key_string(void *_cs, char *key_name, size_t key
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
-	int exists = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
+	int exists = redislite_value_page_for_key(cs->db, cs, cs->db->root, key_name, key_length, &type);
 	if (exists == REDISLITE_NOT_FOUND) {
 		exists = redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);
 		if (exists == REDISLITE_OK) {
@@ -295,8 +295,9 @@ int redislite_page_string_setnx_key_string(void *_cs, char *key_name, size_t key
 
 int redislite_page_string_strlen_by_keyname(void *_db, void *_cs, char *key_name, size_t key_length)
 {
+	changeset *cs = (changeset*)_cs;
 	char type;
-	int page_num = redislite_value_page_for_key(_db, _cs, key_name, key_length, &type);
+	int page_num = redislite_value_page_for_key(_db, _cs, cs->db->root, key_name, key_length, &type);
 	if (page_num == REDISLITE_ERR) {
 		return 0;
 	}
@@ -316,7 +317,7 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, size_t ke
 	redislite *db = cs->db;
 
 	char type;
-	int page_num = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, key_name, key_length, &type);
 	if (page_num >= 0) {
 		if (type != REDISLITE_PAGE_TYPE_STRING) {
 			return REDISLITE_WRONG_TYPE;
@@ -387,7 +388,7 @@ int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, size_t k
 	redislite *db = cs->db;
 
 	char type;
-	int page_num = redislite_value_page_for_key(cs->db, cs, key_name, key_length, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, key_name, key_length, &type);
 	if (page_num < 0) {
 		char s_value[21];
 		if (new_value) {

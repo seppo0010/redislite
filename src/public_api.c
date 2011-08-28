@@ -392,7 +392,7 @@ redislite_reply *redislite_exists_command(redislite *db, redislite_params *param
 	}
 	key = params->argv[1];
 	len = params->argvlen[1];
-	int status = redislite_value_page_for_key(db, NULL, key, len, NULL);
+	int status = redislite_value_page_for_key(db, NULL, db->root, key, len, NULL);
 	reply->type = REDISLITE_REPLY_INTEGER;
 	reply->integer = status >= 0;
 	return reply;
@@ -409,7 +409,7 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 	}
 	key = params->argv[1];
 	len = params->argvlen[1];
-	int status = redislite_page_index_type(db, NULL, key, len, &type);
+	int status = redislite_page_index_type(db, NULL, db->root, key, len, &type);
 	if (status == REDISLITE_NOT_FOUND) {
 		reply->str = redislite_malloc(sizeof(char) * 4);
 		if (reply->str == NULL) {
@@ -678,7 +678,7 @@ redislite_reply *redislite_rename_command(redislite *db, redislite_params *param
 	target_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 
-	int status = redislite_page_index_rename_key(cs, src, src_len, target, target_len);
+	int status = redislite_page_index_rename_key(cs, cs->db->root, src, src_len, target, target_len);
 	if (status == REDISLITE_OK) {
 		status = redislite_save_changeset(cs);
 	}
@@ -713,7 +713,7 @@ redislite_reply *redislite_renamenx_command(redislite *db, redislite_params *par
 	target_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 
-	int status = redislite_page_index_renamenx_key(cs, src, src_len, target, target_len);
+	int status = redislite_page_index_renamenx_key(cs, cs->db->root, src, src_len, target, target_len);
 	if (status == REDISLITE_OK) {
 		status = redislite_save_changeset(cs);
 	}

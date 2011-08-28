@@ -253,7 +253,7 @@ int redislite_rpushx_by_keyname(void *_cs, char *keyname, size_t keyname_len, ch
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
-	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, keyname, keyname_len, &type);
 	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND) {
 		return page_num;
 	}
@@ -272,7 +272,7 @@ int redislite_rpush_by_keyname(void *_cs, char *keyname, size_t keyname_len, cha
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
-	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, keyname, keyname_len, &type);
 	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND) {
 		return page_num;
 	}
@@ -284,7 +284,7 @@ int redislite_rpush_by_keyname(void *_cs, char *keyname, size_t keyname_len, cha
 	int status = redislite_rpush_page_num(_cs, &page_num, value, value_len);
 	if (status == REDISLITE_OK) {
 		if (is_new) {
-			status = redislite_insert_key(cs, keyname, keyname_len, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+			status = redislite_insert_key(cs, cs->db->root, keyname, keyname_len, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
 			if (status < 0) {
 				return status;
 			}
@@ -401,7 +401,7 @@ int redislite_lpushx_by_keyname(void *_cs, char *keyname, size_t keyname_len, ch
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
-	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, keyname, keyname_len, &type);
 	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND) {
 		return page_num;
 	}
@@ -420,7 +420,7 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, size_t keyname_len, cha
 {
 	changeset *cs = (changeset *)_cs;
 	char type;
-	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, keyname, keyname_len, &type);
 	if (page_num < 0 && page_num != REDISLITE_NOT_FOUND) {
 		return page_num;
 	}
@@ -432,7 +432,7 @@ int redislite_lpush_by_keyname(void *_cs, char *keyname, size_t keyname_len, cha
 	int status = redislite_lpush_page_num(_cs, &page_num, value, value_len);
 	if (status == REDISLITE_OK) {
 		if (is_new) {
-			status = redislite_insert_key(cs, keyname, keyname_len, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
+			status = redislite_insert_key(cs, cs->db->root, keyname, keyname_len, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST);
 			if (status < 0) {
 				return status;
 			}
@@ -579,7 +579,7 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 	changeset *cs = (changeset *)_cs;
 	char type;
 	int status = REDISLITE_OK;
-	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
 		return page_num;
 	}
@@ -618,7 +618,8 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			return REDISLITE_OOM;
 		}
 		memcpy(value_aux, *value, *value_len);
-		redislite_delete_key(_cs, keyname, keyname_len, 1);
+		changeset *cs = (changeset*)_cs;
+		redislite_delete_key(_cs, cs->db->root, keyname, keyname_len, 1);
 		redislite_free(*value);
 		*value = value_aux;
 		// TODO: avoid double key lookup
@@ -668,7 +669,7 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 	changeset *cs = (changeset *)_cs;
 	char type;
 	size_t i;
-	int page_num = redislite_value_page_for_key(cs->db, cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
 		return page_num;
 	}
@@ -722,7 +723,8 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			return REDISLITE_OOM;
 		}
 		memcpy(value_aux, *value, *value_len);
-		redislite_delete_key(_cs, keyname, keyname_len, 1);
+		changeset *cs = (changeset*)_cs;
+		redislite_delete_key(_cs, cs->db->root, keyname, keyname_len, 1);
 		redislite_free(*value);
 		*value = value_aux;
 		// TODO: avoid double key lookup
@@ -739,8 +741,9 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 
 int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, size_t keyname_len, size_t *len)
 {
+	redislite *db = (redislite*)_db;
 	char type;
-	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(_db, _cs, db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
 		return page_num;
 	}
@@ -758,8 +761,9 @@ int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, size_t keynam
 
 int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, size_t keyname_len, int start, int end, size_t *ret_list_count_p, char ***ret_list_p, size_t **ret_list_len_p)
 {
+	redislite *db = (redislite*)_db;
 	char type;
-	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(_db, _cs, db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
 		return page_num;
 	}
@@ -875,8 +879,9 @@ int redislite_lindex_by_keyname(void *_db, void *_cs, char *keyname, size_t keyn
 		}
 		return status;
 	}
+	redislite *db = (redislite*)_db;
 	char type;
-	int page_num = redislite_value_page_for_key(_db, _cs, keyname, keyname_len, &type);
+	int page_num = redislite_value_page_for_key(_db, _cs, db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
 		return page_num;
 	}

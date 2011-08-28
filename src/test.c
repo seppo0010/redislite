@@ -662,7 +662,7 @@ int test_exists()
 		goto cleanup;
 	}
 
-	status = redislite_exists_key(db, cs, key, 7);
+	status = redislite_exists_key(db, cs, db->root, key, 7);
 	if (status == 0) {
 		printf("Failed to find existing key\n");
 		status = REDISLITE_ERR;
@@ -672,7 +672,7 @@ int test_exists()
 		goto cleanup;
 	}
 
-	status = redislite_exists_key(db, cs, key, 6);
+	status = redislite_exists_key(db, cs, db->root, key, 6);
 	if (status != REDISLITE_NOT_FOUND) {
 		printf("Failed to not-find non existing key\n");
 		goto cleanup;
@@ -716,7 +716,7 @@ int test_type()
 	}
 
 	char type;
-	status = redislite_page_index_type(db, cs, key, 7, &type);
+	status = redislite_page_index_type(db, cs, db->root, key, 7, &type);
 	if (status == REDISLITE_OOM) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
@@ -732,7 +732,7 @@ int test_type()
 		goto cleanup;
 	}
 
-	status = redislite_page_index_type(db, cs, key, 6, &type);
+	status = redislite_page_index_type(db, cs, db->root, key, 6, &type);
 	if (status == REDISLITE_OOM) {
 		status = REDISLITE_SKIP;
 		goto cleanup;
