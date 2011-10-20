@@ -6,6 +6,7 @@
 #include "page_index.h"
 #include "page_string.h"
 #include "page_list.h"
+#include "page_set.h"
 #include "util.h"
 #include "version.h"
 
@@ -434,6 +435,17 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 					memcpy(reply->str, "string", 6);
 					reply->type = REDISLITE_REPLY_STATUS;
 					reply->len = 6;
+					break;
+				}
+			case REDISLITE_PAGE_TYPE_FIRST: {
+					reply->str = redislite_malloc(sizeof(char) * 6);
+					if (reply->str == NULL) {
+						redislite_free(reply);
+						return NULL;
+					}
+					memcpy(reply->str, "set", 3);
+					reply->type = REDISLITE_REPLY_STATUS;
+					reply->len = 3;
 					break;
 				}
 		}
@@ -1168,6 +1180,54 @@ redislite_reply *redislite_info_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_sadd_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	size_t len, value_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	value = params->argv[2];
+	value_len = params->argvlen[2];
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_page_set_add(cs, key, len, value, value_len);
+	status = redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	if (status < 0) {
+		set_error_message(status, reply);
+	}
+	else {
+		set_status_message(status, reply);
+	}
+	return reply;
+}
+
+redislite_reply *redislite_sismember_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	size_t len, value_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	value = params->argv[2];
+	value_len = params->argvlen[2];
+	int status = redislite_page_set_contains(db, NULL, key, len, value, value_len);
+	if (status < 0) {
+		set_error_message(status, reply);
+	}
+	else {
+		reply->type = REDISLITE_REPLY_INTEGER;
+		reply->integer = status;
+	}
+	return reply;
+}
+
 redislite_reply *redislite_command_not_implemented_yet(redislite *db, redislite_params *params)
 {
 	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
@@ -1220,10 +1280,10 @@ struct redislite_command redislite_command_table[] = {
 	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
 	{"lrem", redislite_command_not_implemented_yet, 4, 0},
 	{"rpoplpush", redislite_command_not_implemented_yet, 3, 0},
-	{"sadd", redislite_command_not_implemented_yet, 3, 0},
+	{"sadd", redislite_sadd_command, 3, 0},
 	{"srem", redislite_command_not_implemented_yet, 3, 0},
 	{"smove", redislite_command_implementation_not_planned, 4, 0},
-	{"sismember", redislite_command_not_implemented_yet, 3, 0},
+	{"sismember", redislite_sismember_command, 3, 0},
 	{"scard", redislite_command_not_implemented_yet, 2, 0},
 	{"spop", redislite_command_not_implemented_yet, 2, 0},
 	{"srandmember", redislite_command_not_implemented_yet, 2, 0},
@@ -1381,6 +1441,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			break;
 
+		case 216: // 'S'+'A'+'D'
+			if (length == 4 && memcaseequal(command, "sadd", 4)) {
+				return &redislite_command_table[33];
+			}
+			break;
+
 		case 217: // 'M'+'G'+'E'
 			// 'D'+'B'+'S'
 			if (length == 4 && memcaseequal(command, "mget", 4)) {
@@ -1488,6 +1554,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			else if (length == 5 && memcaseequal(command, "setnx", 5)) {
 				return &redislite_command_table[2];
+			}
+			break;
+
+		case 239: // 'S'+'I'+'S'
+			if (length == 9 && memcaseequal(command, "sismember", 9)) {
+				return &redislite_command_table[36];
 			}
 			break;
 

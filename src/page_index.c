@@ -184,6 +184,7 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 	size_t pos, i;
 	int cmp_result;
 	redislite_page_index *page = first_page;
+    if (page == NULL) page = db->root;
 
 	int _page_num = 0;
 
