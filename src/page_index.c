@@ -184,7 +184,9 @@ static redislite_page_index_key *redislite_index_key_for_index_name(void *_db, v
 	size_t pos, i;
 	int cmp_result;
 	redislite_page_index *page = first_page;
-    if (page == NULL) page = db->root;
+	if (page == NULL) {
+		page = db->root;
+	}
 
 	int _page_num = 0;
 
@@ -386,7 +388,7 @@ int redislite_delete_key(void *_cs, redislite_page_index *first_page, char *key,
 
 int redislite_delete_keys(void *_cs, int q, char **keys, size_t *lengths)
 {
-	changeset *cs = (changeset*)_cs;
+	changeset *cs = (changeset *)_cs;
 	int status = REDISLITE_OK;
 	int i;
 	int counter = 0;

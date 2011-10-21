@@ -295,7 +295,7 @@ int redislite_page_string_setnx_key_string(void *_cs, char *key_name, size_t key
 
 int redislite_page_string_strlen_by_keyname(void *_db, void *_cs, char *key_name, size_t key_length)
 {
-	changeset *cs = (changeset*)_cs;
+	changeset *cs = (changeset *)_cs;
 	char type;
 	int page_num = redislite_value_page_for_key(_db, _cs, cs->db->root, key_name, key_length, &type);
 	if (page_num == REDISLITE_ERR) {

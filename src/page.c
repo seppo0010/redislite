@@ -40,7 +40,7 @@ void *redislite_page_get(void *_db, void *_cs, int num, char type)
 
 void *redislite_page_get_by_keyname(void *_db, void *_cs, char *key_name, size_t length, char *type)
 {
-	redislite *db = (redislite*)_db;
+	redislite *db = (redislite *)_db;
 	int num = redislite_value_page_for_key(_db, _cs, db->root, key_name, length, type);
 	if (num < 0) {
 		return NULL;

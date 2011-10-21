@@ -618,7 +618,7 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			return REDISLITE_OOM;
 		}
 		memcpy(value_aux, *value, *value_len);
-		changeset *cs = (changeset*)_cs;
+		changeset *cs = (changeset *)_cs;
 		redislite_delete_key(_cs, cs->db->root, keyname, keyname_len, 1);
 		redislite_free(*value);
 		*value = value_aux;
@@ -723,7 +723,7 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			return REDISLITE_OOM;
 		}
 		memcpy(value_aux, *value, *value_len);
-		changeset *cs = (changeset*)_cs;
+		changeset *cs = (changeset *)_cs;
 		redislite_delete_key(_cs, cs->db->root, keyname, keyname_len, 1);
 		redislite_free(*value);
 		*value = value_aux;
@@ -741,7 +741,7 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 
 int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, size_t keyname_len, size_t *len)
 {
-	redislite *db = (redislite*)_db;
+	redislite *db = (redislite *)_db;
 	char type;
 	int page_num = redislite_value_page_for_key(_db, _cs, db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
@@ -761,7 +761,7 @@ int redislite_llen_by_keyname(void *_db, void *_cs, char *keyname, size_t keynam
 
 int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, size_t keyname_len, int start, int end, size_t *ret_list_count_p, char ***ret_list_p, size_t **ret_list_len_p)
 {
-	redislite *db = (redislite*)_db;
+	redislite *db = (redislite *)_db;
 	char type;
 	int page_num = redislite_value_page_for_key(_db, _cs, db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
@@ -879,7 +879,7 @@ int redislite_lindex_by_keyname(void *_db, void *_cs, char *keyname, size_t keyn
 		}
 		return status;
 	}
-	redislite *db = (redislite*)_db;
+	redislite *db = (redislite *)_db;
 	char type;
 	int page_num = redislite_value_page_for_key(_db, _cs, db->root, keyname, keyname_len, &type);
 	if (page_num < 0) {
