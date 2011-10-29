@@ -1,4 +1,5 @@
 #include "core.h"
+#include "page_first.h"
 #include "page_index.h"
 #include "util.h"
 #include <stdio.h>
@@ -25,22 +26,18 @@ void redislite_write_first(void *_db, unsigned char *data, void *page)
 	redislite_put_4bytes(&data[28], db->number_of_pages);
 	redislite_put_4bytes(&data[32], db->first_freelist_page);
 	redislite_put_4bytes(&data[36], db->number_of_freelist_pages);
-	redislite_put_4bytes(&data[40], db->number_of_keys);
-	redislite_write_index(_db, &data[100], db->root);
+	redislite_write_index(_db, &data[100], ((redislite_page_index_first *)db->root)->page);
 	memset(&data[44], 0, 100 - 44); // reserved
 }
 
 void *redislite_read_first(void *_db, unsigned char *data)
 {
 	redislite *db = (redislite *)_db;
-	db->file = NULL;
-	db->page_size = data[21] + (data[20] << 8);
-	db->readonly = (data[22] > WRITE_FORMAT_VERSION);
-	db->number_of_pages = redislite_get_4bytes(&data[28]);
-	db->first_freelist_page = redislite_get_4bytes(&data[32]);
-	db->number_of_freelist_pages = redislite_get_4bytes(&data[36]);
-	db->number_of_keys = redislite_get_4bytes(&data[40]);
-
-	db->root = (redislite_page_index *)redislite_read_index(db, &data[100]);
-	return db->root;
+	redislite_page_index_first *page = malloc(sizeof(redislite_page_index_first));
+	if (page == NULL) {
+		return NULL;
+	}
+	page->number_of_keys = redislite_get_4bytes(&data[0]);
+	page->page = (redislite_page_index *)redislite_read_index(db, &data[4]);
+	return page;
 }

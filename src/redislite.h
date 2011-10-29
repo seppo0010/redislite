@@ -13,7 +13,6 @@ typedef struct {
 	int number_of_pages;
 	int first_freelist_page;
 	int number_of_freelist_pages;
-	int number_of_keys;
 	void *root;
 
 	int readonly;

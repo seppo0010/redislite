@@ -353,7 +353,7 @@ redislite_reply *redislite_dbsize_command(redislite *db, redislite_params *param
 		return NULL;
 	}
 	reply->type = REDISLITE_REPLY_INTEGER;
-	reply->integer = db->number_of_keys;
+	reply->integer = ((redislite_page_index_first *)db->root)->number_of_keys;
 	return reply;
 }
 

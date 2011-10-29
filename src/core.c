@@ -11,10 +11,10 @@
 #include "page_list.h"
 #include "util.h"
 
-int redislite_set_root(redislite *db, redislite_page_index *page)
+int redislite_set_root(redislite *db, redislite_page_index_first *page)
 {
 	db->root = page;
-	page->free_space -= 100;
+	page->page->free_space -= 100;
 	changeset *cs = redislite_create_changeset(db);
 	if (cs == NULL) {
 		return REDISLITE_OOM;
