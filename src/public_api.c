@@ -1194,7 +1194,12 @@ redislite_reply *redislite_sadd_command(redislite *db, redislite_params *params)
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_page_set_add(cs, key, len, value, value_len);
-	status = redislite_save_changeset(cs);
+	if (status > 0) {
+		int _status = redislite_save_changeset(cs);
+		if (_status < 0) {
+			status = _status;
+		}
+	}
 	redislite_free_changeset(cs);
 	if (status < 0) {
 		set_error_message(status, reply);
