@@ -279,7 +279,10 @@ redislite_reply *redislite_randomkey_command(redislite *db, redislite_params *pa
 	char *value;
 	size_t value_len;
 	int status = redislite_get_random_key_name(db, NULL, &value, &value_len);
-	if (status < 0) {
+	if (status == REDISLITE_NOT_FOUND) {
+		reply->type = REDISLITE_REPLY_NIL;
+	}
+	else if (status < 0) {
 		set_error_message(status, reply);
 	}
 	else {

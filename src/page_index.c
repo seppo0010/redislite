@@ -890,7 +890,7 @@ cleanup:
 	return REDISLITE_OOM;
 }
 
-int redislite_get_random_key_name(void *_db, void *_cs, char **key_p, int *key_length_p)
+int redislite_get_random_key_name(void *_db, void *_cs, char **key_p, size_t *key_length_p)
 {
 	redislite *db = (redislite *)_db;
 	size_t i = 0;
@@ -910,6 +910,9 @@ int redislite_get_random_key_name(void *_db, void *_cs, char **key_p, int *key_l
 	int current_page_num;
 	int allkeys = 1;
 	size_t number_of_keys = ((redislite_page_index_first *)db->root)->number_of_keys;
+	if (number_of_keys == 0) {
+		return REDISLITE_NOT_FOUND;
+	}
 	size_t random_position = (float)rand() / RAND_MAX * number_of_keys;
 	while (1) {
 		if (pages[pages_pos] == 0) {
