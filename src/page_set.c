@@ -73,7 +73,7 @@ int redislite_page_set_add(void *_cs, char *key_name, size_t key_length, char *s
 			return status;
 		}
 	}
-	status = redislite_insert_key(_cs, page->page, str, length, 1, REDISLITE_PAGE_TYPE_FIRST);
+	status = redislite_insert_key(_cs, page, str, length, 1, REDISLITE_PAGE_TYPE_FIRST);
 	if (status < 0) {
 		return status;
 	}
