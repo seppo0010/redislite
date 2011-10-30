@@ -270,6 +270,26 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_randomkey_command(redislite *db, redislite_params *params)
+{
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	char *value;
+	size_t value_len;
+	int status = redislite_get_random_key_name(db, NULL, &value, &value_len);
+	if (status < 0) {
+		set_error_message(status, reply);
+	}
+	else {
+		reply->type = REDISLITE_REPLY_STRING;
+		reply->str = value;
+		reply->len = value_len;
+	}
+	return reply;
+}
+
 redislite_reply *redislite_keys_command(redislite *db, redislite_params *params)
 {
 	redislite_reply *reply = redislite_create_reply();
@@ -1330,7 +1350,7 @@ struct redislite_command redislite_command_table[] = {
 	{"getset", redislite_command_not_implemented_yet, 3, 0},
 	{"mset", redislite_command_not_implemented_yet, 3, 0},
 	{"msetnx", redislite_command_not_implemented_yet, 3, 0},
-	{"randomkey", redislite_command_not_implemented_yet, 1, 0},
+	{"randomkey", redislite_randomkey_command, 1, 0},
 	{"select", redislite_command_implementation_not_planned, 2, 0},
 	{"move", redislite_command_implementation_not_planned, 3, 0},
 	{"rename", redislite_rename_command, 3, 0},
@@ -1500,8 +1520,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			break;
 
 		case 225: // 'A'+'P'+'P'
+			// 'R' + 'A' + 'N'
 			if (length == 6 && memcaseequal(command, "append", 6)) {
 				return &redislite_command_table[4];
+			}
+			else if (length == 9 && memcaseequal(command, "randomkey", 9)) {
+				return &redislite_command_table[78];
 			}
 			break;
 

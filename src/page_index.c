@@ -890,6 +890,92 @@ cleanup:
 	return REDISLITE_OOM;
 }
 
+int redislite_get_random_key_name(void *_db, void *_cs, char **key_p, int *key_length_p)
+{
+	redislite *db = (redislite *)_db;
+	size_t i = 0;
+	size_t keys_alloced = 20;
+	char *key;
+	int key_length = 0, *pages = NULL;
+
+	size_t pages_pos = 0;
+	size_t pages_alloced = 20;
+	pages = redislite_malloc(sizeof(int) * pages_alloced);
+	if (pages == NULL) {
+		goto cleanup;
+	}
+	pages[0] = 0;
+
+	redislite_page_index *page;
+	int current_page_num;
+	int allkeys = 1;
+	size_t number_of_keys = ((redislite_page_index_first *)db->root)->number_of_keys;
+	size_t random_position = (float)rand() / RAND_MAX * number_of_keys;
+	while (1) {
+		if (pages[pages_pos] == 0) {
+			page = ((redislite_page_index_first *)db->root)->page;
+		}
+		else {
+			page = redislite_page_get(db, _cs, pages[pages_pos], REDISLITE_PAGE_TYPE_INDEX);
+		}
+		current_page_num = pages[pages_pos];
+
+		if (page == NULL) {
+			goto cleanup;
+		}
+
+		if (pages_alloced < pages_pos + page->number_of_keys) {
+			pages_alloced *= 2;
+			if (pages_alloced < pages_pos + page->number_of_keys) {
+				pages_alloced = pages_pos + page->number_of_keys;
+			}
+			int *pages_tmp = redislite_realloc(pages, sizeof(char *) * pages_alloced);
+			if (pages_tmp == NULL) {
+				goto cleanup;
+			}
+			pages = pages_tmp;
+		}
+
+		if (page->right_page) {
+			pages[pages_pos++] = page->right_page;
+		}
+		for (i = 0; i < page->number_of_keys; i++) {
+			if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
+				pages[pages_pos++] = page->keys[i]->left_page;
+			}
+			else {
+				if (random_position-- == 0) {
+					key = redislite_malloc(sizeof(char) * page->keys[i]->keyname_size);
+					if (key == NULL) {
+						goto cleanup;
+					}
+					memcpy(key, page->keys[i]->keyname, page->keys[i]->keyname_size);
+					key_length = page->keys[i]->keyname_size;
+				}
+			}
+		}
+
+		if (pages_pos == 0) {
+			break;
+		}
+		pages_pos--;
+	}
+	redislite_free(pages);
+
+	*key_p = key;
+	*key_length_p = key_length;
+	return REDISLITE_OK;
+
+cleanup:
+	if (key) {
+		redislite_free(key);
+	}
+	if (pages) {
+		redislite_free(pages);
+	}
+	return REDISLITE_OOM;
+}
+
 int redislite_flush(void *_cs)
 {
 	changeset *cs = (changeset *)_cs;
