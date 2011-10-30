@@ -266,7 +266,7 @@ int redislite_page_string_set_key_string(void *_cs, char *key_name, size_t key_l
 		return status;
 	}
 
-	status = redislite_insert_key(cs, cs->db->root, key_name, key_length, left, REDISLITE_PAGE_TYPE_STRING);
+	status = redislite_insert_key(cs, cs->db->root, 0, key_name, key_length, left, REDISLITE_PAGE_TYPE_STRING);
 	if (status < 0) {
 		return status;
 	}

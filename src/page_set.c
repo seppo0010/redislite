@@ -25,7 +25,7 @@ static int fetch_index_page(void *_db, void *_cs, char *key_name, size_t key_len
 	if (status < 0) {
 		goto cleanup;
 	}
-	if (type != REDISLITE_PAGE_TYPE_FIRST) {
+	if (type != REDISLITE_PAGE_TYPE_SET) {
 		status = REDISLITE_WRONG_TYPE;
 		goto cleanup;
 	}
@@ -62,24 +62,28 @@ int redislite_page_set_add(void *_cs, char *key_name, size_t key_length, char *s
 		if (page == NULL) {
 			return REDISLITE_OOM;
 		}
-		page_num = status = redislite_add_modified_page(_cs, -1, REDISLITE_PAGE_TYPE_FIRST, page);
+		page_num = status = redislite_add_modified_page(_cs, -1, REDISLITE_PAGE_TYPE_SET, page);
 		if (status < 0) {
 			redislite_free(page);
 			return status;
 		}
-		status = redislite_insert_key(_cs, db->root, key_name, key_length, status, REDISLITE_PAGE_TYPE_FIRST);
+		status = redislite_insert_key(_cs, db->root, 0, key_name, key_length, status, REDISLITE_PAGE_TYPE_SET);
 		if (status < 0) {
 			// page was added to the changeset, no need to free
 			return status;
 		}
 	}
-	status = redislite_insert_key(_cs, page, str, length, 1, REDISLITE_PAGE_TYPE_FIRST);
+	int number_of_keys = page->number_of_keys;
+	status = redislite_insert_key(_cs, page, page_num, str, length, 1, REDISLITE_PAGE_TYPE_SET);
 	if (status < 0) {
 		return status;
 	}
-	status = redislite_add_modified_page(_cs, page_num, REDISLITE_PAGE_TYPE_FIRST, page);
+	status = redislite_add_modified_page(_cs, page_num, REDISLITE_PAGE_TYPE_SET, page);
+	if (status < 0) {
+		return status;
+	}
 
-	return status;
+	return number_of_keys < page->number_of_keys ? page->number_of_keys : 0;
 }
 
 int redislite_page_set_contains(void *_db, void *_cs, char *key_name, size_t key_length, char *str, size_t length)

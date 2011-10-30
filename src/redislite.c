@@ -132,6 +132,23 @@ static int init_db(redislite *db)
 			return status;
 		}
 	}
+	{
+		redislite_page_type *type = redislite_malloc(sizeof(redislite_page_type));
+		if (type == NULL) {
+			redislite_close_database(db);
+			return REDISLITE_OOM;
+		}
+		type->identifier = REDISLITE_PAGE_TYPE_SET;
+		type->write_function = &redislite_write_first;
+		type->read_function = &redislite_read_first;
+		type->free_function = &redislite_free_first;
+		type->delete_function = NULL;
+		int status = redislite_page_register_type(db, type);
+		if (status != REDISLITE_OK) {
+			free(type);
+			return status;
+		}
+	}
 	return REDISLITE_OK;
 }
 

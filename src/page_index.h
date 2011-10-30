@@ -20,7 +20,7 @@ typedef struct {
 } redislite_page_index;
 
 redislite_page_index *redislite_page_index_create(void *db);
-int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, int left, char type);
+int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *key, size_t length, int left, char type);
 int redislite_page_index_add_key(void *_cs, redislite_page_index *page, int pos, int left, char *key, size_t length, char type);
 void redislite_write_index(void *_db, unsigned char *data, void *page);
 void *redislite_read_index(void *db, unsigned char *data);

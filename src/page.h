@@ -8,6 +8,7 @@
 #define REDISLITE_PAGE_TYPE_FREELIST 'R'
 #define REDISLITE_PAGE_TYPE_LIST 'L'
 #define REDISLITE_PAGE_TYPE_LIST_FIRST 'M'
+#define REDISLITE_PAGE_TYPE_SET 'E'
 
 typedef struct {
 	char identifier;

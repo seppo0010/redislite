@@ -408,7 +408,7 @@ int redislite_delete_keys(void *_cs, int q, char **keys, size_t *lengths)
 	return counter;
 }
 
-int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, int left, char type)
+int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *key, size_t length, int left, char type)
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;
@@ -419,7 +419,12 @@ int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, 
 	size_t i, pos;
 	int cmp_result;
 	redislite_page_index *page = ((redislite_page_index_first *)first_page)->page;
-	int page_num = 0;
+	((redislite_page_index_first *)first_page)->number_of_keys++;
+	int page_num = first_page_num;
+	int status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
+	if (status < 0) {
+		return status;
+	}
 
 	while (page != NULL) {
 		pos = 0;
@@ -431,6 +436,7 @@ int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, 
 					page->keys[i]->left_page = left;
 					page->keys[i]->type = type;
 					int result;
+					((redislite_page_index_first *)first_page)->number_of_keys--;
 					if (page != ((redislite_page_index_first *)first_page)->page) {
 						result = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_INDEX, page);
 					}
@@ -629,7 +635,7 @@ int redislite_page_index_rename_key(void *_cs, void *first_page, char *src, size
 	if (status != REDISLITE_OK) {
 		return status;
 	}
-	status = redislite_insert_key(_cs, first_page, target, target_len, key->left_page, key->type);
+	status = redislite_insert_key(_cs, first_page, 0, target, target_len, key->left_page, key->type);
 	if (status != REDISLITE_OK) {
 		return status;
 	}
