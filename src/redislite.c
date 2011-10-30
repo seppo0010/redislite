@@ -156,7 +156,18 @@ redislite *redislite_open_database(const char *filename)
 	if (db == NULL) {
 		goto cleanup;
 	}
-	redislite_read_first(db, header);
+	db->root = redislite_read_first(db, &header[100]);
+	if (db->root == NULL) {
+		free(db);
+		db = NULL;
+		goto cleanup;
+	}
+	db->file = NULL;
+	db->page_size = header[21] + (header[20] << 8);
+	db->readonly = (header[22] > WRITE_FORMAT_VERSION);
+	db->number_of_pages = redislite_get_4bytes(&header[28]);
+	db->first_freelist_page = redislite_get_4bytes(&header[32]);
+	db->number_of_freelist_pages = redislite_get_4bytes(&header[36]);
 	db->types = NULL;
 	db->file = NULL;
 	db->filename = NULL;
@@ -205,17 +216,11 @@ redislite *redislite_create_database(const char *filename)
 	db->number_of_freelist_pages = 0;
 	db->readonly = 0;
 
-	redislite_page_index_first *first = malloc(sizeof(redislite_page_index_first));
+	redislite_page_index_first *first = (redislite_page_index_first *)create_page_index_first(db);
 	if (first == NULL) {
 		redislite_close_database(db);
 		return NULL;
 	}
-	redislite_page_index *page = (redislite_page_index *)redislite_page_index_create(db);
-	if (page == NULL) {
-		redislite_close_database(db);
-		return NULL;
-	}
-	first->page = page;
 	int ret = redislite_set_root(db, first);
 	if (ret != REDISLITE_OK) {
 		redislite_close_database(db);

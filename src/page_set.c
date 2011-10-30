@@ -6,26 +6,20 @@
 #include <stdlib.h>
 #include <math.h>
 
-static redislite_page_index *create_index_page(void *_db)
+static redislite_page_index_first *create_index_page(void *_db)
 {
 	redislite *db = (redislite *)_db;
-	redislite_page_index *page = redislite_malloc(sizeof(redislite_page_index));
-	if (page == NULL) {
+	redislite_page_index_first *first = create_page_index_first(_db);
+	if (first == NULL) {
 		return NULL;
 	}
-	page->free_space = db->page_size - 14;
-	page->number_of_keys = 0;
-	page->right_page = 0;
-	page->keys = NULL;
-	page->alloced_keys = 0;
-	page->db = _db;
-	return page;
+	return first;
 }
 
-static int fetch_index_page(void *_db, void *_cs, char *key_name, size_t key_length, redislite_page_index **page)
+static int fetch_index_page(void *_db, void *_cs, char *key_name, size_t key_length, redislite_page_index_first **page)
 {
 	redislite *db = (redislite *)_db;
-	redislite_page_index *root = NULL;
+	redislite_page_index_first *root = NULL;
 	char type;
 	int status = redislite_value_page_for_key(db, _cs, db->root, key_name, key_length, &type);
 	if (status < 0) {
@@ -56,7 +50,7 @@ int redislite_page_set_add(void *_cs, char *key_name, size_t key_length, char *s
 {
 	changeset *cs = (changeset *)_cs;
 	redislite *db = (redislite *)cs->db;
-	redislite_page_index *page = NULL;
+	redislite_page_index_first *page = NULL;
 	int page_num;
 	int status = page_num = fetch_index_page(db, _cs, key_name, key_length, &page);
 	if (status < 0 && status != REDISLITE_NOT_FOUND) {
@@ -79,7 +73,7 @@ int redislite_page_set_add(void *_cs, char *key_name, size_t key_length, char *s
 			return status;
 		}
 	}
-	status = redislite_insert_key(_cs, page, str, length, 1, REDISLITE_PAGE_TYPE_FIRST);
+	status = redislite_insert_key(_cs, page->page, str, length, 1, REDISLITE_PAGE_TYPE_FIRST);
 	if (status < 0) {
 		return status;
 	}
@@ -91,7 +85,7 @@ int redislite_page_set_add(void *_cs, char *key_name, size_t key_length, char *s
 int redislite_page_set_contains(void *_db, void *_cs, char *key_name, size_t key_length, char *str, size_t length)
 {
 	redislite *db = (redislite *)_db;
-	redislite_page_index *page = NULL;
+	redislite_page_index_first *page = NULL;
 	char type;
 	int page_num;
 	int status = page_num = fetch_index_page(_db, _cs, key_name, key_length, &page);
@@ -99,6 +93,6 @@ int redislite_page_set_contains(void *_db, void *_cs, char *key_name, size_t key
 		return status;
 	}
 
-	status = redislite_value_page_for_key(db, _cs, page, str, length, &type);
+	status = redislite_value_page_for_key(db, _cs, page->page, str, length, &type);
 	return status == 1;
 }

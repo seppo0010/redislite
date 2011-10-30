@@ -108,7 +108,21 @@ int redislite_save_changeset(changeset *cs)
 		redislite_page *page = cs->modified_pages[i];
 
 		memset(&data[0], '\0', cs->db->page_size); // TODO: we could allow garbage on unused bytes
-		page->type->write_function(cs->db, &data[0], page->data);
+		if (i == 0 && page->number == 0) {
+			memcpy(data, HEADER_STRING, sizeof(HEADER_STRING));
+			data[20] = (cs->db->page_size >> 8); // page size
+			data[21] = (cs->db->page_size); // page size
+			data[22] = WRITE_FORMAT_VERSION; // write format version
+			data[23] = READ_FORMAT_VERSION; // read format version
+			redislite_put_4bytes(&data[24], 0); // reserved
+			redislite_put_4bytes(&data[28], cs->db->number_of_pages);
+			redislite_put_4bytes(&data[32], cs->db->first_freelist_page);
+			redislite_put_4bytes(&data[36], cs->db->number_of_freelist_pages);
+			redislite_write_first(cs->db, &data[100], (redislite_page_index_first *)cs->db->root);
+		}
+		else {
+			page->type->write_function(cs->db, &data[0], page->data);
+		}
 		fseek(file, cs->db->page_size * page->number, SEEK_SET);
 		if (fwrite(data, sizeof(unsigned char), cs->db->page_size, file) < cs->db->page_size) {
 			fprintf(stderr, "Unable to write to file '%s'\n", cs->db->filename);

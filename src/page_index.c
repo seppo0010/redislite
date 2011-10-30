@@ -167,9 +167,11 @@ static int redislite_remove_key(void *_cs, void *_key, int page_num)
 			if (key != page->keys[i]) {
 				redislite_free_key(key);
 			}
-			int status = redislite_add_modified_page(_cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
-			if (status < 0) {
-				return status;
+			if (page_num > 0) {
+				int status = redislite_add_modified_page(_cs, page_num, REDISLITE_PAGE_TYPE_INDEX, page);
+				if (status < 0) {
+					return status;
+				}
 			}
 			return REDISLITE_OK;
 		}
@@ -428,7 +430,13 @@ int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, 
 					redislite_page_delete(_cs, page->keys[i]->left_page, page->keys[i]->type);
 					page->keys[i]->left_page = left;
 					page->keys[i]->type = type;
-					int result = redislite_add_modified_page(cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+					int result;
+					if (page != ((redislite_page_index_first *)first_page)->page) {
+						result = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_INDEX, page);
+					}
+					else {
+						result = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
+					}
 					if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
 						redislite_free_index(db, page);
 					}
@@ -478,7 +486,12 @@ int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, 
 
 		int result = redislite_page_index_add_key(cs, page, pos, left, key, length, type);
 		if (result == REDISLITE_OK) {
-			result = redislite_add_modified_page(cs, page_num, page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+			if (page != ((redislite_page_index_first *)first_page)->page) {
+				result = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_INDEX, page);
+			}
+			else {
+				result = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
+			}
 			if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
 				redislite_free_index(db, page);
 			}
@@ -541,7 +554,12 @@ int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, 
 			else {
 				page->keys[pos]->left_page = page_num;
 			}
-			redislite_add_modified_page(cs, previous_page_num, previous_page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+			if (page != ((redislite_page_index_first *)first_page)->page) {
+				result = redislite_add_modified_page(cs, previous_page_num, REDISLITE_PAGE_TYPE_INDEX, page);
+			}
+			else {
+				result = redislite_add_modified_page(cs, previous_page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
+			}
 			if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
 				redislite_free_index(db, page);
 			}
@@ -584,7 +602,13 @@ int redislite_insert_key(void *_cs, void *first_page, char *key, size_t length, 
 			if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
 				redislite_free_index(db, page);
 			}
-			redislite_add_modified_page(cs, previous_page_num, previous_page_num == 0 ? REDISLITE_PAGE_TYPE_FIRST : REDISLITE_PAGE_TYPE_INDEX, page);
+			if (page != ((redislite_page_index_first *)first_page)->page) {
+				result = redislite_add_modified_page(cs, previous_page_num, REDISLITE_PAGE_TYPE_INDEX, page);
+			}
+			else {
+				result = redislite_add_modified_page(cs, previous_page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
+			}
+
 			((redislite_page_index_first *)first_page)->number_of_keys--; // Undoing the +1 of adding the key we already had on the new page
 			redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, db->root);
 			page = new_index_page;
@@ -885,6 +909,6 @@ int redislite_flush(void *_cs)
 	db->first_freelist_page = 0;
 	db->number_of_freelist_pages = 0;
 	((redislite_page_index_first *)((redislite *)page->db)->root)->number_of_keys = 0;
-	redislite_add_modified_page(_cs, 0, REDISLITE_PAGE_TYPE_FIRST, page);
+	redislite_add_modified_page(_cs, 0, REDISLITE_PAGE_TYPE_FIRST, (redislite_page_index_first *)db->root);
 	return REDISLITE_OK;
 }
