@@ -232,12 +232,18 @@ redislite_reply *redislite_getset_command(redislite *db, redislite_params *param
 	size_t len = 0;
 	int status = redislite_page_string_getset_key_string(cs, params->argv[1], params->argvlen[1], params->argv[2], params->argvlen[2], &reply->str, &len);
 	reply->len = (int)len;
-	if (status >= 0) {
-		status = redislite_save_changeset(cs);
+	if (status >= 0 || status == REDISLITE_NOT_FOUND) {
+		int _status = redislite_save_changeset(cs);
+		if (_status != REDISLITE_OK) {
+			status = _status;
+		}
 	}
 	redislite_free_changeset(cs);
 
-	if (status == REDISLITE_OK) {
+	if (status == REDISLITE_NOT_FOUND) {
+		reply->type = REDISLITE_REPLY_NIL;
+	}
+	else if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_STRING;
 	}
 	else {

@@ -252,7 +252,10 @@ int redislite_page_string_getset_key_string(void *_cs, char *key_name, size_t ke
 	if (status != REDISLITE_OK && status != REDISLITE_NOT_FOUND) {
 		return status;
 	}
-	status = redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);
+	int _status = redislite_page_string_set_key_string(_cs, key_name, key_length, str, length);
+	if (_status != REDISLITE_OK) {
+		status = _status;
+	}
 	// FIXME: there should be a more efficient way to do this instead of two different calls
 	return status;
 }
