@@ -8,7 +8,6 @@
 
 static redislite_page_index_first *create_index_page(void *_db)
 {
-	redislite *db = (redislite *)_db;
 	redislite_page_index_first *first = create_page_index_first(_db);
 	if (first == NULL) {
 		return NULL;

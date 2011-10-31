@@ -304,6 +304,7 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 
 redislite_reply *redislite_randomkey_command(redislite *db, redislite_params *params)
 {
+	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
 	redislite_reply *reply = redislite_create_reply();
 	if (reply == NULL) {
 		return NULL;

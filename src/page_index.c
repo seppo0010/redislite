@@ -898,7 +898,6 @@ int redislite_get_random_key_name(void *_db, void *_cs, char **key_p, size_t *ke
 {
 	redislite *db = (redislite *)_db;
 	size_t i = 0;
-	size_t keys_alloced = 20;
 	char *key;
 	int key_length = 0, *pages = NULL;
 
@@ -912,7 +911,6 @@ int redislite_get_random_key_name(void *_db, void *_cs, char **key_p, size_t *ke
 
 	redislite_page_index *page;
 	int current_page_num;
-	int allkeys = 1;
 	size_t number_of_keys = ((redislite_page_index_first *)db->root)->number_of_keys;
 	if (number_of_keys == 0) {
 		return REDISLITE_NOT_FOUND;
