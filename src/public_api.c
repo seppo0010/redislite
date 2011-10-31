@@ -222,6 +222,30 @@ redislite_reply *redislite_strlen_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_getset_command(redislite *db, redislite_params *params)
+{
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	changeset *cs = redislite_create_changeset(db);
+	size_t len = 0;
+	int status = redislite_page_string_getset_key_string(cs, params->argv[1], params->argvlen[1], params->argv[2], params->argvlen[2], &reply->str, &len);
+	reply->len = (int)len;
+	if (status >= 0) {
+		status = redislite_save_changeset(cs);
+	}
+	redislite_free_changeset(cs);
+
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_STRING;
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 redislite_reply *redislite_get_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -259,7 +283,9 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_page_string_set_key_string(cs, key, len, value, value_len);
-	status = redislite_save_changeset(cs);
+	if (status >= 0) {
+		status = redislite_save_changeset(cs);
+	}
 	redislite_free_changeset(cs);
 	if (status < 0) {
 		set_error_message(status, reply);
@@ -1351,7 +1377,7 @@ struct redislite_command redislite_command_table[] = {
 	{"hexists", redislite_command_not_implemented_yet, 3, 0},
 	{"incrby", redislite_incrby_command, 3, 0},
 	{"decrby", redislite_decrby_command, 3, 0},
-	{"getset", redislite_command_not_implemented_yet, 3, 0},
+	{"getset", redislite_getset_command, 3, 0},
 	{"mset", redislite_command_not_implemented_yet, 3, 0},
 	{"msetnx", redislite_command_not_implemented_yet, 3, 0},
 	{"randomkey", redislite_randomkey_command, 1, 0},
@@ -1517,6 +1543,9 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			else if (length == 6 && memcaseequal(command, "getbit", 6)) {
 				return &redislite_command_table[9];
+			}
+			else if (length == 6 && memcaseequal(command, "getset", 6)) {
+				return &redislite_command_table[75];
 			}
 			else if (length == 8 && memcaseequal(command, "getrange", 8)) {
 				return &redislite_command_table[11];
