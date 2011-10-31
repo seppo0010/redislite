@@ -720,7 +720,6 @@ int redislite_page_index_add_key(void *_cs, redislite_page_index *page, int pos,
 	page->number_of_keys++;
 	page->free_space -= new_key_length;
 	if (type != REDISLITE_PAGE_TYPE_INDEX) {
-		((redislite_page_index_first *)((redislite *)page->db)->root)->number_of_keys++;
 		return redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, cs->db->root);
 	}
 
