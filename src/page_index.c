@@ -615,7 +615,6 @@ int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *
 				result = redislite_add_modified_page(cs, previous_page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
 			}
 
-			((redislite_page_index_first *)first_page)->number_of_keys--; // Undoing the +1 of adding the key we already had on the new page
 			redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, db->root);
 			page = new_index_page;
 		}
