@@ -132,10 +132,6 @@ int redislite_save_changeset(changeset *cs)
 	}
 	redislite_free(data);
 	fclose(file);
-	if (cs->db->file) {
-		fclose(cs->db->file);
-		cs->db->file = NULL;
-	}
 	return status;
 }
 
@@ -348,16 +344,14 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		}
 	}
 
-	if (!db->file) {
-		db->file = fopen(db->filename, "rb");
-	}
-	if (!db->file) {
+    FILE* fp = fopen(db->filename, "rb");
+	if (!fp) {
 		fprintf(stderr, "Unable to open file '%s'\n", db->filename);
 		return NULL;
 	}
 #ifdef DEBUG
-	fseek(db->file, 0L, SEEK_END);
-	long size = ftell(db->file);
+	fseek(fp, 0L, SEEK_END);
+	long size = ftell(fp);
 	/*
 		if (size < db->page_size * (num + 1)) {
 			redislite_free(data);
@@ -365,23 +359,24 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		}
 	*/
 #endif
-	i = fseek(db->file, (long)db->page_size * num, SEEK_SET);
+	i = fseek(fp, (long)db->page_size * num, SEEK_SET);
 	if (i != 0) {
 		fprintf(stdout, "fseek returned %lu\n", (unsigned long)i);
 	}
-	size_t read = fread(data, sizeof(unsigned char), db->page_size, db->file);
-	if (read < db->page_size && ferror(db->file)) {
+	size_t read = fread(data, sizeof(unsigned char), db->page_size, fp);
+	if (read < db->page_size && ferror(fp)) {
 		printf("Error reading\n");
 	}
 #ifdef DEBUG
-	if (read < db->page_size && feof(db->file)) {
+	if (read < db->page_size && feof(fp)) {
 		printf("Early EOF (seek to pos %ld, size was %ld, attempt to read %d)\n", (long)db->page_size * num, size, db->page_size);
 	}
 #else
-	if (read < db->page_size && feof(db->file)) {
+	if (read < db->page_size && feof(fp)) {
 		printf("Early EOF (seek to pos %lu, attempt to read %lu)\n", (unsigned long)db->page_size * num, (unsigned long)db->page_size);
 	}
 #endif
+    fclose(fp);
 	if (read < db->page_size) {
 		redislite_free(data);
 		return NULL;

@@ -7,7 +7,6 @@
 
 typedef struct {
 	char *filename;
-	FILE *file;
 	size_t page_size;
 	int file_change_counter;
 	int number_of_pages;
