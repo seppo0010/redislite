@@ -344,7 +344,7 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		}
 	}
 
-    FILE* fp = fopen(db->filename, "rb");
+	FILE *fp = fopen(db->filename, "rb");
 	if (!fp) {
 		fprintf(stderr, "Unable to open file '%s'\n", db->filename);
 		return NULL;
@@ -376,7 +376,7 @@ unsigned char *redislite_read_page(redislite *db, changeset *cs, int num)
 		printf("Early EOF (seek to pos %lu, attempt to read %lu)\n", (unsigned long)db->page_size * num, (unsigned long)db->page_size);
 	}
 #endif
-    fclose(fp);
+	fclose(fp);
 	if (read < db->page_size) {
 		redislite_free(data);
 		return NULL;
