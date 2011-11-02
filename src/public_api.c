@@ -607,6 +607,12 @@ redislite_reply *redislite_msetnx_command(redislite *db, redislite_params *param
 		return reply;
 	}
 	changeset *cs = redislite_create_changeset(db);
+
+	unsigned char *data = malloc(sizeof(unsigned char) * db->page_size);
+	if (data == NULL) {
+		return reply;
+	}
+	redislite_write_first(db, data, db->root);
 	int status = REDISLITE_OK;
 	for (i = 1; i < params->argc; i += 2) {
 		key = params->argv[i];
@@ -625,6 +631,10 @@ redislite_reply *redislite_msetnx_command(redislite *db, redislite_params *param
 			status = ret;
 		}
 	}
+	else {
+		db->root = redislite_read_first(db, data);
+	}
+	free(data);
 	redislite_free_changeset(cs);
 	if (status < 0) {
 		set_error_message(status, reply);
