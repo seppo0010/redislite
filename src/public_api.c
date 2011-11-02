@@ -302,6 +302,51 @@ redislite_reply *redislite_set_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_mset_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	size_t len, value_len;
+	int i;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	if ((params->argc & 1) == 0) {
+		reply->str = redislite_malloc(sizeof(char) * (strlen(wrong_arity) + params->argvlen[0] - 1));
+		char *str = redislite_malloc(sizeof(char) * (params->argvlen[0] + 1));
+		memcpy(str, params->argv[0], params->argvlen[0]);
+		str[params->argvlen[0]] = '\0';
+		sprintf(reply->str, wrong_arity, str);
+		redislite_free(str);
+		reply->len = strlen(wrong_arity) + params->argvlen[0] - 2;
+		reply->type = REDISLITE_REPLY_ERROR;
+		return reply;
+	}
+	changeset *cs = redislite_create_changeset(db);
+	int status = REDISLITE_OK;
+	for (i = 1; i < params->argc; i += 2) {
+		key = params->argv[i];
+		len = params->argvlen[i];
+		value = params->argv[i + 1];
+		value_len = params->argvlen[i + 1];
+		status = redislite_page_string_set_key_string(cs, key, len, value, value_len);
+		if (status < 0) {
+			break;
+		}
+	}
+	if (status >= 0) {
+		status = redislite_save_changeset(cs);
+	}
+	redislite_free_changeset(cs);
+	if (status < 0) {
+		set_error_message(status, reply);
+	}
+	else {
+		set_status_message(status, reply);
+	}
+	return reply;
+}
+
 redislite_reply *redislite_randomkey_command(redislite *db, redislite_params *params)
 {
 	params = params; // XXX: avoid unused-parameter warning; we are implementing a prototype
@@ -1385,7 +1430,7 @@ struct redislite_command redislite_command_table[] = {
 	{"incrby", redislite_incrby_command, 3, 0},
 	{"decrby", redislite_decrby_command, 3, 0},
 	{"getset", redislite_getset_command, 3, 0},
-	{"mset", redislite_command_not_implemented_yet, 3, 0},
+	{"mset", redislite_mset_command, -3, 0},
 	{"msetnx", redislite_command_not_implemented_yet, 3, 0},
 	{"randomkey", redislite_randomkey_command, 1, 0},
 	{"select", redislite_command_implementation_not_planned, 2, 0},
@@ -1575,11 +1620,15 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			break;
 		case 229: // 'R'+'E'+'N'
+			// 'M'+'S'+'E'
 			if (length == 6 && memcaseequal(command, "rename", 6)) {
 				return &redislite_command_table[81];
 			}
 			else if (length == 8 && memcaseequal(command, "renamenx", 8)) {
 				return &redislite_command_table[82];
+			}
+			else if (length == 4 && memcaseequal(command, "mset", 4)) {
+				return &redislite_command_table[76];
 			}
 			break;
 
