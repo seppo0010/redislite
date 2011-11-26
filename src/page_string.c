@@ -624,3 +624,47 @@ int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name
 
 	return bitval == 0 ? 0 : 1;
 }
+
+int redislite_page_string_setbit_key_string(void *_cs, char *key_name, size_t key_length, long long bitoffset, long on)
+{
+	changeset *cs = (changeset *)_cs;
+	if ((bitoffset < 0) || (unsigned long long)bitoffset >= cs->db->page_size - 12) {
+		return REDISLITE_BIT_OFFSET_INVALID;
+	}
+
+	char type;
+	int page_num = redislite_value_page_for_key(cs->db, _cs, cs->db->root, key_name, key_length, &type);
+	if (page_num == REDISLITE_NOT_FOUND) {
+		return 0;
+	}
+	if (page_num < 0) {
+		return page_num;
+	}
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		return REDISLITE_WRONG_TYPE;
+	}
+	redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
+	if (page == NULL) {
+		// redis returns an empty string
+		return 0;
+	}
+
+	size_t byte = bitoffset >> 3;
+
+	if (byte >= page->size) {
+		void *tmp = redislite_realloc(page->value, sizeof(char) * (1 + byte));
+		if (tmp == NULL) return REDISLITE_OOM;
+		memset(tmp + page->size, '\0', byte - page->size);
+		page->value = tmp;
+		page->size = byte + 1;
+	}
+	int byteval = page->value[byte];
+	size_t bit = 7 - (bitoffset & 0x7);
+	size_t bitval = byteval & (1 << bit);
+	byteval &= ~(1 << bit);
+	byteval |= ((on & 0x1) << bit);
+	page->value[byte] = byteval;
+	redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+
+	return bitval ? 1 : 0;
+}

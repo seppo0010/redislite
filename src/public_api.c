@@ -678,6 +678,53 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_setbit_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	size_t len;
+	long long bit_offset;
+	long long on;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &bit_offset);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_BIT_OFFSET_INVALID;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	status = str_to_long_long(params->argv[3], params->argvlen[3], &on);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_BIT_INVALID;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	changeset *cs = redislite_create_changeset(db);
+	int response = status = redislite_page_string_setbit_key_string(cs, key, len, bit_offset, on);
+	if (status < REDISLITE_OK) {
+		set_error_message(status, reply);
+		return reply;
+	}
+	status = redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	if (status < REDISLITE_OK) {
+		set_error_message(status, reply);
+		return reply;
+	}
+	reply->type = REDISLITE_REPLY_INTEGER;
+	reply->integer = response;
+	return reply;
+}
+
 redislite_reply *redislite_getbit_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -1422,7 +1469,7 @@ struct redislite_command redislite_command_table[] = {
 	{"strlen", redislite_strlen_command, 2, 0},
 	{"del", redislite_del_command, -2, 0},
 	{"exists", redislite_exists_command, 2, 0},
-	{"setbit", redislite_command_not_implemented_yet, 4, 0},
+	{"setbit", redislite_setbit_command, 4, 0},
 	{"getbit", redislite_getbit_command, 3, 0},
 	{"setrange", redislite_command_not_implemented_yet, 4, 0},
 	{"getrange", redislite_getrange_command, 4, 0},
@@ -1732,6 +1779,9 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 		case 236: // 'S'+'E'+'T'
 			if (length == 3 && memcaseequal(command, "set", 3)) {
 				return &redislite_command_table[1];
+			}
+			else if (length == 6 && memcaseequal(command, "setbit", 6)) {
+				return &redislite_command_table[8];
 			}
 			else if (length == 5 && memcaseequal(command, "setnx", 5)) {
 				return &redislite_command_table[2];
