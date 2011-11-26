@@ -329,29 +329,28 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, size_t ke
 		size_t previous_length = page->size;
 		if (page->right_page > 0) {
 			size_t pos = cs->db->page_size - 12;
-			redislite_page_string_overflow *overflow = redislite_page_get(cs->db, _cs, page_num, type);
-			int overflow_page_num = overflow->right_page;
+			int overflow_page_num = page->right_page;
+			redislite_page_string_overflow *overflow = redislite_page_get(cs->db, _cs, page->right_page, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
 			while (overflow->right_page != 0) {
-				overflow = redislite_page_get(cs->db, _cs, overflow->right_page, type);
-				if (overflow->right_page != 0) {
-					pos += cs->db->page_size - 8;
-					overflow_page_num = overflow->right_page;
-				}
+				overflow_page_num = overflow->right_page;
+				overflow = redislite_page_get(cs->db, _cs, overflow->right_page, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
+				pos += cs->db->page_size - 8;
 			}
 			size_t page_pos = previous_length - pos;
 			size_t free_bytes = 0;
 			if (cs->db->page_size > page_pos + 8) {
 				free_bytes = cs->db->page_size - page_pos - 8;
 			}
-			if (length <= free_bytes) {
-				memcpy(&overflow->value[page_pos], str, length);
-				redislite_add_modified_page(cs, overflow_page_num, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow);
-				page->size += length;
-				redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+
+			int new_in_page = length;
+			if (length > free_bytes) {
+				new_in_page = free_bytes;
+				overflow->right_page = add_extra_string(_cs, &str[free_bytes], length - free_bytes);
 			}
-			else {
-				// TODO
-			}
+			memcpy(&overflow->value[page_pos], str, new_in_page);
+			redislite_add_modified_page(cs, overflow_page_num, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow);
+			page->size += length;
+			redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
 		}
 		else {
 			if (cs->db->page_size >= page->size + length + 8) {
