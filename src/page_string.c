@@ -628,7 +628,7 @@ int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name
 int redislite_page_string_setbit_key_string(void *_cs, char *key_name, size_t key_length, long long bitoffset, long on)
 {
 	changeset *cs = (changeset *)_cs;
-	if ((bitoffset < 0) || (unsigned long long)bitoffset >= cs->db->page_size - 12) {
+	if ((bitoffset < 0) || (unsigned long long)bitoffset >= (cs->db->page_size - 12) << 3) {
 		return REDISLITE_BIT_OFFSET_INVALID;
 	}
 
