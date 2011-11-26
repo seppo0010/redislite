@@ -707,6 +707,11 @@ redislite_reply *redislite_setbit_command(redislite *db, redislite_params *param
 		set_error_message(status, reply);
 		return reply;
 	}
+	if (on & ~1) {
+		status = REDISLITE_BIT_INVALID;
+		set_error_message(status, reply);
+		return reply;
+	}
 
 	changeset *cs = redislite_create_changeset(db);
 	int response = status = redislite_page_string_setbit_key_string(cs, key, len, bit_offset, on);
