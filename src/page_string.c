@@ -632,30 +632,43 @@ int redislite_page_string_setbit_key_string(void *_cs, char *key_name, size_t ke
 		return REDISLITE_BIT_OFFSET_INVALID;
 	}
 
+	redislite_page_string *page;
 	char type;
+	size_t byte = bitoffset >> 3;
 	int page_num = redislite_value_page_for_key(cs->db, _cs, cs->db->root, key_name, key_length, &type);
 	if (page_num == REDISLITE_NOT_FOUND) {
-		return 0;
+		page_num = -1;
+		page = redislite_malloc(sizeof(redislite_page_string));
+		if (page == NULL) {
+			return REDISLITE_OOM;
+		}
+		char *value = redislite_malloc(sizeof(char) * cs->db->page_size - 12);
+		if (value == NULL) {
+			redislite_free(page);
+			return REDISLITE_OOM;
+		}
+		memset(value, '\0', cs->db->page_size - 12);
+		page->value = value;
+		page->size = byte + 1;
+		page->db = cs->db;
+		page->right_page = 0;
 	}
-	if (page_num < 0) {
-		return page_num;
-	}
-	if (type != REDISLITE_PAGE_TYPE_STRING) {
-		return REDISLITE_WRONG_TYPE;
-	}
-	redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
-	if (page == NULL) {
-		// redis returns an empty string
-		return 0;
-	}
+	else {
+		if (page_num < 0) {
+			return page_num;
+		}
+		if (type != REDISLITE_PAGE_TYPE_STRING) {
+			return REDISLITE_WRONG_TYPE;
+		}
 
-	size_t byte = bitoffset >> 3;
+		page = redislite_page_get(cs->db, _cs, page_num, type);
+		if (page == NULL) {
+			return REDISLITE_OOM;
+		}
+	}
 
 	if (byte >= page->size) {
-		void *tmp = redislite_realloc(page->value, sizeof(char) * (1 + byte));
-		if (tmp == NULL) return REDISLITE_OOM;
-		memset(tmp + page->size, '\0', byte - page->size);
-		page->value = tmp;
+		memset(page->value + page->size, '\0', byte - page->size);
 		page->size = byte + 1;
 	}
 	int byteval = page->value[byte];
@@ -664,7 +677,14 @@ int redislite_page_string_setbit_key_string(void *_cs, char *key_name, size_t ke
 	byteval &= ~(1 << bit);
 	byteval |= ((on & 0x1) << bit);
 	page->value[byte] = byteval;
-	redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+	int left = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+
+	if (page_num == -1) {
+		int status = redislite_insert_key(cs, cs->db->root, 0, key_name, key_length, left, REDISLITE_PAGE_TYPE_STRING);
+		if (status < 0) {
+			return status;
+		}
+	}
 
 	return bitval ? 1 : 0;
 }
