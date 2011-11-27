@@ -319,6 +319,13 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, size_t ke
 	changeset *cs = (changeset *)_cs;
 	redislite *db = cs->db;
 
+	if (length == 0) {
+		if (new_length) {
+			*new_length = redislite_page_string_strlen_key_string(db, _cs, key_name, key_length);
+		}
+		return REDISLITE_OK;
+	}
+
 	char type;
 	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, key_name, key_length, &type);
 	if (page_num >= 0) {
@@ -573,7 +580,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	return REDISLITE_OK;
 }
 
-int redislite_page_string_setrange_key_string(void *_cs, char *key_name, size_t key_length, size_t start, char *str, size_t length, size_t* new_length)
+int redislite_page_string_setrange_key_string(void *_cs, char *key_name, size_t key_length, size_t start, char *str, size_t length, size_t *new_length)
 {
 	changeset *cs = (changeset *)_cs;
 	size_t len_in_page;
@@ -617,7 +624,8 @@ int redislite_page_string_setrange_key_string(void *_cs, char *key_name, size_t 
 		if (pos + cs->db->page_size - 8 > start) {
 			if (pos >= start) {
 				page_pos = 0;
-			} else {
+			}
+			else {
 				page_pos = start - pos;
 			}
 			len_in_page = cs->db->page_size - 8;
@@ -638,7 +646,8 @@ int redislite_page_string_setrange_key_string(void *_cs, char *key_name, size_t 
 		next = add_extra_string(cs, &str[copied], length - copied);
 		if (overflow != NULL) {
 			overflow->right_page = next;
-		} else {
+		}
+		else {
 			page->right_page = next;
 		}
 	}

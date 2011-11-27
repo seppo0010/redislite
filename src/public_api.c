@@ -97,6 +97,7 @@ static const char *expected_integer = "value is not an integer or out of range";
 static const char *expected_double = "Value is not a double";
 static const char *invalid_bit_offset = "bit offset is not an integer or out of range";
 static const char *invalid_bit = "ERR bit is not an integer or out of range";
+static const char *maximum_size = "string exceeds maximum allowed size";
 static const char *key_not_found = "ERR no such key";
 static const char *ok = "OK";
 static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
@@ -155,6 +156,10 @@ static void set_error_message(int status, redislite_reply *reply)
 			}
 		case REDISLITE_EXPECT_INTEGER: {
 				error = expected_integer;
+				break;
+			}
+		case REDISLITE_MAXIMUM_SIZE: {
+				error = maximum_size;
 				break;
 			}
 		case REDISLITE_EXPECT_DOUBLE: {
@@ -778,6 +783,14 @@ redislite_reply *redislite_setrange_command(redislite *db, redislite_params *par
 			status = REDISLITE_EXPECT_INTEGER;
 		}
 		set_error_message(status, reply);
+		return reply;
+	}
+	if (start < 0) {
+		set_error_message(REDISLITE_EXPECT_INTEGER, reply);
+		return reply;
+	}
+	if (start > 512 * 1024) {
+		set_error_message(REDISLITE_MAXIMUM_SIZE, reply);
 		return reply;
 	}
 	value = params->argv[3];
