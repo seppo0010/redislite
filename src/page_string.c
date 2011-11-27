@@ -503,6 +503,9 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	void *_page = redislite_page_get_by_keyname(_db, _cs, key_name, key_length, &type);
 	if (_page == NULL) {
 		// redis returns an empty string
+		if (str) {
+			*str = 0;
+		}
 		if (str_length) {
 			*str_length = 0;
 		}
