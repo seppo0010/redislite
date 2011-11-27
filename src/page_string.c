@@ -211,6 +211,11 @@ int redislite_page_string_get_by_keyname(void *_db, void *_cs, char *key_name, s
 		return REDISLITE_WRONG_TYPE;
 	}
 	redislite_page_string *page = (redislite_page_string *)_page;
+	if (page->size == 0) {
+		*str = NULL;
+		*length = 0;
+		return REDISLITE_OK;
+	}
 	char *data = redislite_malloc(sizeof(char) * page->size);
 	if (data == NULL) {
 		if (_cs == NULL) {
@@ -521,6 +526,9 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 		end = len;
 	}
 	if (start >= end) {
+		if (str) {
+			*str = NULL;
+		}
 		if (str_length) {
 			*str_length = 0;
 		}
