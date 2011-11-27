@@ -45,7 +45,9 @@ static void redislite_free_reply_value(redislite_reply *reply)
 		case REDISLITE_REPLY_ERROR:
 		case REDISLITE_REPLY_STATUS:
 		case REDISLITE_REPLY_STRING:
-			redislite_free(reply->str);
+			if (reply->str) {
+				redislite_free(reply->str);
+			}
 			break;
 	}
 }
