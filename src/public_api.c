@@ -1081,10 +1081,16 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 	size_t len, value_len;
 	key = params->argv[1];
 	len = params->argvlen[1];
-	value = params->argv[2];
-	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
-	int status = redislite_lpush_by_keyname(cs, key, len, value, value_len);
+	int i, status;
+	for (i = 2; i < params->argc; i++) {
+		value = params->argv[i];
+		value_len = params->argvlen[i];
+		status = redislite_lpush_by_keyname(cs, key, len, value, value_len);
+		if (status != REDISLITE_OK) {
+			break;
+		}
+	}
 	if (status == REDISLITE_OK) {
 		status = redislite_save_changeset(cs);
 	}
@@ -1537,7 +1543,7 @@ struct redislite_command redislite_command_table[] = {
 	{"decr", redislite_decr_command, 2, 0},
 	{"mget", redislite_mget_command, -2, 0},
 	{"rpush", redislite_rpush_command, 3, 0},
-	{"lpush", redislite_lpush_command, 3, 0},
+	{"lpush", redislite_lpush_command, -3, 0},
 	{"rpushx", redislite_rpushx_command, 3, 0},
 	{"lpushx", redislite_lpushx_command, 3, 0},
 	{"linsert", redislite_command_not_implemented_yet, 5, 0},
