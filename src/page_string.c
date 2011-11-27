@@ -538,13 +538,13 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	size_t start = __start;
 	size_t end = __end;
 
-	if (start > len) {
-		start = len;
+	if (start >= len) {
+		start = len - 1;
 	}
-	if (end > len) {
-		end = len;
+	if (end >= len) {
+		end = len - 1;
 	}
-	if (start >= end) {
+	if (start > end) {
 		if (str) {
 			*str = NULL;
 		}
@@ -583,7 +583,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 		page_end = db->page_size - 8;
 
 		if (start < copied + page_end * p + db->page_size + 12) {
-			int size = MIN(end + 1 - copied - start, page_end);
+			int size = MIN(end - copied - start, page_end);
 			int pos = 0;
 			if (copied == 0) {
 				pos = start - page_end * p - db->page_size + 12;
