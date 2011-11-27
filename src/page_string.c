@@ -554,7 +554,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 		return REDISLITE_OK;
 	}
 
-	char *response = redislite_malloc(sizeof(char) * (end - start));
+	char *response = redislite_malloc(sizeof(char) * (end - start + 1));
 	if (response == NULL) {
 		if (_cs == NULL) {
 			redislite_free_string(db, page);
@@ -565,14 +565,14 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	size_t page_end = db->page_size - 12;
 	size_t copied = 0;
 	if (start < page_end) {
-		copied += MIN(end, page_end) - start;
+		copied += MIN(end + 1, page_end) - start;
 		memcpy(response, &page->value[start], copied);
 	}
 
 	int next = page->right_page;
 
 	int p = 0;
-	while (copied < end - start) {
+	while (copied < end + 1 - start) {
 		redislite_page_string_overflow *page_overflow = redislite_page_get(_db, _cs, next, REDISLITE_PAGE_TYPE_STRING_OVERFLOW);
 		if (page_overflow == NULL) {
 			if (_cs == NULL) {
@@ -583,7 +583,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 		page_end = db->page_size - 8;
 
 		if (start < copied + page_end * p + db->page_size + 12) {
-			int size = MIN(end - copied - start, page_end);
+			int size = MIN(end + 1 - copied - start, page_end);
 			int pos = 0;
 			if (copied == 0) {
 				pos = start - page_end * p - db->page_size + 12;
