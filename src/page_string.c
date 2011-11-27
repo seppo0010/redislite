@@ -520,8 +520,24 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	}
 	redislite_page_string *page = (redislite_page_string *)_page;
 	size_t len = page->size;
-	size_t start = (size_t)(_start < 0 ? _start + (int)len : _start);
-	size_t end = (size_t)(_end < 0 ? _end + (int)len : _end) + 1;
+
+	long __start = _start, __end = _end;
+	if (__start < 0) {
+		__start = len + __start;
+	}
+	if (__end < 0) {
+		__end = len + __end;
+	}
+	if (__start < 0) {
+		__start = 0;
+	}
+	if (__end < 0) {
+		__end = 0;
+	}
+
+	size_t start = __start;
+	size_t end = __end;
+
 	if (start > len) {
 		start = len;
 	}
