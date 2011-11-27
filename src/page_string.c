@@ -573,6 +573,87 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	return REDISLITE_OK;
 }
 
+int redislite_page_string_setrange_key_string(void *_cs, char *key_name, size_t key_length, size_t start, char *str, size_t length, size_t* new_length)
+{
+	changeset *cs = (changeset *)_cs;
+	size_t len_in_page;
+
+	char type;
+	int status, page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, key_name, key_length, &type);
+
+	if (page_num < 0) {
+		if (start > 0) {
+			void *zerofill = redislite_malloc(sizeof(char) * start);
+			memset(zerofill, '\0', start);
+			status = redislite_page_string_set_key_string(_cs, key_name, key_length, zerofill, start);
+			if (status < 0) {
+				return status;
+			}
+			redislite_free(zerofill);
+		}
+		return redislite_page_string_append_key_string(_cs, key_name, key_length, str, length, new_length);
+	}
+
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		return REDISLITE_WRONG_TYPE;
+	}
+
+	size_t copied = 0;
+	redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
+	if (start < cs->db->page_size - 12) {
+		len_in_page = cs->db->page_size - 12 - start;
+		if (len_in_page > length) {
+			len_in_page = length;
+		}
+		memcpy(&page->value[start], str, len_in_page);
+		copied += len_in_page;
+	}
+
+	size_t page_pos, pos = cs->db->page_size - 12;
+	int next = page->right_page;
+	redislite_page_string_overflow *overflow = NULL;
+
+	while ((pos < start + length) && (next > 0) && (overflow = redislite_page_get(cs->db, _cs, next, REDISLITE_PAGE_TYPE_STRING_OVERFLOW))) {
+		if (pos + cs->db->page_size - 8 > start) {
+			if (pos >= start) {
+				page_pos = 0;
+			} else {
+				page_pos = start - pos;
+			}
+			len_in_page = cs->db->page_size - 8;
+			if (pos + cs->db->page_size - 8 > length + start - pos) {
+				len_in_page = length + start - pos;
+			}
+			memcpy(&overflow->value[page_pos], &str[copied], len_in_page);
+			copied += len_in_page;
+		}
+		pos += cs->db->page_size - 8;
+		status = redislite_add_modified_page(cs, next, REDISLITE_PAGE_TYPE_STRING_OVERFLOW, overflow);
+		if (status < 0) {
+			return status;
+		}
+		next = overflow->right_page;
+	}
+	if (pos < start + length) {
+		next = add_extra_string(cs, &str[copied], length - copied);
+		if (overflow != NULL) {
+			overflow->right_page = next;
+		} else {
+			page->right_page = next;
+		}
+	}
+
+	if (start + length > page->size) {
+		page->size = start + length;
+	}
+
+	status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_STRING, page);
+	if (new_length) {
+		*new_length = page->size;
+	}
+	return status > 0 ? REDISLITE_OK : status;
+}
+
 int redislite_page_string_getbit_key_string(void *_db, void *_cs, char *key_name, size_t key_length, long long bitoffset)
 {
 	if ((bitoffset < 0) || ((unsigned long long)bitoffset >> 3) >= (512 * 1024 * 1024)) {
