@@ -580,7 +580,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 		}
 		page_end = db->page_size - 8;
 
-		if (start < copied + page_end * p + db->page_size + 12) {
+		if (start < copied + page_end * (1 + p) + db->page_size + 12) {
 			int size = MIN(end - copied - start, page_end);
 			int pos = 0;
 			if (copied == 0) {
