@@ -575,6 +575,7 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 			if (_cs == NULL) {
 				redislite_free_string(_db, page);
 			}
+			redislite_free(response);
 			return REDISLITE_OOM;
 		}
 		page_end = db->page_size - 8;
