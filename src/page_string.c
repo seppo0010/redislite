@@ -538,10 +538,11 @@ int redislite_page_string_getrange_key_string(void *_db, void *_cs, char *key_na
 	size_t start = __start;
 	size_t end = __end;
 
-	if (end >= len) {
+	if (len > 0 && end >= len) {
 		end = len - 1;
 	}
-	if (start > end) {
+
+	if (len == 0 || start > end) {
 		if (str) {
 			*str = NULL;
 		}
