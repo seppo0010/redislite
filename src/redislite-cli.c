@@ -701,7 +701,6 @@ int main(int argc, char **argv)
 	/* Otherwise, we have some arguments to execute */
 	char **converted = convertToSds(argc, argv);
 	int ret = noninteractive(argc, converted);
-	int i;
 	cliCleanHelp();
 	// NOTE: not free-ing converted since it may have changed inside noninteractive
 	sdsfree(config.filename);
