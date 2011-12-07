@@ -102,6 +102,7 @@ static const char *invalid_bit = "ERR bit is not an integer or out of range";
 static const char *maximum_size = "string exceeds maximum allowed size";
 static const char *index_out_of_range = "index out of range";
 static const char *key_not_found = "ERR no such key";
+static const char *syntax_error = "ERR syntax error";
 static const char *ok = "OK";
 static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
 static const char *implementation_not_planned = "This command hasn't been planned to be implemented on redislite";
@@ -187,6 +188,10 @@ static void set_error_message(int status, redislite_reply *reply)
 			}
 		case REDISLITE_INDEX_OUT_OF_RANGE: {
 				error = index_out_of_range;
+				break;
+			}
+		case REDISLITE_SYNTAX_ERROR: {
+				error = syntax_error;
 				break;
 			}
 		default: {
@@ -1405,6 +1410,50 @@ redislite_reply *redislite_lset_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_linsert_command(redislite *db, redislite_params *params)
+{
+	char *key, *value, *pivot;
+	size_t len, value_len, pivot_len;
+	long long pos;
+	int after, status;
+
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	if (params->argvlen[2] == 5 && strcasecmp(params->argv[2], "after") == 0) {
+		after = 1;
+	}
+	else if (params->argvlen[2] == 6 && strcasecmp(params->argv[2], "before") == 0) {
+		after = 0;
+	}
+	else {
+		set_error_message(REDISLITE_SYNTAX_ERROR, reply);
+		return reply;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	pivot = params->argv[3];
+	pivot_len = params->argvlen[3];
+	value = params->argv[4];
+	value_len = params->argvlen[4];
+
+	changeset *cs = redislite_create_changeset(db);
+	reply->integer = redislite_linsert_by_keyname(cs, key, len, after, pivot, pivot_len, value, value_len);
+	if (reply->integer > 0) {
+		status = redislite_save_changeset(cs);
+	}
+
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
 static redislite_reply *init_multibulk(size_t size)
 {
 	size_t i, j;
@@ -1598,7 +1647,7 @@ struct redislite_command redislite_command_table[] = {
 	{"lpush", redislite_lpush_command, -3, 0},
 	{"rpushx", redislite_rpushx_command, 3, 0},
 	{"lpushx", redislite_lpushx_command, 3, 0},
-	{"linsert", redislite_command_not_implemented_yet, 5, 0},
+	{"linsert", redislite_linsert_command, 5, 0},
 	{"rpop", redislite_rpop_command, 2, 0},
 	{"lpop", redislite_lpop_command, 2, 0},
 	{"brpop", redislite_command_implementation_not_planned, 3, 0},
@@ -1841,6 +1890,9 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 		case 227: // 'L'+'I'+'N'
 			if (length == 6 && memcaseequal(command, "lindex", 6)) {
 				return &redislite_command_table[27];
+			}
+			else if (length == 7 && memcaseequal(command, "linsert", 7)) {
+				return &redislite_command_table[20];
 			}
 			break;
 

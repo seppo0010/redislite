@@ -41,5 +41,7 @@ void redislite_close_database(redislite *db);
 #define REDISLITE_ALREADY_EXISTS -15
 #define REDISLITE_MAXIMUM_SIZE -16
 #define REDISLITE_INDEX_OUT_OF_RANGE -17
+#define REDISLITE_SYNTAX_ERROR -18
+
 
 #endif
