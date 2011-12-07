@@ -1051,6 +1051,7 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 	size_t i;
 	int status;
 	int list_page_num = 0;
+	int inserted = 0;
 	while (list != NULL) {
 		for (i = 0; i < list->size; i++) {
 			if (list->element_len[i] == pivot_len && memcmp(list->element[i], pivot, pivot_len) == 0) {
@@ -1058,6 +1059,7 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 				if (status < 0) {
 					return status;
 				}
+				inserted = 1;
 				if (list_page_num > 0) {
 					status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
 				}
@@ -1083,5 +1085,5 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 	if (status > 0) {
 		status = REDISLITE_OK;
 	}
-	return status == REDISLITE_OK ? (int)page->total_size : status;
+	return status == REDISLITE_OK ? (inserted ? (int)page->total_size : 0) : status;
 }
