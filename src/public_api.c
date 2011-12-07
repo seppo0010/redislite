@@ -100,6 +100,7 @@ static const char *expected_double = "Value is not a double";
 static const char *invalid_bit_offset = "bit offset is not an integer or out of range";
 static const char *invalid_bit = "ERR bit is not an integer or out of range";
 static const char *maximum_size = "string exceeds maximum allowed size";
+static const char *index_out_of_range = "index out of range";
 static const char *key_not_found = "ERR no such key";
 static const char *ok = "OK";
 static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
@@ -182,6 +183,10 @@ static void set_error_message(int status, redislite_reply *reply)
 			}
 		case REDISLITE_BIT_INVALID: {
 				error = invalid_bit;
+				break;
+			}
+		case REDISLITE_INDEX_OUT_OF_RANGE: {
+				error = index_out_of_range;
 				break;
 			}
 		default: {
@@ -1359,6 +1364,47 @@ redislite_reply *redislite_lindex_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_lset_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	size_t len, value_len;
+	long long pos;
+
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &pos);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	key = params->argv[1];
+	len = params->argvlen[1];
+	value = params->argv[3];
+	value_len = params->argvlen[3];
+
+	changeset *cs = redislite_create_changeset(db);
+	status = redislite_lset_by_keyname(cs, key, len, (int)pos, value, value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		set_status_message(status, reply);
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 static redislite_reply *init_multibulk(size_t size)
 {
 	size_t i, j;
@@ -1560,7 +1606,7 @@ struct redislite_command redislite_command_table[] = {
 	{"blpop", redislite_command_implementation_not_planned, 3, 0},
 	{"llen", redislite_llen_command, 2, 0},
 	{"lindex", redislite_lindex_command, 3, 0},
-	{"lset", redislite_command_not_implemented_yet, 4, 0},
+	{"lset", redislite_lset_command, 4, 0},
 	{"lrange", redislite_lrange_command, 4, 0},
 	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
 	{"lrem", redislite_command_not_implemented_yet, 4, 0},
@@ -1792,11 +1838,18 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			break;
 
-		case 227: // 'A'+'P'+'P'
+		case 227: // 'L'+'I'+'N'
 			if (length == 6 && memcaseequal(command, "lindex", 6)) {
 				return &redislite_command_table[27];
 			}
 			break;
+
+		case 228: // 'L'+'S'+'E'
+			if (length == 4 && memcaseequal(command, "lset", 4)) {
+				return &redislite_command_table[28];
+			}
+			break;
+
 		case 229: // 'R'+'E'+'N'
 			// 'M'+'S'+'E'
 			if (length == 6 && memcaseequal(command, "rename", 6)) {
