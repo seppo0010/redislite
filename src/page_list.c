@@ -812,7 +812,7 @@ int redislite_lrange_by_keyname(void *_db, void *_cs, char *keyname, size_t keyn
 		start = 0;
 	}
 	if (end >= len) {
-		end = len;
+		end = len - 1;
 	}
 
 	if (start > end || start >= len) {
