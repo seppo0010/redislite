@@ -1414,7 +1414,6 @@ redislite_reply *redislite_linsert_command(redislite *db, redislite_params *para
 {
 	char *key, *value, *pivot;
 	size_t len, value_len, pivot_len;
-	long long pos;
 	int after, status;
 
 	redislite_reply *reply = redislite_create_reply();

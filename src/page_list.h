@@ -37,3 +37,5 @@ int redislite_rpushx_by_keyname(void *_cs, char *keyname, size_t keyname_len, ch
 int redislite_rpush_by_keyname(void *_cs, char *keyname, size_t keyname_len, char *value, size_t value_len);
 int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t value_len);
 int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char **value, size_t *value_len);
+int redislite_lset_by_keyname(void *_cs, char *keyname, size_t keyname_len, int pos, char *value, size_t value_len);
+int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, int after, char *pivot, size_t pivot_len, char *value, size_t value_len);

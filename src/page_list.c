@@ -1083,5 +1083,5 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 	if (status > 0) {
 		status = REDISLITE_OK;
 	}
-	return status == REDISLITE_OK ? page->total_size : status;
+	return status == REDISLITE_OK ? (int)page->total_size : status;
 }
