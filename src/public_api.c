@@ -1446,6 +1446,12 @@ redislite_reply *redislite_linsert_command(redislite *db, redislite_params *para
 			reply->integer = -1;
 		}
 	}
+	else if (reply->integer == REDISLITE_NOT_FOUND) {
+		status = reply->integer = 0;
+	}
+	else {
+		status = reply->integer;
+	}
 
 	redislite_free_changeset(cs);
 	if (status == REDISLITE_OK) {

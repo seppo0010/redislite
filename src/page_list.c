@@ -1046,7 +1046,7 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 
 	redislite_page_list *list = page->list;
 	size_t i;
-	int status;
+	int status = REDISLITE_NOT_FOUND;
 	int list_page_num = 0;
 	int inserted = 0;
 	while (list != NULL) {
