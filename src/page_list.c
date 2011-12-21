@@ -6,6 +6,9 @@
 #include "page_list.h"
 #include "util.h"
 
+static int rpush(redislite_page_list *list, char *value, size_t value_len);
+static int lpush(redislite_page_list *list, char *value, size_t value_len);
+
 void redislite_delete_list(void *_cs, void *_page)
 {
 	redislite_page_list *page = (redislite_page_list *)_page;
@@ -190,8 +193,42 @@ static int grow_list(redislite_page_list *list)
 	return REDISLITE_OK;
 }
 
-static int replace_element(redislite_page_list *list, size_t pos, char *value, size_t value_len)
+static int replace_element(changeset *cs, redislite_page_list *list, size_t free_bytes, int page_num, size_t pos, char *value, size_t value_len)
 {
+	if (list->element_len[pos] + free_bytes > value_len) {
+		redislite_page_list *new_list = redislite_malloc(sizeof(redislite_page_list));
+		if (new_list == NULL) {
+			return REDISLITE_OOM;
+		}
+
+		new_list->left_page = page_num;
+		new_list->right_page = list->right_page ? list->right_page : page_num;
+		new_list->element_alloced = new_list->size = 0;
+		new_list->element_len = 0;
+		;
+		int status = lpush(new_list, value, value_len);
+		if (status != REDISLITE_OK) {
+			redislite_free(new_list);
+			return status;
+		}
+
+		int new_page_num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, new_list);
+		if (new_page_num < 0) {
+			return new_page_num;
+		}
+
+		list->right_page = new_page_num;
+		if (new_list->right_page != page_num) {
+			redislite_page_list *right_list = redislite_page_get(cs->db, cs, new_list->right_page, REDISLITE_PAGE_TYPE_LIST);
+			right_list->left_page = new_page_num;
+			status = redislite_add_modified_page(cs, new_list->right_page, REDISLITE_PAGE_TYPE_LIST, right_list);
+			if (status < 0) {
+				return status;
+			}
+		}
+
+		return status;
+	}
 	char *element = redislite_malloc(sizeof(char) * value_len);
 	if (element == NULL) {
 		return REDISLITE_OOM;
@@ -1005,7 +1042,8 @@ int redislite_lset_by_keyname(void *_cs, char *keyname, size_t keyname_len, int 
 			list = redislite_page_get(cs->db, _cs, list->right_page, REDISLITE_PAGE_TYPE_LIST);
 			continue;
 		}
-		status = replace_element(list, seek_pos - general_pos, value, value_len);
+		size_t free_bytes = redislite_free_bytes(cs->db, list, general_pos > 0 ? REDISLITE_PAGE_TYPE_LIST : REDISLITE_PAGE_TYPE_LIST_FIRST);
+		status = replace_element(cs, list, free_bytes, list_page_num, seek_pos - general_pos, value, value_len);
 		if (status == REDISLITE_OK) {
 			if (general_pos > 0) {
 				status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
@@ -1049,23 +1087,82 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 	int status = REDISLITE_NOT_FOUND;
 	int list_page_num = 0;
 	int inserted = 0;
+	size_t size = value_len;
+	{
+		unsigned char length_str[9];
+		size += putVarint32(length_str, value_len);
+	}
 	while (list != NULL) {
 		for (i = 0; i < list->size; i++) {
 			if (list->element_len[i] == pivot_len && memcmp(list->element[i], pivot, pivot_len) == 0) {
-				status = add_element(list, (size_t)i + after, value, value_len);
-				if (status < 0) {
-					return status;
+				int enough_space;
+				redislite_page_list *list;
+				if (page->list->left_page != 0) {
+					list = redislite_page_get(cs->db, _cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST);
+					enough_space = redislite_free_bytes(cs->db, list, type) >= size;
 				}
-				inserted = 1;
-				if (list_page_num > 0) {
-					status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
+				else {
+					list = page->list;
+					enough_space = redislite_free_bytes(cs->db, page->list, REDISLITE_PAGE_TYPE_LIST_FIRST) >= size;
 				}
-				page->total_size++;
-				status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
-				if (status < 0) {
-					return status;
+
+				if (enough_space) {
+					status = add_element(list, (size_t)i + after, value, value_len);
+					if (status < 0) {
+						return status;
+					}
+					inserted = 1;
+					if (list_page_num > 0) {
+						status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
+					}
+					page->total_size++;
+					status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
+					if (status < 0) {
+						return status;
+					}
+					list = NULL;
 				}
-				list = NULL;
+				else {
+					redislite_page_list *new_list = redislite_malloc(sizeof(redislite_page_list));
+					if (new_list == NULL) {
+						return REDISLITE_OOM;
+					}
+
+					new_list->left_page = list_page_num ? list_page_num : page_num;
+					new_list->right_page = list->right_page ? list->right_page : page_num;
+					new_list->element_alloced = new_list->size = 0;
+					new_list->element_len = 0;
+					;
+					status = lpush(new_list, value, value_len);
+					if (status != REDISLITE_OK) {
+						redislite_free(new_list);
+						return status;
+					}
+
+					int new_page_num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, new_list);
+					if (new_page_num < 0) {
+						return new_page_num;
+					}
+
+					if (list_page_num) {
+						list->right_page = new_page_num;
+					}
+					else {
+						page->list->right_page = new_page_num;
+					}
+
+					if (new_list->right_page == page_num) {
+						page->list->left_page = new_page_num;
+					}
+					else {
+						redislite_page_list *right_list = redislite_page_get(cs->db, _cs, new_list->right_page, REDISLITE_PAGE_TYPE_LIST);
+						right_list->left_page = new_page_num;
+						status = redislite_add_modified_page(cs, new_list->right_page, REDISLITE_PAGE_TYPE_LIST, right_list);
+						if (status < 0) {
+							return status;
+						}
+					}
+				}
 				break;
 			}
 		}
