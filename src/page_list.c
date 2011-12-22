@@ -235,7 +235,9 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 	}
 	memcpy(element, value, value_len);
 
-	redislite_free(list->element[pos]);
+	if (list->element[pos]) {
+		redislite_free(list->element[pos]);
+	}
 	list->element[pos] = element;
 	list->element_len[pos] = value_len;
 	return REDISLITE_OK;
@@ -1179,5 +1181,5 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 	if (status > 0) {
 		status = REDISLITE_OK;
 	}
-	return status == REDISLITE_OK ? (inserted ? (int)page->total_size : 0) : status;
+	return status == REDISLITE_OK ? (inserted ? (int)page->total_size : REDISLITE_NOT_FOUND) : status;
 }

@@ -1442,12 +1442,10 @@ redislite_reply *redislite_linsert_command(redislite *db, redislite_params *para
 	reply->integer = redislite_linsert_by_keyname(cs, key, len, after, pivot, pivot_len, value, value_len);
 	if (reply->integer >= 0) {
 		status = redislite_save_changeset(cs);
-		if (reply->integer == 0) {
-			reply->integer = -1;
-		}
 	}
 	else if (reply->integer == REDISLITE_NOT_FOUND) {
-		status = reply->integer = 0;
+		status = REDISLITE_OK;
+		reply->integer = -1;
 	}
 	else {
 		status = reply->integer;
