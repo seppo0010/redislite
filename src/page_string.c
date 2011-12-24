@@ -396,6 +396,64 @@ int redislite_page_string_append_key_string(void *_cs, char *key_name, size_t ke
 	}
 }
 
+int redislite_page_string_incrbyfloat_by_key_string(void *_cs, char *key_name, size_t key_length, long double incr, char **new_value, int *new_value_length)
+{
+	changeset *cs = (changeset *)_cs;
+	redislite *db = cs->db;
+
+	char type;
+	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, key_name, key_length, &type);
+	if (page_num < 0) {
+		char *s_value = redislite_malloc(100);
+		int size = sprintf(s_value, "%Lf", incr);
+		if (size <= 0) {
+			return REDISLITE_EXPECT_DOUBLE;
+		}
+		s_value = redislite_realloc(s_value, size + 1);
+		s_value[size] = '\0';
+		if (new_value) {
+			*new_value = s_value;
+			*new_value_length = size;
+		}
+		return redislite_page_string_set_key_string(_cs, key_name, key_length, s_value, size);
+	}
+
+	if (type != REDISLITE_PAGE_TYPE_STRING) {
+		return REDISLITE_WRONG_TYPE;
+	}
+
+	redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
+	if (page->right_page || page->size > db->page_size - 13) {
+		return REDISLITE_EXPECT_DOUBLE;
+	}
+
+	long double value;
+	char *eptr, *strvalue = redislite_malloc(100); // TODO: how long can a long double be?
+	int len;
+	if (strvalue == NULL) {
+		return REDISLITE_OOM;
+	}
+
+	value = strtold(page->value, &eptr);
+	if (eptr[0] != '\0' || isnan(value)) {
+		return REDISLITE_EXPECT_DOUBLE;
+	}
+	value += incr;
+
+	len = sprintf(strvalue, "%Lf", value);
+	strvalue = redislite_realloc(strvalue, len + 1); // shrinking
+	strvalue[len] = '\0';
+	if (page->size > 0) {
+		redislite_page_string_set_key_string(_cs, key_name, key_length, strvalue, len);
+		if (new_value) {
+			*new_value = strvalue;
+			*new_value_length = len;
+		}
+		return REDISLITE_OK;
+	}
+	return REDISLITE_ERR;
+}
+
 int redislite_page_string_incr_by_key_string(void *_cs, char *key_name, size_t key_length, long long incr, long long *new_value)
 {
 	changeset *cs = (changeset *)_cs;

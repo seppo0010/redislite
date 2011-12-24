@@ -9,7 +9,7 @@
 #include "page_set.h"
 #include "util.h"
 #include "version.h"
-
+#include <math.h>
 
 char *redislite_git_SHA1();
 char *redislite_git_dirty();
@@ -917,6 +917,39 @@ redislite_reply *redislite_decr_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_incrbyfloat_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	size_t len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	changeset *cs = redislite_create_changeset(db);
+
+	char *eptr;
+	long double incr = strtold(params->argv[2], &eptr);
+	if (eptr[0] != '\0' || isnan(incr)) {
+		set_error_message(REDISLITE_EXPECT_DOUBLE, reply);
+		return reply;
+	}
+	int status = redislite_page_string_incrbyfloat_by_key_string(cs, key, len, incr, &reply->str, &reply->len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_STRING;
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
 redislite_reply *redislite_incrby_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -1749,7 +1782,8 @@ struct redislite_command redislite_command_table[] = {
 	{"punsubscribe", redislite_command_implementation_not_planned, 1, 0},
 	{"publish", redislite_command_implementation_not_planned, 3, 0},
 	{"watch", redislite_command_not_implemented_yet, 2, 0},
-	{"unwatch", redislite_command_not_implemented_yet, 1, 0}
+	{"unwatch", redislite_command_not_implemented_yet, 1, 0},
+	{"incrbyfloat", redislite_incrbyfloat_command, 3, 0}
 };
 
 static int memcaseequal(const char *str1, const char *str2, size_t length)
@@ -1849,6 +1883,9 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			if (length == 6 && memcaseequal(command, "incrby", 6)) {
 				return &redislite_command_table[73];
+			}
+			if (length == 11 && memcaseequal(command, "incrbyfloat", 11)) {
+				return &redislite_command_table[117];
 			}
 			break;
 
