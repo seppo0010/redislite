@@ -783,19 +783,22 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 	page->total_size--;
 
 	if (page->total_size == 0) {
-		char *value_aux = redislite_malloc(sizeof(char) * (*value_len));
-		if (value_aux == NULL) {
-			return REDISLITE_OOM;
-		}
-		if (value) {
-			memcpy(value_aux, *value, *value_len);
+		char *value_aux;
+		if (value_len) {
+			value_aux = redislite_malloc(sizeof(char) * (*value_len));
+			if (value_aux == NULL) {
+				return REDISLITE_OOM;
+			}
+			if (value) {
+				memcpy(value_aux, *value, *value_len);
+			}
 		}
 		changeset *cs = (changeset *)_cs;
 		redislite_delete_key(_cs, cs->db->root, keyname, keyname_len, 1);
 		if (value) {
 			redislite_free(*value);
 		}
-		if (value) {
+		if (value && value_len) {
 			*value = value_aux;
 		}
 		// TODO: avoid double key lookup
@@ -966,7 +969,7 @@ int redislite_lindex_by_keyname(void *_db, void *_cs, char *keyname, size_t keyn
 		goto cleanup;
 	}
 
-	redislite_page_list *list;
+	redislite_page_list *list = NULL;
 	if (page->list->left_page == 0) {
 		list = page->list;
 	}
@@ -1046,7 +1049,7 @@ int redislite_lset_by_keyname(void *_cs, char *keyname, size_t keyname_len, int 
 	redislite_page_list *list = page->list;
 	size_t general_pos = 0;
 	int status;
-	int list_page_num;
+	int list_page_num = 0;
 	while (1) {
 		if (general_pos + list->size < seek_pos) {
 			general_pos += list->size;
@@ -1123,6 +1126,9 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 				}
 				if (list_page_num > 0) {
 					status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
+					if (status < 0) {
+						return status;
+					}
 				}
 				status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
 				if (status < 0) {

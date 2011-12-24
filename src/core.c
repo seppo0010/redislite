@@ -191,7 +191,7 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 				min = i + 1;
 			}
 			else {
-				pos = min = max = i;
+				min = max = i;
 			}
 		}
 		pos = min;

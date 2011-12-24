@@ -1092,7 +1092,7 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 	key = params->argv[1];
 	len = params->argvlen[1];
 	changeset *cs = redislite_create_changeset(db);
-	int i, status;
+	int i, status = REDISLITE_OK;
 	for (i = 2; i < params->argc; i++) {
 		value = params->argv[i];
 		value_len = params->argvlen[i];
@@ -1124,7 +1124,7 @@ redislite_reply *redislite_rpush_command(redislite *db, redislite_params *params
 	key = params->argv[1];
 	len = params->argvlen[1];
 	changeset *cs = redislite_create_changeset(db);
-	int i, status;
+	int i, status = REDISLITE_OK;
 	for (i = 2; i < params->argc; i++) {
 		value = params->argv[i];
 		value_len = params->argvlen[i];

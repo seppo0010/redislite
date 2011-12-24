@@ -95,7 +95,7 @@ void *redislite_read_index(void *db, unsigned char *data)
 cleanup:
 	if (page->keys) {
 		for (;; i--) {
-			if (page->keys[i]->keyname) {
+			if (page->keys[i] && page->keys[i]->keyname) {
 				redislite_free(page->keys[i]->keyname);
 			}
 			if (page->keys[i]) {
@@ -566,6 +566,9 @@ int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *
 			else {
 				result = redislite_add_modified_page(cs, previous_page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
 			}
+			if (result < 0) {
+				return result;
+			}
 			if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
 				redislite_free_index(db, page);
 			}
@@ -613,6 +616,9 @@ int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *
 			}
 			else {
 				result = redislite_add_modified_page(cs, previous_page_num, REDISLITE_PAGE_TYPE_FIRST, first_page);
+			}
+			if (result < 0) {
+				return result;
 			}
 
 			redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, db->root);
@@ -898,7 +904,7 @@ int redislite_get_random_key_name(void *_db, void *_cs, char **key_p, size_t *ke
 {
 	redislite *db = (redislite *)_db;
 	size_t i = 0;
-	char *key;
+	char *key = NULL;
 	int key_length = 0, *pages = NULL;
 
 	size_t pages_pos = 0;
