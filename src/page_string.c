@@ -404,8 +404,8 @@ int redislite_page_string_incrbyfloat_by_key_string(void *_cs, char *key_name, s
 	char type;
 	int page_num = redislite_value_page_for_key(cs->db, cs, cs->db->root, key_name, key_length, &type);
 	if (page_num < 0) {
-		char *s_value = redislite_malloc(100);
-		int size = sprintf(s_value, "%Lf", incr);
+		char *s_value = redislite_malloc(256);
+		int size = snprintf(s_value, 256, "%.17Lg", incr);
 		if (size <= 0) {
 			return REDISLITE_EXPECT_DOUBLE;
 		}
@@ -428,7 +428,7 @@ int redislite_page_string_incrbyfloat_by_key_string(void *_cs, char *key_name, s
 	}
 
 	long double value;
-	char *eptr, *strvalue = redislite_malloc(100); // TODO: how long can a long double be?
+	char *eptr, *strvalue = redislite_malloc(256); // TODO: how long can a long double be?
 	int len;
 	if (strvalue == NULL) {
 		return REDISLITE_OOM;
@@ -440,7 +440,7 @@ int redislite_page_string_incrbyfloat_by_key_string(void *_cs, char *key_name, s
 	}
 	value += incr;
 
-	len = sprintf(strvalue, "%Lf", value);
+	len = snprintf(strvalue, 256, "%.17Lg", value);
 	strvalue = redislite_realloc(strvalue, len + 1); // shrinking
 	strvalue[len] = '\0';
 	if (page->size > 0) {
