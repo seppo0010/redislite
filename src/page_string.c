@@ -424,7 +424,7 @@ int redislite_page_string_incrbyfloat_by_key_string(void *_cs, char *key_name, s
 
 	redislite_page_string *page = redislite_page_get(cs->db, _cs, page_num, type);
 	if (page->right_page || page->size > db->page_size - 13) {
-		return REDISLITE_EXPECT_DOUBLE;
+		return REDISLITE_INVALID_FLOAT;
 	}
 
 	long double value;
@@ -436,7 +436,7 @@ int redislite_page_string_incrbyfloat_by_key_string(void *_cs, char *key_name, s
 
 	value = strtold(page->value, &eptr);
 	if (eptr[0] != '\0' || isnan(value)) {
-		return REDISLITE_EXPECT_DOUBLE;
+		return REDISLITE_INVALID_FLOAT;
 	}
 	value += incr;
 
