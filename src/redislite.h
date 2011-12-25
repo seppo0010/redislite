@@ -43,6 +43,7 @@ void redislite_close_database(redislite *db);
 #define REDISLITE_INDEX_OUT_OF_RANGE -17
 #define REDISLITE_SYNTAX_ERROR -18
 #define REDISLITE_INVALID_FLOAT -19
+#define REDISLITE_NAN_OR_INFINITY -20
 
 
 #endif

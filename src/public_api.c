@@ -104,6 +104,7 @@ static const char *index_out_of_range = "index out of range";
 static const char *key_not_found = "ERR no such key";
 static const char *syntax_error = "ERR syntax error";
 static const char *invalid_float = "value is not a valid float";
+static const char *nan_or_infinity = "increment would produce NaN or Infinity";
 static const char *ok = "OK";
 static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
 static const char *implementation_not_planned = "This command hasn't been planned to be implemented on redislite";
@@ -199,6 +200,11 @@ static void set_error_message(int status, redislite_reply *reply)
 				error = invalid_float ;
 				break;
 			}
+		case REDISLITE_NAN_OR_INFINITY : {
+				error = nan_or_infinity;
+				break;
+			}
+
 		default: {
 				error = unknown_error;
 				break;
@@ -936,7 +942,7 @@ redislite_reply *redislite_incrbyfloat_command(redislite *db, redislite_params *
 
 	char *eptr;
 	long double incr = strtold(params->argv[2], &eptr);
-	if (eptr[0] != '\0' || isnan(incr)) {
+	if (isspace(((char *)params->argv[2])[0]) || eptr[0] != '\0' || isnan(incr)) {
 		set_error_message(REDISLITE_EXPECT_DOUBLE, reply);
 		return reply;
 	}

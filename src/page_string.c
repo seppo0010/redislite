@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "core.h"
 #include "page_string.h"
 #include "page_index.h"
@@ -435,10 +436,13 @@ int redislite_page_string_incrbyfloat_by_key_string(void *_cs, char *key_name, s
 	}
 
 	value = strtold(page->value, &eptr);
-	if (eptr[0] != '\0' || isnan(value)) {
+	if (isspace(page->value[0]) || eptr[0] != '\0' || isnan(value)) {
 		return REDISLITE_INVALID_FLOAT;
 	}
 	value += incr;
+	if (isnan(value) || isinf(value)) {
+		return REDISLITE_NAN_OR_INFINITY;
+	}
 
 	len = snprintf(strvalue, 256, "%.17Lg", value);
 	strvalue = redislite_realloc(strvalue, len + 1); // shrinking
