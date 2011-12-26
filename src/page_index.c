@@ -417,7 +417,7 @@ int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *
 	}
 
 	size_t i, pos;
-	int cmp_result;
+	int cmp_result, should_continue;
 	redislite_page_index *page = ((redislite_page_index_first *)first_page)->page;
 	((redislite_page_index_first *)first_page)->number_of_keys++;
 	int page_num = first_page_num;
@@ -427,11 +427,25 @@ int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *
 	}
 
 	while (page != NULL) {
+		should_continue = 0;
 		pos = 0;
 		for (i = 0; i < page->number_of_keys; i++) {
 			cmp_result = (memcmp(page->keys[i]->keyname, key, MIN(page->keys[i]->keyname_size, length)));
 			if (cmp_result == 0) {
 				if (page->keys[i]->keyname_size == length) {
+					if (page->keys[i]->type == REDISLITE_PAGE_TYPE_INDEX) {
+						redislite_page_index *new_page = redislite_page_get(db, cs, page->keys[i]->left_page, REDISLITE_PAGE_TYPE_INDEX);
+						if (new_page == NULL) {
+							return REDISLITE_OOM;
+						}
+						page_num = page->keys[i]->left_page;
+						if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
+							redislite_free_index(db, page);
+						}
+						page = new_page;
+						should_continue = 1;
+						break;
+					}
 					redislite_page_delete(_cs, page->keys[i]->left_page, page->keys[i]->type);
 					page->keys[i]->left_page = left;
 					page->keys[i]->type = type;
@@ -460,17 +474,19 @@ int redislite_insert_key(void *_cs, void *first_page, int first_page_num, char *
 				break;
 			}
 		}
-
+		if (should_continue) {
+			continue;
+		}
 		if (pos < page->number_of_keys) {
 			if (page->keys[pos]->type == REDISLITE_PAGE_TYPE_INDEX) {
 				redislite_page_index *new_page = redislite_page_get(db, cs, page->keys[pos]->left_page, REDISLITE_PAGE_TYPE_INDEX);
-				if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
-					redislite_free_index(db, page);
-				}
 				if (new_page == NULL) {
 					return REDISLITE_OOM;
 				}
 				page_num = page->keys[pos]->left_page;
+				if (cs == NULL && page != ((redislite_page_index_first *)db->root)->page) {
+					redislite_free_index(db, page);
+				}
 				page = new_page;
 				continue;
 			}
