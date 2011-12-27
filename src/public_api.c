@@ -1148,6 +1148,7 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 	if (status == REDISLITE_OK) {
 		status = redislite_save_changeset(cs);
 	}
+	redislite_free_changeset(cs);
 
 	if (status != REDISLITE_OK) {
 		redislite_reply *reply = redislite_create_reply();
@@ -1157,7 +1158,6 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 		set_error_message(status, reply);
 		return reply;
 	}
-	redislite_free_changeset(cs);
 	return redislite_llen_command(db, params);
 }
 
