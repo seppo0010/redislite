@@ -705,5 +705,6 @@ int main(int argc, char **argv)
 	// NOTE: not free-ing converted since it may have changed inside noninteractive
 	sdsfree(config.filename);
 	sdsfree(config.mb_delim);
+	redislite_close_database(db);
 	return ret;
 }

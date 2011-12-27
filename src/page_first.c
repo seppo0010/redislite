@@ -23,10 +23,11 @@ redislite_page_index_first *create_page_index_first(void *db)
 	return first;
 }
 
-void redislite_free_first(void *_db, void *page)
+void redislite_free_first(void *_db, void *_page)
 {
-	_db = _db; // XXX: avoid unused-parameter warning; we are implementing a prototype
-	page = page; // XXX: avoid unused-parameter warning; we are implementing a prototype
+	redislite_page_index_first *page = (redislite_page_index_first *)_page;
+	redislite_free_index(_db, page->page);
+	redislite_free(page);
 }
 
 void redislite_write_first(void *_db, unsigned char *data, void *_page)
