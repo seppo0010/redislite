@@ -7,3 +7,4 @@ src/redislite.db
 *.a
 src/release.h
 src/redislite-cli.dSYM/
+src/*.orig
