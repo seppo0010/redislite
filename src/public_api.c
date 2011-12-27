@@ -1273,6 +1273,36 @@ redislite_reply *redislite_rpop_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_rpoplpush_command(redislite *db, redislite_params *params)
+{
+	char *source, *destination, *value;
+	size_t source_len, destination_len, value_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	source = params->argv[1];
+	source_len = params->argvlen[1];
+	destination = params->argv[2];
+	destination_len = params->argvlen[2];
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_rpoplpush_by_keyname(cs, source, source_len, destination, destination_len, &value, &value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_STRING;
+		reply->str = value;
+		reply->len = value_len;
+	}
+	else if (status != REDISLITE_NOT_FOUND) {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 redislite_reply *redislite_lpop_command(redislite *db, redislite_params *params)
 {
 	char *key, *value;
@@ -1709,7 +1739,7 @@ struct redislite_command redislite_command_table[] = {
 	{"lrange", redislite_lrange_command, 4, 0},
 	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
 	{"lrem", redislite_command_not_implemented_yet, 4, 0},
-	{"rpoplpush", redislite_command_not_implemented_yet, 3, 0},
+	{"rpoplpush", redislite_rpoplpush_command, 3, 0},
 	{"sadd", redislite_sadd_command, 3, 0},
 	{"srem", redislite_command_not_implemented_yet, 3, 0},
 	{"smove", redislite_command_implementation_not_planned, 4, 0},
@@ -2037,6 +2067,9 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			else if (length == 4 && memcaseequal(command, "rpop", 4)) {
 				return &redislite_command_table[21];
+			}
+			else if (length == 9 && memcaseequal(command, "rpoplpush", 9)) {
+				return &redislite_command_table[32];
 			}
 			break;
 

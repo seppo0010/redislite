@@ -1165,3 +1165,12 @@ int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, i
 	}
 	return status == REDISLITE_OK ? (inserted ? (int)page->total_size : REDISLITE_NOT_FOUND) : status;
 }
+
+int redislite_rpoplpush_by_keyname(void *_cs, char *source, size_t source_len, char *destination, size_t destination_len, char **value, size_t *value_len)
+{
+	int status = redislite_rpop_by_keyname(_cs, source, source_len, value, value_len);
+	if (status < 0) {
+		return status;
+	}
+	return redislite_lpush_by_keyname(_cs, destination, destination_len, *value, *value_len);
+}
