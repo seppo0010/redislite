@@ -431,8 +431,8 @@ int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 			if (status < 0) {
 				return status;
 			}
-			page->list->left_page = list->right_page;
 		}
+		page->list->left_page = list->right_page;
 		status = REDISLITE_OK;
 	}
 
