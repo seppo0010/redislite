@@ -202,7 +202,7 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 		}
 
 		new_list->left_page = page_num;
-		new_list->right_page = list->right_page ? list->right_page : page_num;
+		new_list->right_page = list->right_page;
 		new_list->element_alloced = new_list->size = 0;
 		new_list->element_len = 0;
 		;
@@ -406,9 +406,9 @@ int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 			return REDISLITE_OOM;
 		}
 
-		new_list->right_page = *page_num_p;
+		new_list->right_page = 0;
 		if (list == page->list) {
-			new_list->left_page = *page_num_p;
+			new_list->left_page = 0;
 		}
 		else {
 			new_list->left_page = list->left_page;
