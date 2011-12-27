@@ -421,8 +421,19 @@ int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 			return status;
 		}
 
-		page->list->left_page =
-		    list->right_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, new_list);
+		status = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, new_list);
+		if (status < 0) {
+			return status;
+		}
+		list->right_page = status;
+		if (list != page->list) {
+			status = redislite_add_modified_page(cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST, list);
+			if (status < 0) {
+				return status;
+			}
+			page->list->left_page = list->right_page;
+		}
+		status = REDISLITE_OK;
 	}
 
 	{
@@ -690,8 +701,7 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 		page->list->left_page = list->left_page;
 		list->right_page = 0;
 		status = redislite_page_delete(cs, old_page, REDISLITE_PAGE_TYPE_LIST);
-		if (status != REDISLITE_OK) {
-			// TODO: memory cleanup
+		if (status < 0) {
 			return status;
 		}
 		if (page->list->left_page == page_num) {
@@ -722,7 +732,7 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 		}
 	}
 
-	return status;
+	return status < 0 ? status : REDISLITE_OK;
 }
 
 int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char **value, size_t *value_len)
