@@ -701,13 +701,10 @@ int main(int argc, char **argv)
 	/* Otherwise, we have some arguments to execute */
 	char **converted = convertToSds(argc, argv);
 	int ret = noninteractive(argc, converted);
-	int i;
 	cliCleanHelp();
-	for (i = 0; i < argc; i++) {
-		sdsfree(converted[i]);
-	}
-	free(converted);
+	// NOTE: not free-ing converted since it may have changed inside noninteractive
 	sdsfree(config.filename);
 	sdsfree(config.mb_delim);
+	redislite_close_database(db);
 	return ret;
 }

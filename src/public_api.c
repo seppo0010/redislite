@@ -9,7 +9,7 @@
 #include "page_set.h"
 #include "util.h"
 #include "version.h"
-
+#include <math.h>
 
 char *redislite_git_SHA1();
 char *redislite_git_dirty();
@@ -45,7 +45,9 @@ static void redislite_free_reply_value(redislite_reply *reply)
 		case REDISLITE_REPLY_ERROR:
 		case REDISLITE_REPLY_STATUS:
 		case REDISLITE_REPLY_STRING:
-			redislite_free(reply->str);
+			if (reply->str) {
+				redislite_free(reply->str);
+			}
 			break;
 	}
 }
@@ -97,7 +99,12 @@ static const char *expected_integer = "value is not an integer or out of range";
 static const char *expected_double = "Value is not a double";
 static const char *invalid_bit_offset = "bit offset is not an integer or out of range";
 static const char *invalid_bit = "ERR bit is not an integer or out of range";
+static const char *maximum_size = "string exceeds maximum allowed size";
+static const char *index_out_of_range = "index out of range";
 static const char *key_not_found = "ERR no such key";
+static const char *syntax_error = "ERR syntax error";
+static const char *invalid_float = "value is not a valid float";
+static const char *nan_or_infinity = "increment would produce NaN or Infinity";
 static const char *ok = "OK";
 static const char *not_implemented_yet = "This command hasn't been implemented on redislite yet";
 static const char *implementation_not_planned = "This command hasn't been planned to be implemented on redislite";
@@ -157,6 +164,10 @@ static void set_error_message(int status, redislite_reply *reply)
 				error = expected_integer;
 				break;
 			}
+		case REDISLITE_MAXIMUM_SIZE: {
+				error = maximum_size;
+				break;
+			}
 		case REDISLITE_EXPECT_DOUBLE: {
 				error = expected_double;
 				break;
@@ -177,6 +188,23 @@ static void set_error_message(int status, redislite_reply *reply)
 				error = invalid_bit;
 				break;
 			}
+		case REDISLITE_INDEX_OUT_OF_RANGE: {
+				error = index_out_of_range;
+				break;
+			}
+		case REDISLITE_SYNTAX_ERROR: {
+				error = syntax_error;
+				break;
+			}
+		case REDISLITE_INVALID_FLOAT: {
+				error = invalid_float ;
+				break;
+			}
+		case REDISLITE_NAN_OR_INFINITY : {
+				error = nan_or_infinity;
+				break;
+			}
+
 		default: {
 				error = unknown_error;
 				break;
@@ -678,6 +706,58 @@ redislite_reply *redislite_append_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_setbit_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	size_t len;
+	long long bit_offset;
+	long long on;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &bit_offset);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_BIT_OFFSET_INVALID;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	status = str_to_long_long(params->argv[3], params->argvlen[3], &on);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_BIT_INVALID;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+	if (on & ~1) {
+		status = REDISLITE_BIT_INVALID;
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	changeset *cs = redislite_create_changeset(db);
+	int response = status = redislite_page_string_setbit_key_string(cs, key, len, bit_offset, on);
+	if (status < REDISLITE_OK) {
+		set_error_message(status, reply);
+		return reply;
+	}
+	status = redislite_save_changeset(cs);
+	redislite_free_changeset(cs);
+	if (status < REDISLITE_OK) {
+		set_error_message(status, reply);
+		return reply;
+	}
+	reply->type = REDISLITE_REPLY_INTEGER;
+	reply->integer = response;
+	return reply;
+}
+
 redislite_reply *redislite_getbit_command(redislite *db, redislite_params *params)
 {
 	char *key;
@@ -705,6 +785,53 @@ redislite_reply *redislite_getbit_command(redislite *db, redislite_params *param
 	}
 	reply->type = REDISLITE_REPLY_INTEGER;
 	reply->integer = status;
+	return reply;
+}
+
+redislite_reply *redislite_setrange_command(redislite *db, redislite_params *params)
+{
+
+	char *key, *value;
+	size_t len, value_len;
+	long long start;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &start);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+	if (start < 0) {
+		set_error_message(REDISLITE_EXPECT_INTEGER, reply);
+		return reply;
+	}
+	if (start > 512 * 1024) {
+		set_error_message(REDISLITE_MAXIMUM_SIZE, reply);
+		return reply;
+	}
+	value = params->argv[3];
+	value_len = params->argvlen[3];
+
+	size_t reply_len = 0;
+	changeset *cs = redislite_create_changeset(db);
+	status = redislite_page_string_setrange_key_string(cs, key, len, start, value, value_len, &reply_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+	redislite_free_changeset(cs);
+	if (status < REDISLITE_OK) {
+		set_error_message(status, reply);
+		return reply;
+	}
+	reply->type = REDISLITE_REPLY_INTEGER;
+	reply->integer = (long)reply_len;
 	return reply;
 }
 
@@ -793,6 +920,39 @@ redislite_reply *redislite_decr_command(redislite *db, redislite_params *params)
 
 	if (status == REDISLITE_OK) {
 		reply->type = REDISLITE_REPLY_INTEGER;
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	redislite_free_changeset(cs);
+	return reply;
+}
+
+redislite_reply *redislite_incrbyfloat_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	size_t len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	changeset *cs = redislite_create_changeset(db);
+
+	char *eptr;
+	long double incr = strtold(params->argv[2], &eptr);
+	if (isspace(((char *)params->argv[2])[0]) || eptr[0] != '\0' || isnan(incr)) {
+		set_error_message(REDISLITE_EXPECT_DOUBLE, reply);
+		return reply;
+	}
+	int status = redislite_page_string_incrbyfloat_by_key_string(cs, key, len, incr, &reply->str, &reply->len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_STRING;
 	}
 	else {
 		set_error_message(status, reply);
@@ -975,13 +1135,20 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 	size_t len, value_len;
 	key = params->argv[1];
 	len = params->argvlen[1];
-	value = params->argv[2];
-	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
-	int status = redislite_lpush_by_keyname(cs, key, len, value, value_len);
+	int i, status = REDISLITE_OK;
+	for (i = 2; i < params->argc; i++) {
+		value = params->argv[i];
+		value_len = params->argvlen[i];
+		status = redislite_lpush_by_keyname(cs, key, len, value, value_len);
+		if (status != REDISLITE_OK) {
+			break;
+		}
+	}
 	if (status == REDISLITE_OK) {
 		status = redislite_save_changeset(cs);
 	}
+	redislite_free_changeset(cs);
 
 	if (status != REDISLITE_OK) {
 		redislite_reply *reply = redislite_create_reply();
@@ -991,7 +1158,6 @@ redislite_reply *redislite_lpush_command(redislite *db, redislite_params *params
 		set_error_message(status, reply);
 		return reply;
 	}
-	redislite_free_changeset(cs);
 	return redislite_llen_command(db, params);
 }
 
@@ -1001,10 +1167,16 @@ redislite_reply *redislite_rpush_command(redislite *db, redislite_params *params
 	size_t len, value_len;
 	key = params->argv[1];
 	len = params->argvlen[1];
-	value = params->argv[2];
-	value_len = params->argvlen[2];
 	changeset *cs = redislite_create_changeset(db);
-	int status = redislite_rpush_by_keyname(cs, key, len, value, value_len);
+	int i, status = REDISLITE_OK;
+	for (i = 2; i < params->argc; i++) {
+		value = params->argv[i];
+		value_len = params->argvlen[i];
+		status = redislite_rpush_by_keyname(cs, key, len, value, value_len);
+		if (status != REDISLITE_OK) {
+			break;
+		}
+	}
 	if (status == REDISLITE_OK) {
 		status = redislite_save_changeset(cs);
 	}
@@ -1085,6 +1257,36 @@ redislite_reply *redislite_rpop_command(redislite *db, redislite_params *params)
 	len = params->argvlen[1];
 	changeset *cs = redislite_create_changeset(db);
 	int status = redislite_rpop_by_keyname(cs, key, len, &value, &value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_STRING;
+		reply->str = value;
+		reply->len = value_len;
+	}
+	else if (status != REDISLITE_NOT_FOUND) {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
+redislite_reply *redislite_rpoplpush_command(redislite *db, redislite_params *params)
+{
+	char *source, *destination, *value;
+	size_t source_len, destination_len, value_len;
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+	source = params->argv[1];
+	source_len = params->argvlen[1];
+	destination = params->argv[2];
+	destination_len = params->argvlen[2];
+	changeset *cs = redislite_create_changeset(db);
+	int status = redislite_rpoplpush_by_keyname(cs, source, source_len, destination, destination_len, &value, &value_len);
 	if (status == REDISLITE_OK) {
 		status = redislite_save_changeset(cs);
 	}
@@ -1241,6 +1443,97 @@ redislite_reply *redislite_lindex_command(redislite *db, redislite_params *param
 	return reply;
 }
 
+redislite_reply *redislite_lset_command(redislite *db, redislite_params *params)
+{
+	char *key, *value;
+	size_t len, value_len;
+	long long pos;
+
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &pos);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	key = params->argv[1];
+	len = params->argvlen[1];
+	value = params->argv[3];
+	value_len = params->argvlen[3];
+
+	changeset *cs = redislite_create_changeset(db);
+	status = redislite_lset_by_keyname(cs, key, len, (int)pos, value, value_len);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		set_status_message(status, reply);
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
+redislite_reply *redislite_linsert_command(redislite *db, redislite_params *params)
+{
+	char *key, *value, *pivot;
+	size_t len, value_len, pivot_len;
+	int after, status;
+
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	if (params->argvlen[2] == 5 && strcasecmp(params->argv[2], "after") == 0) {
+		after = 1;
+	}
+	else if (params->argvlen[2] == 6 && strcasecmp(params->argv[2], "before") == 0) {
+		after = 0;
+	}
+	else {
+		set_error_message(REDISLITE_SYNTAX_ERROR, reply);
+		return reply;
+	}
+	key = params->argv[1];
+	len = params->argvlen[1];
+	pivot = params->argv[3];
+	pivot_len = params->argvlen[3];
+	value = params->argv[4];
+	value_len = params->argvlen[4];
+
+	changeset *cs = redislite_create_changeset(db);
+	reply->integer = redislite_linsert_by_keyname(cs, key, len, after, pivot, pivot_len, value, value_len);
+	if (reply->integer >= 0) {
+		status = redislite_save_changeset(cs);
+	}
+	else if (reply->integer == REDISLITE_NOT_FOUND) {
+		status = REDISLITE_OK;
+		reply->integer = -1;
+	}
+	else {
+		status = reply->integer;
+	}
+
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		reply->type = REDISLITE_REPLY_INTEGER;
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
 static redislite_reply *init_multibulk(size_t size)
 {
 	size_t i, j;
@@ -1422,19 +1715,19 @@ struct redislite_command redislite_command_table[] = {
 	{"strlen", redislite_strlen_command, 2, 0},
 	{"del", redislite_del_command, -2, 0},
 	{"exists", redislite_exists_command, 2, 0},
-	{"setbit", redislite_command_not_implemented_yet, 4, 0},
+	{"setbit", redislite_setbit_command, 4, 0},
 	{"getbit", redislite_getbit_command, 3, 0},
-	{"setrange", redislite_command_not_implemented_yet, 4, 0},
+	{"setrange", redislite_setrange_command, 4, 0},
 	{"getrange", redislite_getrange_command, 4, 0},
 	{"substr", redislite_getrange_command, 4, 0},
 	{"incr", redislite_incr_command, 2, 0},
 	{"decr", redislite_decr_command, 2, 0},
 	{"mget", redislite_mget_command, -2, 0},
-	{"rpush", redislite_rpush_command, 3, 0},
-	{"lpush", redislite_lpush_command, 3, 0},
+	{"rpush", redislite_rpush_command, -3, 0},
+	{"lpush", redislite_lpush_command, -3, 0},
 	{"rpushx", redislite_rpushx_command, 3, 0},
 	{"lpushx", redislite_lpushx_command, 3, 0},
-	{"linsert", redislite_command_not_implemented_yet, 5, 0},
+	{"linsert", redislite_linsert_command, 5, 0},
 	{"rpop", redislite_rpop_command, 2, 0},
 	{"lpop", redislite_lpop_command, 2, 0},
 	{"brpop", redislite_command_implementation_not_planned, 3, 0},
@@ -1442,11 +1735,11 @@ struct redislite_command redislite_command_table[] = {
 	{"blpop", redislite_command_implementation_not_planned, 3, 0},
 	{"llen", redislite_llen_command, 2, 0},
 	{"lindex", redislite_lindex_command, 3, 0},
-	{"lset", redislite_command_not_implemented_yet, 4, 0},
+	{"lset", redislite_lset_command, 4, 0},
 	{"lrange", redislite_lrange_command, 4, 0},
 	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
 	{"lrem", redislite_command_not_implemented_yet, 4, 0},
-	{"rpoplpush", redislite_command_not_implemented_yet, 3, 0},
+	{"rpoplpush", redislite_rpoplpush_command, 3, 0},
 	{"sadd", redislite_sadd_command, 3, 0},
 	{"srem", redislite_command_not_implemented_yet, 3, 0},
 	{"smove", redislite_command_implementation_not_planned, 4, 0},
@@ -1530,7 +1823,8 @@ struct redislite_command redislite_command_table[] = {
 	{"punsubscribe", redislite_command_implementation_not_planned, 1, 0},
 	{"publish", redislite_command_implementation_not_planned, 3, 0},
 	{"watch", redislite_command_not_implemented_yet, 2, 0},
-	{"unwatch", redislite_command_not_implemented_yet, 1, 0}
+	{"unwatch", redislite_command_not_implemented_yet, 1, 0},
+	{"incrbyfloat", redislite_incrbyfloat_command, 3, 0}
 };
 
 static int memcaseequal(const char *str1, const char *str2, size_t length)
@@ -1631,6 +1925,9 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			if (length == 6 && memcaseequal(command, "incrby", 6)) {
 				return &redislite_command_table[73];
 			}
+			if (length == 11 && memcaseequal(command, "incrbyfloat", 11)) {
+				return &redislite_command_table[117];
+			}
 			break;
 
 		case 221: // 'L'+'L'+'E'
@@ -1674,11 +1971,21 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			break;
 
-		case 227: // 'A'+'P'+'P'
+		case 227: // 'L'+'I'+'N'
 			if (length == 6 && memcaseequal(command, "lindex", 6)) {
 				return &redislite_command_table[27];
 			}
+			else if (length == 7 && memcaseequal(command, "linsert", 7)) {
+				return &redislite_command_table[20];
+			}
 			break;
+
+		case 228: // 'L'+'S'+'E'
+			if (length == 4 && memcaseequal(command, "lset", 4)) {
+				return &redislite_command_table[28];
+			}
+			break;
+
 		case 229: // 'R'+'E'+'N'
 			// 'M'+'S'+'E'
 			if (length == 6 && memcaseequal(command, "rename", 6)) {
@@ -1733,6 +2040,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			if (length == 3 && memcaseequal(command, "set", 3)) {
 				return &redislite_command_table[1];
 			}
+			else if (length == 8 && memcaseequal(command, "setrange", 8)) {
+				return &redislite_command_table[10];
+			}
+			else if (length == 6 && memcaseequal(command, "setbit", 6)) {
+				return &redislite_command_table[8];
+			}
 			else if (length == 5 && memcaseequal(command, "setnx", 5)) {
 				return &redislite_command_table[2];
 			}
@@ -1754,6 +2067,9 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			else if (length == 4 && memcaseequal(command, "rpop", 4)) {
 				return &redislite_command_table[21];
+			}
+			else if (length == 9 && memcaseequal(command, "rpoplpush", 9)) {
+				return &redislite_command_table[32];
 			}
 			break;
 

@@ -1,6 +1,6 @@
 release_hdr := $(shell sh -c './mkreleasehdr.sh')
 
-all: test cli
+all: cli
 dependencies:
 	cd ../deps/linenoise && $(MAKE)
 
@@ -21,8 +21,5 @@ libredislite.a: memory.o core.o redislite.o util.o page_index.o page.o page_stri
 cli: dependencies redislite-cli.o libredislite.a
 	$(CC) -Wall -lm -O0 -g -o redislite-cli redislite-cli.o libredislite.a ../deps/linenoise/linenoise.o
 
-test: libredislite.a
-	$(CC) -Wall -lm -O0 -g -o test test.c libredislite.a
-
 clean:
-	rm -rf test test.dSYM redislite-cli *.o *.a redislite-cli.dSYM
+	rm -rf redislite-cli *.o *.a redislite-cli.dSYM

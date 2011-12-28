@@ -390,7 +390,7 @@ int str_to_long_long(char *str, int len, long long *value)
 	if (eptr[0] != '\0') {
 		return REDISLITE_ERR;
 	}
-	if (errno == ERANGE && (*value == LLONG_MIN || *value == LLONG_MAX)) {
+	if (isspace(((char *)_str)[0]) || (errno == ERANGE && (*value == LLONG_MIN || *value == LLONG_MAX))) {
 		return REDISLITE_ERR;    // TODO: not integer or out of range
 	}
 	return REDISLITE_OK;
