@@ -555,6 +555,7 @@ static int make_room(changeset *cs, redislite_page_list *list, size_t size, int 
 		list->right_page = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, right);
 		if (old_right != NULL) {
 			old_right->left_page = list->right_page;
+			redislite_add_modified_page(cs, right->right_page, REDISLITE_PAGE_TYPE_LIST, old_right);
 		}
 		else {
 			list->left_page = list->right_page;
@@ -767,12 +768,6 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			page->list->left_page = 0;
 		}
 		list_page_num = page_num;
-
-		if (page->list->right_page > 0) {
-			list = redislite_page_get(cs->db, cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST);
-			list->left_page = page_num;
-			redislite_add_modified_page(cs, page->list->right_page, REDISLITE_PAGE_TYPE_LIST, list);
-		}
 		list = page->list;
 		// TODO: delete old page
 	}
