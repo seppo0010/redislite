@@ -407,12 +407,7 @@ int redislite_rpush_page_num(void *_cs, int *page_num_p, char *value, size_t val
 		}
 
 		new_list->right_page = 0;
-		if (list == page->list) {
-			new_list->left_page = 0;
-		}
-		else {
-			new_list->left_page = list->left_page;
-		}
+		new_list->left_page = list == page->list ? *page_num_p : page->list->left_page;
 		new_list->element_alloced = new_list->size = 0;
 		new_list->element_len = 0;
 		status = lpush(new_list, value, value_len);
@@ -714,12 +709,12 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			list->right_page = page_num;
 
 			status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
-			if (status != REDISLITE_OK) {
+			if (status < 0) {
 				// TODO: memory cleanup
 				return status;
 			}
 			status = redislite_add_modified_page(cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST, list);
-			if (status != REDISLITE_OK) {
+			if (status < 0) {
 				// TODO: memory cleanup
 				return status;
 			}
