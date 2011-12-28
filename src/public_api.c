@@ -1484,6 +1484,54 @@ redislite_reply *redislite_lset_command(redislite *db, redislite_params *params)
 	return reply;
 }
 
+redislite_reply *redislite_ltrim_command(redislite *db, redislite_params *params)
+{
+	char *key;
+	size_t len;
+	long long start, end;
+
+	redislite_reply *reply = redislite_create_reply();
+	if (reply == NULL) {
+		return NULL;
+	}
+
+	int status = str_to_long_long(params->argv[2], params->argvlen[2], &start);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	status = str_to_long_long(params->argv[3], params->argvlen[3], &end);
+	if (status != REDISLITE_OK) {
+		if (status == REDISLITE_ERR) {
+			status = REDISLITE_EXPECT_INTEGER;
+		}
+		set_error_message(status, reply);
+		return reply;
+	}
+
+	key = params->argv[1];
+	len = params->argvlen[1];
+
+	changeset *cs = redislite_create_changeset(db);
+	status = redislite_ltrim_by_keyname(cs, key, len, (int)start, (int)end);
+	if (status == REDISLITE_OK) {
+		status = redislite_save_changeset(cs);
+	}
+
+	redislite_free_changeset(cs);
+	if (status == REDISLITE_OK) {
+		set_status_message(status, reply);
+	}
+	else {
+		set_error_message(status, reply);
+	}
+	return reply;
+}
+
 redislite_reply *redislite_linsert_command(redislite *db, redislite_params *params)
 {
 	char *key, *value, *pivot;
@@ -1737,7 +1785,7 @@ struct redislite_command redislite_command_table[] = {
 	{"lindex", redislite_lindex_command, 3, 0},
 	{"lset", redislite_lset_command, 4, 0},
 	{"lrange", redislite_lrange_command, 4, 0},
-	{"ltrim", redislite_command_not_implemented_yet, 4, 0},
+	{"ltrim", redislite_ltrim_command, 4, 0},
 	{"lrem", redislite_command_not_implemented_yet, 4, 0},
 	{"rpoplpush", redislite_rpoplpush_command, 3, 0},
 	{"sadd", redislite_sadd_command, 3, 0},
@@ -2070,6 +2118,12 @@ struct redislite_command *redislite_command_lookup(char *command, size_t length)
 			}
 			else if (length == 9 && memcaseequal(command, "rpoplpush", 9)) {
 				return &redislite_command_table[32];
+			}
+			break;
+
+		case 242: // 'L'+'T'+'R'
+			if (length == 5 && memcaseequal(command, "ltrim", 5)) {
+				return &redislite_command_table[30];
 			}
 			break;
 

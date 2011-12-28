@@ -40,3 +40,4 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 int redislite_lset_by_keyname(void *_cs, char *keyname, size_t keyname_len, int pos, char *value, size_t value_len);
 int redislite_linsert_by_keyname(void *_cs, char *keyname, size_t keyname_len, int after, char *pivot, size_t pivot_len, char *value, size_t value_len);
 int redislite_rpoplpush_by_keyname(void *_cs, char *source, size_t source_len, char *destination, size_t destination_len, char **value, size_t *value_len);
+int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int start, int end);
