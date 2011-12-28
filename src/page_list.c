@@ -1206,8 +1206,9 @@ int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int
 	}
 	redislite_page_list *list = page->list;
 	size_t _end = end, _start = start;
-	size_t list_page_num, i, pos = 0;
+	size_t list_orig_size, list_page_num, i, pos = 0;
 	while (pos < _end && list != NULL) {
+		list_orig_size = list->size;
 		if (pos < _start && pos + list->size >= _start) {
 			for (i = 0; i < _start - pos; i++) {
 				redislite_free(list->element[i]);
@@ -1225,7 +1226,7 @@ int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int
 			}
 		}
 		if (pos + list->size > _end) {
-			list->size -= _end - pos;
+			list->size -= _end - MAX(pos, _start) - 1;
 			if (list != page->list) {
 				status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
 				if (status < 0) {
@@ -1233,7 +1234,7 @@ int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int
 				}
 			}
 		}
-		pos += list->size;
+		pos += list_orig_size;
 		list_page_num = list->right_page;
 		if (pos >= _end) {
 			if (list->right_page > 0) {
@@ -1244,10 +1245,10 @@ int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int
 			list = redislite_page_get(cs->db, _cs, list->right_page, REDISLITE_PAGE_TYPE_LIST);
 		}
 	}
+	page->total_size = end - start + 1;
 	status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
 	if (status < 0) {
 		return status;
 	}
-	page->total_size = end - start + 1;
 	return REDISLITE_OK;
 }
