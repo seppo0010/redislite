@@ -513,12 +513,12 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 	len = params->argvlen[1];
 	int status = redislite_page_index_type(db, NULL, db->root, key, len, &type);
 	if (status == REDISLITE_NOT_FOUND) {
-		reply->str = redislite_malloc(sizeof(char) * 4);
+		reply->str = redislite_malloc(sizeof(char) * 5);
 		if (reply->str == NULL) {
 			redislite_free(reply);
 			return NULL;
 		}
-		memcpy(reply->str, "none", 4);
+		memcpy(reply->str, "none", 5);
 		reply->type = REDISLITE_REPLY_STATUS;
 		reply->len = 4;
 	}
@@ -528,23 +528,23 @@ redislite_reply *redislite_type_command(redislite *db, redislite_params *params)
 	else {
 		switch (type) {
 			case REDISLITE_PAGE_TYPE_STRING: {
-					reply->str = redislite_malloc(sizeof(char) * 6);
+					reply->str = redislite_malloc(sizeof(char) * 7);
 					if (reply->str == NULL) {
 						redislite_free(reply);
 						return NULL;
 					}
-					memcpy(reply->str, "string", 6);
+					memcpy(reply->str, "string", 7);
 					reply->type = REDISLITE_REPLY_STATUS;
 					reply->len = 6;
 					break;
 				}
 			case REDISLITE_PAGE_TYPE_FIRST: {
-					reply->str = redislite_malloc(sizeof(char) * 6);
+					reply->str = redislite_malloc(sizeof(char) * 4);
 					if (reply->str == NULL) {
 						redislite_free(reply);
 						return NULL;
 					}
-					memcpy(reply->str, "set", 3);
+					memcpy(reply->str, "set", 4);
 					reply->type = REDISLITE_REPLY_STATUS;
 					reply->len = 3;
 					break;
