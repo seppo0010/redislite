@@ -768,6 +768,9 @@ int redislite_lpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 		page->list->right_page = list->right_page;
 		list->right_page = list->left_page = 0;
 		redislite_page_delete(_cs, list_page_num, REDISLITE_PAGE_TYPE_LIST);
+		if (page->list->left_page == list_page_num) {
+			page->list->left_page = 0;
+		}
 		list_page_num = page_num;
 
 		if (page->list->right_page > 0) {
