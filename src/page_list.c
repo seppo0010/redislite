@@ -1054,7 +1054,7 @@ int redislite_lset_by_keyname(void *_cs, char *keyname, size_t keyname_len, int 
 	int status;
 	int list_page_num = 0;
 	while (1) {
-		if (general_pos + list->size < seek_pos) {
+		if (general_pos + list->size <= seek_pos) {
 			general_pos += list->size;
 			list_page_num = list->right_page;
 			list = redislite_page_get(cs->db, _cs, list->right_page, REDISLITE_PAGE_TYPE_LIST);
