@@ -1226,7 +1226,7 @@ int redislite_ltrim_by_keyname(void *_cs, char *keyname, size_t keyname_len, int
 			}
 		}
 		if (pos + list->size > _end) {
-			list->size -= _end - MAX(pos, _start) - 1;
+			list->size = _end - MAX(pos, _start) + 1;
 			if (list != page->list) {
 				status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
 				if (status < 0) {
