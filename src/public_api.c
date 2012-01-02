@@ -1363,8 +1363,8 @@ redislite_reply *redislite_lrange_command(redislite *db, redislite_params *param
 	}
 
 	size_t size;
-	char **values;
-	size_t *values_len;
+	char **values = NULL;
+	size_t *values_len = NULL;
 	status = redislite_lrange_by_keyname(db, NULL, key, len, start, end, &size, &values, &values_len);
 	size_t i = 0;
 	if (status == REDISLITE_OK) {
@@ -1384,8 +1384,12 @@ redislite_reply *redislite_lrange_command(redislite *db, redislite_params *param
 			reply->element[i]->str = values[i];
 			reply->element[i]->len = values_len[i];
 		}
-		redislite_free(values);
-		redislite_free(values_len);
+		if (values) {
+			redislite_free(values);
+		}
+		if (values_len) {
+			redislite_free(values_len);
+		}
 	}
 	else if (status != REDISLITE_NOT_FOUND) {
 		set_error_message(status, reply);
