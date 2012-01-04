@@ -10,6 +10,7 @@
 #include "util.h"
 #include "version.h"
 #include <math.h>
+#include <strings.h>
 
 char *redislite_git_SHA1();
 char *redislite_git_dirty();
