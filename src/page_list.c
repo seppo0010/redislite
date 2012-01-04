@@ -242,7 +242,8 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 		new_list->element_alloced = new_list->size = 0;
 		new_list->element_len = 0;
 
-		int i, status;
+		int status;
+		size_t i;
 		grow_list_to_size(new_list, list->size - pos + 1);
 		for (i = 0; i < list->size - pos; i++) {
 			new_list->element[i] = list->element[i + pos];
