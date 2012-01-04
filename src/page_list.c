@@ -160,6 +160,42 @@ void *redislite_read_list_first(void *_db, unsigned char *data)
 	return page;
 }
 
+static int grow_list_to_size(redislite_page_list *list, size_t size)
+{
+	if (list->element_alloced > size) {
+		// avoid shrinking... should we?
+		return REDISLITE_OK;
+	}
+
+	if (list->element_alloced == 0) {
+		void *element = redislite_malloc(sizeof(char *) * (size));
+		if (element == NULL) {
+			return REDISLITE_OOM;
+		}
+		size_t *element_len = redislite_malloc(sizeof(size_t) * (size));
+		if (element_len == NULL) {
+			redislite_free(element);
+			return REDISLITE_OOM;
+		}
+		list->element = element;
+		list->element_len = element_len;
+	}
+	else {
+		void *element = redislite_realloc(list->element, sizeof(char *) * (size));
+		if (element == NULL) {
+			return REDISLITE_OOM;
+		}
+		size_t *element_len = redislite_realloc(list->element_len, sizeof(size_t) * (size));
+		if (element_len == NULL) {
+			return REDISLITE_OOM;    // TODO: rollback element realloc?
+		}
+		list->element = element;
+		list->element_len = element_len;
+	}
+	list->element_alloced = size;
+	return REDISLITE_OK;
+}
+
 static int grow_list(redislite_page_list *list)
 {
 	if (list->element_alloced == list->size) {
@@ -205,8 +241,19 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 		new_list->right_page = list->right_page;
 		new_list->element_alloced = new_list->size = 0;
 		new_list->element_len = 0;
-		;
-		int status = lpush(new_list, value, value_len);
+
+		int i, status;
+		grow_list_to_size(new_list, list->size - pos + 1);
+		for (i = 0; i < list->size - pos; i++) {
+			new_list->element[i] = list->element[i + pos];
+			new_list->element_len[i] = list->element_len[i + pos];
+			list->element[i + pos] = NULL;
+			list->element_len[i + pos] = 0;
+		}
+		new_list->size = list->size - pos;
+		list->size = pos;
+
+		status = lpush(new_list, value, value_len);
 		if (status != REDISLITE_OK) {
 			redislite_free(new_list);
 			return status;
@@ -227,7 +274,10 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 			}
 		}
 
-		return status;
+		if (status < 0) {
+			return status;
+		}
+		return REDISLITE_OK;
 	}
 	char *element = redislite_malloc(sizeof(char) * value_len);
 	if (element == NULL) {
