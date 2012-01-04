@@ -251,7 +251,7 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 			list->element[i + pos] = NULL;
 			list->element_len[i + pos] = 0;
 		}
-		new_list->size = list->size - pos;
+		new_list->size = list->size - pos - 1;
 		list->size = pos;
 
 		status = lpush(new_list, value, value_len);
