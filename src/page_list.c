@@ -1118,6 +1118,9 @@ int redislite_lset_by_keyname(void *_cs, char *keyname, size_t keyname_len, int 
 				status = redislite_add_modified_page(cs, list_page_num, REDISLITE_PAGE_TYPE_LIST, list);
 			}
 			else {
+				if (list->left_page == 0 && list->right_page != 0) {
+					list->left_page = list->right_page;
+				}
 				status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
 			}
 			if (status < 0) {
