@@ -251,14 +251,17 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 			list->element[i + pos] = NULL;
 			list->element_len[i + pos] = 0;
 		}
-		new_list->size = list->size - pos - 1;
+		new_list->size = list->size - pos;
 		list->size = pos;
 
-		status = lpush(new_list, value, value_len);
-		if (status != REDISLITE_OK) {
-			redislite_free(new_list);
-			return status;
+		char *element = redislite_malloc(sizeof(char) * value_len);
+		if (element == NULL) {
+			return REDISLITE_OOM;
 		}
+		redislite_free(new_list->element[0]);
+		memcpy(element, value, value_len);
+		new_list->element[0] = element;
+		new_list->element_len[0] = value_len;
 
 		int new_page_num = redislite_add_modified_page(cs, -1, REDISLITE_PAGE_TYPE_LIST, new_list);
 		if (new_page_num < 0) {
