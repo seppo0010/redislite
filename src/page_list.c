@@ -238,7 +238,6 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 		}
 
 		new_list->left_page = page_num;
-		new_list->right_page = list->right_page;
 		new_list->element_alloced = new_list->size = 0;
 		new_list->element_len = 0;
 
@@ -268,7 +267,7 @@ static int replace_element(changeset *cs, redislite_page_list *list, size_t free
 			return new_page_num;
 		}
 
-		list->right_page = new_page_num;
+		new_list->right_page = list->right_page = new_page_num;
 		if (new_list->right_page != page_num) {
 			redislite_page_list *right_list = redislite_page_get(cs->db, cs, new_list->right_page, REDISLITE_PAGE_TYPE_LIST);
 			right_list->left_page = new_page_num;
