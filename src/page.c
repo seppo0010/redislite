@@ -69,6 +69,12 @@ int redislite_page_delete(void *_cs, int num, char type)
 	if (status < 0) {
 		redislite_free(page);
 	}
+	else {
+		status = redislite_add_modified_page(cs, 0, REDISLITE_PAGE_TYPE_FIRST, db->root);
+		if (status < 0) {
+			redislite_free(page);
+		}
+	}
 	return status;
 }
 
