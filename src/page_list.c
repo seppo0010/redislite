@@ -759,15 +759,7 @@ int redislite_rpop_by_keyname(void *_cs, char *keyname, size_t keyname_len, char
 			status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
 		}
 		else {
-			list = redislite_page_get(cs->db, cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST);
-			list->right_page = page_num;
-
 			status = redislite_add_modified_page(cs, page_num, REDISLITE_PAGE_TYPE_LIST_FIRST, page);
-			if (status < 0) {
-				// TODO: memory cleanup
-				return status;
-			}
-			status = redislite_add_modified_page(cs, page->list->left_page, REDISLITE_PAGE_TYPE_LIST, list);
 			if (status < 0) {
 				// TODO: memory cleanup
 				return status;
