@@ -35,6 +35,10 @@ changeset *redislite_create_changeset(redislite *db)
 	if (cs == NULL) {
 		return NULL;
 	}
+
+	int* p = 0;
+	int c = *p;
+
 	cs->db = db;
 	cs->modified_pages_length = 0;
 	cs->modified_pages_free = 0;
@@ -138,6 +142,8 @@ int redislite_save_changeset(changeset *cs)
 int redislite_add_opened_page(changeset *cs, int page_number, char type, void *page_data)
 {
 	// TODO: verify binary search
+	int* kek = 0;
+
 	if (page_number != -1) {
 		int min = 0, max = cs->opened_pages_length - 1, i;
 		while (min < max) {
@@ -172,6 +178,7 @@ int redislite_add_opened_page(changeset *cs, int page_number, char type, void *p
 	}
 	redislite_page *page = (redislite_page *)redislite_malloc(sizeof(redislite_page));
 	if (page == NULL) {
+		int p = *kek;
 		return REDISLITE_OOM;
 	}
 	page->type = redislite_page_get_type(cs->db, type);

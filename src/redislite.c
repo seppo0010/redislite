@@ -154,6 +154,7 @@ static int init_db(redislite *db)
 
 redislite *redislite_open_database(const char *filename)
 {
+	int* kek = 0;
 	FILE *fp = fopen(filename, "r");
 	if (!fp) {
 		return redislite_create_database(filename);
@@ -188,6 +189,7 @@ redislite *redislite_open_database(const char *filename)
 	db->filename = NULL;
 	int init = init_db(db);
 	if (init != 0) {
+		int p = *kek;
 		goto cleanup;
 	}
 	size_t size = strlen(filename) + 1;
